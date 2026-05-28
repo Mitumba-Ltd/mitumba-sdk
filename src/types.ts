@@ -40,3 +40,5 @@ export interface PaginatedResponse<T> {
 export * from './types/auth'
 export * from './types/listings'
 export * from './types/search'
+export * from './types/orders'
+export * from './types/pay'

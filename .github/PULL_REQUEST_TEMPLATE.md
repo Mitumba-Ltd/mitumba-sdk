@@ -13,21 +13,24 @@
 
 ## Module Scope
 
-- [ ] `Core Client`
+- [ ] `Core Client` (`client.ts`, `index.ts`)
+- [ ] `Types` (`types.ts`)
 - [ ] `Auth`
 - [ ] `Listings`
-- [ ] `Stores`
-- [ ] `Vazi`
+- [ ] `Search`
 - [ ] `Orders`
-- [ ] `Types`
+- [ ] `Pay`
+- [ ] `Vazi`
 
 ## Checklist
 
 - [ ] `npm run typecheck` passes
 - [ ] `npm test` passes (new tests added for new features)
+- [ ] `npm run build` passes
 - [ ] No `any` types used
 - [ ] No `console.log` left behind
 - [ ] Native `fetch` used (no external fetch libraries)
+- [ ] No backend implementation details leaked (no CF Workers, D1, KV, R2 references)
 
 ## Related issues
 

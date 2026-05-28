@@ -5,6 +5,7 @@ import { ListingsModule } from './modules/listings'
 import { SearchModule } from './modules/search'
 import { OrdersModule } from './modules/orders'
 import { PayModule } from './modules/pay'
+import { VaziModule } from './modules/vazi'
 
 export class MitumbaClient {
   public readonly api: APIClient
@@ -13,6 +14,7 @@ export class MitumbaClient {
   public readonly search: SearchModule
   public readonly orders: OrdersModule
   public readonly pay: PayModule
+  public readonly vazi: VaziModule
 
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
@@ -21,6 +23,7 @@ export class MitumbaClient {
     this.search = new SearchModule(this.api)
     this.orders = new OrdersModule(this.api)
     this.pay = new PayModule(this.api)
+    this.vazi = new VaziModule(this.api)
   }
 
   /**
@@ -46,3 +49,4 @@ export { ListingsModule } from './modules/listings'
 export { SearchModule } from './modules/search'
 export { OrdersModule } from './modules/orders'
 export { PayModule } from './modules/pay'
+export { VaziModule } from './modules/vazi'

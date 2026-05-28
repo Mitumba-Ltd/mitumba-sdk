@@ -217,7 +217,7 @@ Protected endpoints require an `Authorization: Bearer <access_token>` header. Th
   images: Array<{
     id: string
     listing_id: string
-    r2_key: string
+    url: string
     position: number
     created_at: string
   }>
@@ -352,7 +352,7 @@ Sets status to `removed`. Does not permanently delete.
 
 **Body:** `{ index: number }` _(0–9, max 10 images per listing)_
 
-**Response:** `201 { r2_key: string, image_id: string }`
+**Response:** `201 { upload_url: string, image_id: string }`
 
 ---
 
@@ -484,7 +484,7 @@ Sets status to `removed`. Does not permanently delete.
 
 ```
 created → payment_pending → paid → seller_confirmed → shipped → delivered → completed
-                                                                      ↗ (auto after 48h escrow)
+                                                                      ↗ (auto after 48h)
 Any early stage → cancelled
 paid / shipped  → disputed
 ```
@@ -496,7 +496,7 @@ paid / shipped  → disputed
 - **Buyer:** `delivered → completed`
 - **Buyer:** `pending → cancelled`
 - **Either:** `→ disputed` (from `paid` or `shipped`)
-- **System:** `shipped → completed` (48h escrow timeout)
+- **System:** `shipped → completed` (auto-completed after 48h if buyer doesn't confirm delivery)
 
 **Errors:** `invalid_transition` (400), `not_found` (404)
 
@@ -537,7 +537,7 @@ paid / shipped  → disputed
 ```typescript
 {
   payment_id: string
-  provider: 'daraja' | 'intasend'
+  provider: string
 }
 ```
 
@@ -567,7 +567,7 @@ paid / shipped  → disputed
 
 **Errors:** `not_found` (404)
 
-> **Note:** Webhook endpoints (`/pay/webhook/daraja`, `/pay/webhook/intasend`) are server-to-server callbacks and are NOT exposed through the SDK.
+> **Note:** Payment confirmation happens asynchronously via server-to-server callbacks. Use `getStatus()` to poll for payment completion.
 
 ---
 

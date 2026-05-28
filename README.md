@@ -11,10 +11,10 @@
 
 ## What this is
 
-This repository contains the strongly-typed API client (`@mitumba/sdk`) for the Mitumba platform. It acts as the bridge between any frontend consumer (Next.js web marketplace, Admin dashboard, React Native mobile apps) and our Cloudflare Workers backend.
+This repository contains the strongly-typed API client (`@mitumba/sdk`) for the Mitumba platform. It acts as the bridge between any frontend consumer (Next.js web marketplace, Admin dashboard, React Native mobile apps) and the Mitumba API.
 
 By extracting the API logic into this SDK, we ensure:
-1.  **Type Safety:** End-to-end type safety from the database to the UI.
+1.  **Type Safety:** End-to-end type safety from the API to the UI.
 2.  **Decoupled UX:** Frontend apps focus entirely on UX and state, not fetch headers, JWT persistence, or base URLs.
 3.  **Extensibility:** A public-facing contract that allows third parties (or future internal tools) to interact with the Mitumba ecosystem seamlessly.
 
@@ -22,13 +22,14 @@ By extracting the API logic into this SDK, we ensure:
 
 ## Architecture
 
-The SDK is organized by domain modules, matching our backend worker architecture:
+The SDK is organized by domain modules, matching our API architecture:
 
--   `sdk.auth` — Login, registration, OTP verification.
--   `sdk.listings` — Search, CRUD operations for inventory.
--   `sdk.stores` — Tenant storefront data, seller dashboard analytics.
--   `sdk.vazi` — Outfit generation and garment classification logic.
--   `sdk.orders` — Cart management, STK Push checkout, and escrow.
+-   `sdk.auth` — Login, registration, OTP verification, token management.
+-   `sdk.listings` — Browse feed, CRUD operations for listings, seller storefronts.
+-   `sdk.search` — Full-text search with filters, trending terms.
+-   `sdk.orders` — Order creation, lifecycle management, order history.
+-   `sdk.pay` — M-Pesa payments, payment status polling.
+-   `sdk.vazi` — AI-powered outfit feed and outfit completion.
 
 ---
 
@@ -49,7 +50,7 @@ const mitumba = new MitumbaClient({
 });
 
 // Example Usage
-const trending = await mitumba.listings.getTrending('nbi');
+const feed = await mitumba.listings.getFeed({ city_id: 'nairobi' });
 ```
 
 ---

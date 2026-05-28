@@ -138,4 +138,34 @@ describe('APIClient', () => {
     const lastCallInit = vi.mocked(globalThis.fetch).mock.calls[2][1] as RequestInit
     expect((lastCallInit.headers as Headers).get('Authorization')).toBe('Bearer new-token')
   })
+
+  it('retries requests on 5xx errors with exponential backoff', async () => {
+    client = new APIClient({ baseUrl: BASE_URL, maxRetries: 2, debug: false })
+
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
+      .mockResolvedValueOnce({ ok: false, status: 500 } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response)
+
+    const result = await client.get('/retry-test')
+    
+    expect(result).toEqual({ ok: true })
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('aborts the request when AbortSignal is aborted', async () => {
+    const abortError = new Error('The operation was aborted')
+    abortError.name = 'AbortError'
+    
+    vi.mocked(globalThis.fetch).mockRejectedValueOnce(abortError)
+
+    const controller = new AbortController()
+    controller.abort()
+
+    await expect(client.get('/abort-test', undefined, { signal: controller.signal })).rejects.toThrow('The operation was aborted')
+    
+    // Check that fetch was called with the signal
+    const callArgs = vi.mocked(globalThis.fetch).mock.calls[0]
+    expect((callArgs[1] as RequestInit).signal).toBe(controller.signal)
+  })
 })

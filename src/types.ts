@@ -1,9 +1,7 @@
 export interface MitumbaClientConfig {
-  /**
-   * The base URL of the Mitumba API gateway.
-   * Example: 'https://api.mitumba.stanl.ink'
-   */
   baseUrl: string
+  debug?: boolean
+  maxRetries?: number
 
   /**
    * Optional access token for authenticated requests.
@@ -43,3 +41,7 @@ export * from './types/search'
 export * from './types/orders'
 export * from './types/pay'
 export * from './types/vazi'
+
+export interface RequestOptions {
+  signal?: AbortSignal
+}

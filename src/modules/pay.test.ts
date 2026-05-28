@@ -19,7 +19,7 @@ describe('PayModule', () => {
       const input = { order_id: 'ord_123', phone: '+254700000000' }
       const result = await payModule.initiateStkPush(input)
       
-      expect(apiClient.post).toHaveBeenCalledWith('/pay/stk', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/pay/stk', input, undefined)
       expect(result).toEqual(mockResponse)
     })
   })
@@ -30,7 +30,7 @@ describe('PayModule', () => {
       
       await payModule.getStatus('ord_123')
       
-      expect(apiClient.get).toHaveBeenCalledWith('/pay/status/ord_123')
+      expect(apiClient.get).toHaveBeenCalledWith('/pay/status/ord_123', undefined, undefined)
     })
   })
 })

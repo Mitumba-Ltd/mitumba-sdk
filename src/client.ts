@@ -1,4 +1,4 @@
-import { MitumbaClientConfig, APIErrorResponse } from './types'
+import { MitumbaClientConfig, APIErrorResponse, RequestOptions } from './types'
 
 export class APIError extends Error {
   public readonly code: string
@@ -35,7 +35,13 @@ export class APIClient {
     this.config.refreshToken = undefined
   }
 
-  private async request<T>(method: string, path: string, body?: unknown, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
+  private async request<T>(
+    method: string, 
+    path: string, 
+    body?: unknown, 
+    params?: Record<string, string | number | boolean | undefined>,
+    options?: RequestOptions
+  ): Promise<T> {
     const url = new URL(path, this.config.baseUrl)
     
     if (params) {
@@ -59,9 +65,51 @@ export class APIClient {
       method,
       headers,
       body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+      signal: options?.signal
     }
 
-    let response = await fetch(url.toString(), init)
+    const maxRetries = this.config.maxRetries ?? 3
+    let attempt = 0
+    let response: Response
+
+    while (true) {
+      if (this.config.debug) {
+        console.log(`[Mitumba SDK] ${method} ${url.toString()}`)
+      }
+      
+      const startTime = Date.now()
+      try {
+        response = await fetch(url.toString(), init)
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          throw err
+        }
+        if (attempt < maxRetries) {
+          attempt++
+          if (this.config.debug) {
+            console.log(`[Mitumba SDK] Network error. Retrying ${method} ${url.toString()} (attempt ${attempt})`)
+          }
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100))
+          continue
+        }
+        throw new APIError(0, { error: 'network_error', message: err instanceof Error ? err.message : 'Network request failed' })
+      }
+
+      if (this.config.debug) {
+        console.log(`[Mitumba SDK] ${method} ${url.toString()} - ${response.status} (${Date.now() - startTime}ms)`)
+      }
+
+      if (response.status >= 500 && attempt < maxRetries) {
+        attempt++
+        if (this.config.debug) {
+          console.log(`[Mitumba SDK] ${response.status} error. Retrying ${method} ${url.toString()} (attempt ${attempt})`)
+        }
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100))
+        continue
+      }
+
+      break
+    }
 
     // Handle automatic token refresh
     if (response.status === 401 && this.config.refreshToken && !path.includes('/auth/refresh')) {
@@ -125,23 +173,23 @@ export class APIClient {
     return this.refreshPromise
   }
 
-  public get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return this.request<T>('GET', path, undefined, params)
+  public get<T>(path: string, params?: Record<string, string | number | boolean | undefined>, options?: RequestOptions): Promise<T> {
+    return this.request<T>('GET', path, undefined, params, options)
   }
 
-  public post<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>('POST', path, body)
+  public post<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    return this.request<T>('POST', path, body, undefined, options)
   }
 
-  public put<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>('PUT', path, body)
+  public put<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    return this.request<T>('PUT', path, body, undefined, options)
   }
 
-  public patch<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>('PATCH', path, body)
+  public patch<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    return this.request<T>('PATCH', path, body, undefined, options)
   }
 
-  public delete<T>(path: string): Promise<T> {
-    return this.request<T>('DELETE', path)
+  public delete<T>(path: string, options?: RequestOptions): Promise<T> {
+    return this.request<T>('DELETE', path, undefined, undefined, options)
   }
 }

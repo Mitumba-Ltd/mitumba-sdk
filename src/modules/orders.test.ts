@@ -20,7 +20,7 @@ describe('OrdersModule', () => {
       const input = { listing_id: 'lst_123' }
       const result = await ordersModule.create(input)
       
-      expect(apiClient.post).toHaveBeenCalledWith('/orders', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/orders', input, undefined)
       expect(result).toEqual(mockResponse)
     })
   })
@@ -29,7 +29,7 @@ describe('OrdersModule', () => {
     it('calls GET /orders/:id', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({})
       await ordersModule.getById('ord_123')
-      expect(apiClient.get).toHaveBeenCalledWith('/orders/ord_123')
+      expect(apiClient.get).toHaveBeenCalledWith('/orders/ord_123', undefined, undefined)
     })
   })
 
@@ -40,7 +40,7 @@ describe('OrdersModule', () => {
       
       await ordersModule.transition('ord_123', input)
       
-      expect(apiClient.post).toHaveBeenCalledWith('/orders/ord_123/transition', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/orders/ord_123/transition', input, undefined)
     })
   })
 
@@ -51,7 +51,7 @@ describe('OrdersModule', () => {
       
       await ordersModule.getHistory(params)
       
-      expect(apiClient.get).toHaveBeenCalledWith('/orders/history', params)
+      expect(apiClient.get).toHaveBeenCalledWith('/orders/history', params, undefined)
     })
   })
 })

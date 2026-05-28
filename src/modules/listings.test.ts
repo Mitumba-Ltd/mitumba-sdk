@@ -18,7 +18,7 @@ describe('ListingsModule', () => {
       
       await listingsModule.getFeed(params)
       
-      expect(apiClient.get).toHaveBeenCalledWith('/listings/feed', params)
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/feed', params, undefined)
     })
   })
 
@@ -26,7 +26,7 @@ describe('ListingsModule', () => {
     it('calls GET /listings/:id', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({})
       await listingsModule.getById('123')
-      expect(apiClient.get).toHaveBeenCalledWith('/listings/123')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/123', undefined, undefined)
     })
   })
 
@@ -35,7 +35,7 @@ describe('ListingsModule', () => {
       vi.spyOn(apiClient, 'post').mockResolvedValue({})
       const input = { title: 'Test', category_id: 'cat1', city_id: 'nbi', price: 100, condition: 'new' as const }
       await listingsModule.create(input)
-      expect(apiClient.post).toHaveBeenCalledWith('/listings', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/listings', input, undefined)
     })
   })
 
@@ -44,7 +44,7 @@ describe('ListingsModule', () => {
       vi.spyOn(apiClient, 'put').mockResolvedValue({})
       const input = { title: 'Updated' }
       await listingsModule.update('123', input)
-      expect(apiClient.put).toHaveBeenCalledWith('/listings/123', input)
+      expect(apiClient.put).toHaveBeenCalledWith('/listings/123', input, undefined)
     })
   })
 
@@ -52,7 +52,7 @@ describe('ListingsModule', () => {
     it('calls PATCH /listings/:id/status', async () => {
       vi.spyOn(apiClient, 'patch').mockResolvedValue({})
       await listingsModule.updateStatus('123', 'sold')
-      expect(apiClient.patch).toHaveBeenCalledWith('/listings/123/status', { status: 'sold' })
+      expect(apiClient.patch).toHaveBeenCalledWith('/listings/123/status', { status: 'sold' }, undefined)
     })
   })
 
@@ -60,7 +60,7 @@ describe('ListingsModule', () => {
     it('calls DELETE /listings/:id', async () => {
       vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
       await listingsModule.delete('123')
-      expect(apiClient.delete).toHaveBeenCalledWith('/listings/123')
+      expect(apiClient.delete).toHaveBeenCalledWith('/listings/123', undefined)
     })
   })
 
@@ -69,7 +69,7 @@ describe('ListingsModule', () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({})
       const params = { page: 2 }
       await listingsModule.getSellerStorefront('seller1', params)
-      expect(apiClient.get).toHaveBeenCalledWith('/listings/seller/seller1', params)
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/seller/seller1', params, undefined)
     })
   })
 
@@ -77,7 +77,7 @@ describe('ListingsModule', () => {
     it('calls GET /listings/categories', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue([])
       await listingsModule.getCategories()
-      expect(apiClient.get).toHaveBeenCalledWith('/listings/categories')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/categories', undefined, undefined)
     })
   })
 
@@ -85,7 +85,7 @@ describe('ListingsModule', () => {
     it('calls GET /listings/cities', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue([])
       await listingsModule.getCities()
-      expect(apiClient.get).toHaveBeenCalledWith('/listings/cities')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/cities', undefined, undefined)
     })
   })
 
@@ -93,7 +93,7 @@ describe('ListingsModule', () => {
     it('calls POST /listings/:id/images/presign', async () => {
       vi.spyOn(apiClient, 'post').mockResolvedValue({})
       await listingsModule.presignImage('123', 2)
-      expect(apiClient.post).toHaveBeenCalledWith('/listings/123/images/presign', { index: 2 })
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/123/images/presign', { index: 2 }, undefined)
     })
   })
 })

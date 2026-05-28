@@ -18,7 +18,7 @@ describe('SearchModule', () => {
       
       await searchModule.search(params)
       
-      expect(apiClient.get).toHaveBeenCalledWith('/search', params)
+      expect(apiClient.get).toHaveBeenCalledWith('/search', params, undefined)
     })
   })
 
@@ -28,7 +28,7 @@ describe('SearchModule', () => {
       
       await searchModule.getTrending()
       
-      expect(apiClient.get).toHaveBeenCalledWith('/search/trending', undefined)
+      expect(apiClient.get).toHaveBeenCalledWith('/search/trending', undefined, undefined)
     })
 
     it('calls GET /search/trending with city_id', async () => {
@@ -36,7 +36,7 @@ describe('SearchModule', () => {
       
       await searchModule.getTrending('nbi')
       
-      expect(apiClient.get).toHaveBeenCalledWith('/search/trending', { city_id: 'nbi' })
+      expect(apiClient.get).toHaveBeenCalledWith('/search/trending', { city_id: 'nbi' }, undefined)
     })
   })
 })

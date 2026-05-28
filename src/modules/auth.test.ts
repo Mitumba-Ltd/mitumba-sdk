@@ -22,7 +22,7 @@ describe('AuthModule', () => {
 
       const result = await authModule.register(input)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/register', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/register', input, undefined)
       expect(result).toEqual(mockResponse)
     })
 
@@ -33,7 +33,7 @@ describe('AuthModule', () => {
 
       const result = await authModule.register(input)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/register', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/register', input, undefined)
       expect(result).toEqual(mockResponse)
     })
   })
@@ -46,7 +46,7 @@ describe('AuthModule', () => {
 
       const result = await authModule.login(input)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/login', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/login', input, undefined)
       expect(result).toEqual(mockResponse)
     })
 
@@ -57,7 +57,7 @@ describe('AuthModule', () => {
 
       const result = await authModule.login(input)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/login', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/login', input, undefined)
       expect(result).toEqual(mockResponse)
     })
   })
@@ -70,7 +70,7 @@ describe('AuthModule', () => {
 
       const result = await authModule.sendOtp(input)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/otp/send', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/otp/send', input, undefined)
       expect(result).toEqual(mockResponse)
     })
   })
@@ -83,7 +83,7 @@ describe('AuthModule', () => {
 
       const result = await authModule.verifyOtp(input)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/otp/verify', input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/otp/verify', input, undefined)
       expect(result).toEqual(mockResponse)
     })
   })
@@ -96,7 +96,7 @@ describe('AuthModule', () => {
 
       const result = await authModule.refresh(refreshToken)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/refresh', { refresh_token: refreshToken })
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/refresh', { refresh_token: refreshToken }, undefined)
       expect(result).toEqual(mockResponse)
     })
   })
@@ -109,7 +109,7 @@ describe('AuthModule', () => {
 
       const result = await authModule.logout(refreshToken)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/logout', { refresh_token: refreshToken })
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/logout', { refresh_token: refreshToken }, undefined)
       expect(result).toEqual(mockResponse)
     })
   })

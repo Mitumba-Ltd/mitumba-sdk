@@ -18,7 +18,7 @@ describe('VaziModule', () => {
       
       await vaziModule.getFeed(params)
       
-      expect(apiClient.get).toHaveBeenCalledWith('/vazi/feed', params)
+      expect(apiClient.get).toHaveBeenCalledWith('/vazi/feed', params, undefined)
     })
 
     it('calls GET /vazi/feed without params', async () => {
@@ -26,7 +26,7 @@ describe('VaziModule', () => {
       
       await vaziModule.getFeed()
       
-      expect(apiClient.get).toHaveBeenCalledWith('/vazi/feed', undefined)
+      expect(apiClient.get).toHaveBeenCalledWith('/vazi/feed', undefined, undefined)
     })
   })
 
@@ -36,7 +36,7 @@ describe('VaziModule', () => {
       
       await vaziModule.completeOutfit('lst_123')
       
-      expect(apiClient.get).toHaveBeenCalledWith('/vazi/complete/lst_123')
+      expect(apiClient.get).toHaveBeenCalledWith('/vazi/complete/lst_123', undefined, undefined)
     })
   })
 })

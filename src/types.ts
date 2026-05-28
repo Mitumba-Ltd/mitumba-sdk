@@ -38,3 +38,5 @@ export interface PaginatedResponse<T> {
 }
 
 export * from './types/auth'
+export * from './types/listings'
+export * from './types/search'

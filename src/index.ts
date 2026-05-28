@@ -1,11 +1,14 @@
 import { APIClient } from './client'
 import { MitumbaClientConfig } from './types'
+import { AuthModule } from './modules/auth'
 
 export class MitumbaClient {
   public readonly api: APIClient
+  public readonly auth: AuthModule
 
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
+    this.auth = new AuthModule(this.api)
   }
 
   /**
@@ -26,3 +29,4 @@ export class MitumbaClient {
 
 export * from './types'
 export { APIClient, APIError } from './client'
+export { AuthModule } from './modules/auth'

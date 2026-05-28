@@ -148,3 +148,19 @@ try {
 ## License
 
 MIT
+
+---
+
+## Contributing & Releasing
+
+We use [Changesets](https://github.com/changesets/changesets) for automated versioning and changelog generation.
+
+When submitting a PR that requires a package version bump, run:
+
+```bash
+npx changeset
+```
+
+Select the appropriate version bump (`patch`, `minor`, `major`) and provide a description of your changes. Commit the generated markdown file along with your PR. 
+
+When your PR is merged, the automated workflow will handle updating the version, aggregating the changelog, and publishing to NPM.

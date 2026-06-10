@@ -1,5 +1,17 @@
 # @mitumba/sdk
 
+## 0.6.0
+
+### Minor Changes
+
+- cf95d40: Add `sdk.messages` module for in-app messaging:
+
+  - `list()` — list all conversations (GET /notify/messages)
+  - `getThread(partnerId)` — get message thread with a partner (GET /notify/messages/:partnerId)
+  - `send(input)` — send a message (POST /notify/messages)
+
+  New exported types: `Conversation`, `Message`, `SendMessageInput`
+
 ## 0.5.0
 
 ### Minor Changes

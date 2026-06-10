@@ -6,6 +6,7 @@ import type {
   VerifyOtpInput,
   ForgotPasswordInput,
   ResetPasswordInput,
+  UserProfile,
   AuthTokens,
   MessageResponse,
   RequestOptions,
@@ -73,5 +74,12 @@ export class AuthModule {
    */
   async resetPassword(input: ResetPasswordInput, options?: RequestOptions): Promise<MessageResponse> {
     return this.client.post<MessageResponse>('/auth/reset-password', input, options)
+  }
+
+  /**
+   * Get the current authenticated user's profile.
+   */
+  async me(options?: RequestOptions): Promise<UserProfile> {
+    return this.client.get<UserProfile>('/auth/me', undefined, options)
   }
 }

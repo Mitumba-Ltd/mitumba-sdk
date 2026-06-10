@@ -90,26 +90,26 @@ describe('AuthModule', () => {
 
   describe('refresh', () => {
     it('calls POST /auth/refresh', async () => {
-      const refreshToken = 'my-refresh-token'
+      const input = { refresh_token: 'my-refresh-token' }
       const mockResponse = { access_token: 'new-access', refresh_token: 'new-refresh', expires_in: 900 }
       vi.mocked(apiClient.post).mockResolvedValueOnce(mockResponse)
 
-      const result = await authModule.refresh(refreshToken)
+      const result = await authModule.refresh(input)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/refresh', { refresh_token: refreshToken }, undefined)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/refresh', input, undefined)
       expect(result).toEqual(mockResponse)
     })
   })
 
   describe('logout', () => {
     it('calls POST /auth/logout', async () => {
-      const refreshToken = 'my-refresh-token'
+      const input = { refresh_token: 'my-refresh-token' }
       const mockResponse = { ok: true }
       vi.mocked(apiClient.post).mockResolvedValueOnce(mockResponse)
 
-      const result = await authModule.logout(refreshToken)
+      const result = await authModule.logout(input)
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/logout', { refresh_token: refreshToken }, undefined)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/logout', input, undefined)
       expect(result).toEqual(mockResponse)
     })
   })

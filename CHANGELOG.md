@@ -1,5 +1,13 @@
 # @mitumba/sdk
 
+## 0.5.0
+
+### Minor Changes
+
+- dbcd56a: Add `sdk.auth.me()` method to fetch the current authenticated user's profile (GET /auth/me).
+
+  New exported type: `UserProfile`
+
 ## 0.4.0
 
 ### Minor Changes

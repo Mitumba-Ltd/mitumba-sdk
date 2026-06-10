@@ -139,4 +139,26 @@ describe('AuthModule', () => {
       expect(result).toEqual(mockResponse)
     })
   })
+
+  describe('me', () => {
+    it('calls GET /auth/me', async () => {
+      const mockResponse = {
+        id: 'user_1',
+        email: 'test@example.com',
+        phone: null,
+        display_name: 'Test',
+        city_id: 'nbi',
+        onboarding_completed: true,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        roles: ['buyer'],
+      }
+      vi.spyOn(apiClient, 'get').mockResolvedValueOnce(mockResponse)
+
+      const result = await authModule.me()
+
+      expect(apiClient.get).toHaveBeenCalledWith('/auth/me', undefined, undefined)
+      expect(result).toEqual(mockResponse)
+    })
+  })
 })

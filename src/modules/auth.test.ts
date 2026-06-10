@@ -113,4 +113,30 @@ describe('AuthModule', () => {
       expect(result).toEqual(mockResponse)
     })
   })
+
+  describe('forgotPassword', () => {
+    it('calls POST /auth/forgot-password with email', async () => {
+      const input = { email: 'user@example.com' }
+      const mockResponse = { message: 'Reset link sent' }
+      vi.mocked(apiClient.post).mockResolvedValueOnce(mockResponse)
+
+      const result = await authModule.forgotPassword(input)
+
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/forgot-password', input, undefined)
+      expect(result).toEqual(mockResponse)
+    })
+  })
+
+  describe('resetPassword', () => {
+    it('calls POST /auth/reset-password with token and password', async () => {
+      const input = { token: 'reset-token-abc', password: 'newPassword123' }
+      const mockResponse = { message: 'Password reset successfully' }
+      vi.mocked(apiClient.post).mockResolvedValueOnce(mockResponse)
+
+      const result = await authModule.resetPassword(input)
+
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/reset-password', input, undefined)
+      expect(result).toEqual(mockResponse)
+    })
+  })
 })

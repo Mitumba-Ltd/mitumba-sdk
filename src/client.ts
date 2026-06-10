@@ -30,6 +30,10 @@ export class APIClient {
     }
   }
 
+  public getToken(): string | undefined {
+    return this.config.token
+  }
+
   public clearToken() {
     this.config.token = undefined
     this.config.refreshToken = undefined

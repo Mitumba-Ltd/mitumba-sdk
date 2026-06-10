@@ -35,6 +35,13 @@ export class MitumbaClient {
   }
 
   /**
+   * Get the current access token.
+   */
+  public getToken(): string | undefined {
+    return this.api.getToken()
+  }
+
+  /**
    * Clear the current tokens.
    */
   public clearToken() {

@@ -30,11 +30,11 @@ describe('VaziModule', () => {
     })
   })
 
-  describe('completeOutfit', () => {
+  describe('getCompleteLook', () => {
     it('calls GET /vazi/complete/:listing_id', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ outfits: [] })
       
-      await vaziModule.completeOutfit('lst_123')
+      await vaziModule.getCompleteLook('lst_123')
       
       expect(apiClient.get).toHaveBeenCalledWith('/vazi/complete/lst_123', undefined, undefined)
     })

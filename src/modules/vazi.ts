@@ -18,7 +18,7 @@ export class VaziModule {
   /**
    * Get a complete outfit built around a specific seed listing.
    */
-  async completeOutfit(listingId: string, options?: RequestOptions): Promise<{ outfits: VAZIOutfit[] }> {
+  async getCompleteLook(listingId: string, options?: RequestOptions): Promise<{ outfits: VAZIOutfit[] }> {
     return this.client.get<{ outfits: VAZIOutfit[] }>(`/vazi/complete/${listingId}`, undefined, options)
   }
 }

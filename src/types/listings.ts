@@ -85,6 +85,6 @@ export interface SellerStorefront {
 }
 
 export interface PresignImageResponse {
-  upload_url: string
+  r2_key: string
   image_id: string
 }

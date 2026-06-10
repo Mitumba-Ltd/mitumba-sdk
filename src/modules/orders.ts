@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { CreateOrderInput, Order, OrderHistoryParams, TransitionOrderInput, RequestOptions } from '../types'
+import type { CreateOrderInput, Order, OrderEvent, OrderHistoryParams, OrderStatus, TransitionOrderInput, RequestOptions } from '../types'
 
 export class OrdersModule {
   constructor(private readonly client: APIClient) {}
@@ -14,15 +14,15 @@ export class OrdersModule {
   /**
    * Get full details of an order, including its event timeline.
    */
-  async getById(id: string, options?: RequestOptions): Promise<Order> {
-    return this.client.get<Order>(`/orders/${id}`, undefined, options)
+  async getById(id: string, options?: RequestOptions): Promise<Order & { events: OrderEvent[] }> {
+    return this.client.get<Order & { events: OrderEvent[] }>(`/orders/${id}`, undefined, options)
   }
 
   /**
    * Transition the status of an order.
    */
-  async transition(id: string, input: TransitionOrderInput, options?: RequestOptions): Promise<Order> {
-    return this.client.post<Order>(`/orders/${id}/transition`, input, options)
+  async transition(id: string, input: TransitionOrderInput, options?: RequestOptions): Promise<{ ok: boolean; status: OrderStatus }> {
+    return this.client.post<{ ok: boolean; status: OrderStatus }>(`/orders/${id}/transition`, input, options)
   }
 
   /**

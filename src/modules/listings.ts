@@ -4,6 +4,7 @@ import type {
   City,
   CreateListingInput,
   Listing,
+  ListingImage,
   ListingStatus,
   ListingsFeedParams,
   PaginatedResponse,
@@ -31,8 +32,8 @@ export class ListingsModule {
   /**
    * Get full details of a single listing, including its images.
    */
-  async getById(id: string, options?: RequestOptions): Promise<Listing> {
-    return this.client.get<Listing>(`/listings/${id}`, undefined, options)
+  async getById(id: string, options?: RequestOptions): Promise<Listing & { images: ListingImage[] }> {
+    return this.client.get<Listing & { images: ListingImage[] }>(`/listings/${id}`, undefined, options)
   }
 
   /**
@@ -52,8 +53,8 @@ export class ListingsModule {
   /**
    * Change the status of a listing.
    */
-  async updateStatus(id: string, status: ListingStatus, options?: RequestOptions): Promise<Listing> {
-    return this.client.patch<Listing>(`/listings/${id}/status`, { status }, options)
+  async updateStatus(id: string, status: ListingStatus, options?: RequestOptions): Promise<{ ok: boolean; status: ListingStatus }> {
+    return this.client.patch<{ ok: boolean; status: ListingStatus }>(`/listings/${id}/status`, { status }, options)
   }
 
   /**

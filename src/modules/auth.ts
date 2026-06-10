@@ -47,14 +47,14 @@ export class AuthModule {
   /**
    * Refresh the access token using a refresh token.
    */
-  async refresh(refreshToken: string, options?: RequestOptions): Promise<AuthTokens> {
-    return this.client.post<AuthTokens>('/auth/refresh', { refresh_token: refreshToken }, options)
+  async refresh(input: { refresh_token: string }, options?: RequestOptions): Promise<AuthTokens> {
+    return this.client.post<AuthTokens>('/auth/refresh', input, options)
   }
 
   /**
    * Revoke the refresh token and log out.
    */
-  async logout(refreshToken: string, options?: RequestOptions): Promise<{ ok: boolean }> {
-    return this.client.post<{ ok: boolean }>('/auth/logout', { refresh_token: refreshToken }, options)
+  async logout(input: { refresh_token: string }, options?: RequestOptions): Promise<{ ok: boolean }> {
+    return this.client.post<{ ok: boolean }>('/auth/logout', input, options)
   }
 }

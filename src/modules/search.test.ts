@@ -11,22 +11,22 @@ describe('SearchModule', () => {
     searchModule = new SearchModule(apiClient)
   })
 
-  describe('search', () => {
+  describe('query', () => {
     it('calls GET /search with query params', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
       const params = { q: 'shoes', min_price: 100, sort: 'relevance' as const }
       
-      await searchModule.search(params)
+      await searchModule.query(params)
       
       expect(apiClient.get).toHaveBeenCalledWith('/search', params, undefined)
     })
   })
 
-  describe('getTrending', () => {
-    it('calls GET /search/trending without city_id', async () => {
+  describe('trending', () => {
+    it('calls GET /search/trending without params', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ terms: [] })
       
-      await searchModule.getTrending()
+      await searchModule.trending()
       
       expect(apiClient.get).toHaveBeenCalledWith('/search/trending', undefined, undefined)
     })
@@ -34,7 +34,7 @@ describe('SearchModule', () => {
     it('calls GET /search/trending with city_id', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ terms: [] })
       
-      await searchModule.getTrending('nbi')
+      await searchModule.trending({ city_id: 'nbi' })
       
       expect(apiClient.get).toHaveBeenCalledWith('/search/trending', { city_id: 'nbi' }, undefined)
     })

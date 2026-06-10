@@ -11,13 +11,13 @@ describe('PayModule', () => {
     payModule = new PayModule(apiClient)
   })
 
-  describe('initiateStkPush', () => {
+  describe('initiateStk', () => {
     it('calls POST /pay/stk', async () => {
       const mockResponse = { payment_id: 'pay_123', provider: 'daraja' }
       vi.spyOn(apiClient, 'post').mockResolvedValue(mockResponse)
       
       const input = { order_id: 'ord_123', phone: '+254700000000' }
-      const result = await payModule.initiateStkPush(input)
+      const result = await payModule.initiateStk(input)
       
       expect(apiClient.post).toHaveBeenCalledWith('/pay/stk', input, undefined)
       expect(result).toEqual(mockResponse)

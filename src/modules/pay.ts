@@ -7,7 +7,7 @@ export class PayModule {
   /**
    * Initiate an M-Pesa STK Push payment for an order.
    */
-  async initiateStkPush(input: StkPushInput, options?: RequestOptions): Promise<StkPushResponse> {
+  async initiateStk(input: StkPushInput, options?: RequestOptions): Promise<StkPushResponse> {
     return this.client.post<StkPushResponse>('/pay/stk', input, options)
   }
 

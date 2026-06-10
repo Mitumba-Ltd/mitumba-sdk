@@ -4,6 +4,8 @@ import type {
   LoginInput,
   SendOtpInput,
   VerifyOtpInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
   AuthTokens,
   MessageResponse,
   RequestOptions,
@@ -56,5 +58,20 @@ export class AuthModule {
    */
   async logout(input: { refresh_token: string }, options?: RequestOptions): Promise<{ ok: boolean }> {
     return this.client.post<{ ok: boolean }>('/auth/logout', input, options)
+  }
+
+  /**
+   * Request a password reset email.
+   * Sends a reset link to the provided email address.
+   */
+  async forgotPassword(input: ForgotPasswordInput, options?: RequestOptions): Promise<MessageResponse> {
+    return this.client.post<MessageResponse>('/auth/forgot-password', input, options)
+  }
+
+  /**
+   * Reset the password using a token from the reset email.
+   */
+  async resetPassword(input: ResetPasswordInput, options?: RequestOptions): Promise<MessageResponse> {
+    return this.client.post<MessageResponse>('/auth/reset-password', input, options)
   }
 }

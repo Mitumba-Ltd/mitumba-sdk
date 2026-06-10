@@ -179,6 +179,41 @@ See [`STYLE_GUIDE.md`](./STYLE_GUIDE.md) for the test boilerplate pattern.
 
 ---
 
+## Releasing & Publishing
+
+We use [Changesets](https://github.com/changesets/changesets) for versioning and the **Publish** GitHub Actions workflow for automated npm publishing via OIDC provenance.
+
+### How it works
+
+1.  **Add a changeset with your PR.** Before opening a PR that changes public API or behavior, run `npx changeset` and commit the generated `.changeset/*.md` file alongside your code.
+2.  **Merge your PR to `main`.** CI runs typecheck, tests, and build.
+3.  **The Publish workflow creates a "Version Packages" PR automatically.** This PR bumps `package.json` version, updates `CHANGELOG.md`, and consumes the changeset files. Do not do this manually.
+4.  **Merge the "Version Packages" PR.** On merge, the Publish workflow detects no remaining changesets and runs `changeset publish`, which publishes to npm.
+
+### What you must NOT do
+
+-   **Do not run `npx changeset version` locally** — the workflow handles version bumping.
+-   **Do not run `npm run release` or `npm publish` locally** — publishing happens exclusively through GitHub Actions using OIDC (no local npm tokens needed).
+-   **Do not push version bumps directly to `main`** — always let the automated "Version Packages" PR handle it.
+
+### How npm auth works
+
+Publishing uses [npm provenance](https://docs.npmjs.com/generating-provenance-statements) via GitHub Actions OIDC. The workflow has `id-token: write` permission and sets `NPM_CONFIG_PROVENANCE=true`. This means:
+-   No long-lived npm tokens — authentication is tied to the GitHub Actions run identity.
+-   Every published version has a verifiable link back to the exact commit and workflow that produced it.
+-   The `repository` field in `package.json` must match the GitHub repo URL (required by npm for provenance verification).
+
+### Troubleshooting publish failures
+
+| Error | Cause | Fix |
+|---|---|---|
+| `E404 Not Found` on PUT | npm org/scope doesn't exist or token lacks access | Ensure `@mitumba` org exists on npmjs.org and `NPM_TOKEN` secret has publish rights |
+| `repository.url` mismatch | `package.json` missing or wrong `repository` field | Set `repository.url` to `https://github.com/Mitumba-Ltd/mitumba-sdk` |
+| `TLOG_CREATE_ENTRY_ERROR` (409) | Duplicate sigstore transparency log entry from a previous failed attempt | Re-run the workflow — the conflict resolves on retry |
+| `Unknown flag: --provenance` | Flag passed to `changeset publish` instead of npm | Use `NPM_CONFIG_PROVENANCE=true` env var, not a CLI flag |
+
+---
+
 ## For Agent Sessions
 
 If you are an AI agent reading this:

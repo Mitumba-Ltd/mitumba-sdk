@@ -48,3 +48,15 @@ export interface ResetPasswordInput {
   token: string
   password: string
 }
+
+export interface UserProfile {
+  id: string
+  email: string | null
+  phone: string | null
+  display_name: string | null
+  city_id: string | null
+  onboarding_completed: boolean
+  is_active: boolean
+  created_at: string
+  roles: string[]
+}

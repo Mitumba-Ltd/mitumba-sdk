@@ -33,6 +33,10 @@
     "prepare": "npm run build",
     "release": "changeset publish"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mitumba-Ltd/mitumba-sdk"
+  },
   "author": "Mitumba Ltd",
   "license": "MIT",
   "devDependencies": {

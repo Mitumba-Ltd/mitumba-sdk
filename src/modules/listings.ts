@@ -2,6 +2,7 @@ import { APIClient } from '../client'
 import type {
   Category,
   City,
+  Condition,
   CreateListingInput,
   Listing,
   ListingImage,
@@ -99,5 +100,34 @@ export class ListingsModule {
    */
   async presignImage(listingId: string, index: number, options?: RequestOptions): Promise<PresignImageResponse> {
     return this.client.post<PresignImageResponse>(`/listings/${listingId}/images/presign`, { index }, options)
+  }
+
+  /**
+   * Browse the listing feed (alias for getFeed with simplified params).
+   */
+  async feed(params?: { page?: number; city?: string; category?: string; sort?: string }, options?: RequestOptions): Promise<{ data: Listing[]; page: number }> {
+    return this.client.get<{ data: Listing[]; page: number }>(
+      '/listings',
+      params as unknown as Record<string, string | number | boolean | undefined>,
+      options
+    )
+  }
+
+  /**
+   * Get a single listing by ID (alias for getById).
+   */
+  async get(id: string, options?: RequestOptions): Promise<Listing & { images: ListingImage[] }> {
+    return this.getById(id, options)
+  }
+
+  /**
+   * Full-text search with filters.
+   */
+  async search(params: { q: string; category?: string; condition?: Condition; min_price?: number; max_price?: number; sort?: string; page?: number }, options?: RequestOptions): Promise<{ data: Listing[]; total: number }> {
+    return this.client.get<{ data: Listing[]; total: number }>(
+      '/search',
+      params as unknown as Record<string, string | number | boolean | undefined>,
+      options
+    )
   }
 }

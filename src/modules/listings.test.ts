@@ -96,4 +96,28 @@ describe('ListingsModule', () => {
       expect(apiClient.post).toHaveBeenCalledWith('/listings/123/images/presign', { index: 2 }, undefined)
     })
   })
+
+  describe('feed', () => {
+    it('calls GET /listings with params', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], page: 1 })
+      await listingsModule.feed({ city: 'nairobi', page: 2 })
+      expect(apiClient.get).toHaveBeenCalledWith('/listings', { city: 'nairobi', page: 2 }, undefined)
+    })
+  })
+
+  describe('get', () => {
+    it('calls GET /listings/:id', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({})
+      await listingsModule.get('lst_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/lst_1', undefined, undefined)
+    })
+  })
+
+  describe('search', () => {
+    it('calls GET /search with params', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], total: 0 })
+      await listingsModule.search({ q: 'jacket', min_price: 500 })
+      expect(apiClient.get).toHaveBeenCalledWith('/search', { q: 'jacket', min_price: 500 }, undefined)
+    })
+  })
 })

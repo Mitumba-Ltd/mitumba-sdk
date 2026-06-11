@@ -44,6 +44,7 @@ export * from './types/vazi'
 export * from './types/messages'
 export * from './types/notifications'
 export * from './types/stores'
+export * from './types/reviews'
 
 export interface RequestOptions {
   signal?: AbortSignal

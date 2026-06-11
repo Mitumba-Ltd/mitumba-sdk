@@ -1,5 +1,16 @@
 # @mitumba/sdk
 
+## 0.7.0
+
+### Minor Changes
+
+- fd81e62: Add `sdk.notifications` module:
+
+  - `list(page?)` — list paginated notifications with unread count (GET /notify/notifications)
+  - `markRead(ids?)` — mark specific or all notifications as read (POST /notify/notifications/read)
+
+  New exported types: `Notification`, `NotificationType`
+
 ## 0.6.0
 
 ### Minor Changes

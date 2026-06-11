@@ -2,6 +2,7 @@ import { APIClient } from '../client'
 import type {
   Category,
   City,
+  Condition,
   CreateListingInput,
   Listing,
   ListingImage,

@@ -8,6 +8,7 @@ import { PayModule } from './modules/pay'
 import { VaziModule } from './modules/vazi'
 import { MessagesModule } from './modules/messages'
 import { NotificationsModule } from './modules/notifications'
+import { StoresModule } from './modules/stores'
 
 export class MitumbaClient {
   public readonly api: APIClient
@@ -19,6 +20,7 @@ export class MitumbaClient {
   public readonly vazi: VaziModule
   public readonly messages: MessagesModule
   public readonly notifications: NotificationsModule
+  public readonly stores: StoresModule
 
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
@@ -30,6 +32,7 @@ export class MitumbaClient {
     this.vazi = new VaziModule(this.api)
     this.messages = new MessagesModule(this.api)
     this.notifications = new NotificationsModule(this.api)
+    this.stores = new StoresModule(this.api)
   }
 
   /**
@@ -65,3 +68,4 @@ export { PayModule } from './modules/pay'
 export { VaziModule } from './modules/vazi'
 export { MessagesModule } from './modules/messages'
 export { NotificationsModule } from './modules/notifications'
+export { StoresModule } from './modules/stores'

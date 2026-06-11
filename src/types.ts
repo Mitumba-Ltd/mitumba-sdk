@@ -42,6 +42,7 @@ export * from './types/orders'
 export * from './types/pay'
 export * from './types/vazi'
 export * from './types/messages'
+export * from './types/notifications'
 
 export interface RequestOptions {
   signal?: AbortSignal

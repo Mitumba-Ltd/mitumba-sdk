@@ -36,16 +36,16 @@ describe('StoresModule', () => {
   })
 
   describe('getListings', () => {
-    it('calls GET /listings with store_id and page', async () => {
+    it('calls GET /listings/stores/:storeId/listings with page', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
       await storesModule.getListings('store_1', 2)
-      expect(apiClient.get).toHaveBeenCalledWith('/listings', { store_id: 'store_1', page: 2 }, undefined)
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/listings', { page: 2 }, undefined)
     })
 
-    it('calls GET /listings with store_id only', async () => {
+    it('calls GET /listings/stores/:storeId/listings without page', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
       await storesModule.getListings('store_1')
-      expect(apiClient.get).toHaveBeenCalledWith('/listings', { store_id: 'store_1' }, undefined)
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/listings', undefined, undefined)
     })
   })
 })

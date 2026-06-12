@@ -6,6 +6,7 @@ export interface Conversation {
   partner_name: string | null
   body: string
   listing_id: string | null
+  listing_title: string | null
   store_id: string | null
   read_at: string | null
   created_at: string

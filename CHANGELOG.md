@@ -1,5 +1,12 @@
 # @mitumba/sdk
 
+## 0.9.1
+
+### Patch Changes
+
+- e171e73: - Fix `stores.getListings()` to use correct path `GET /listings/stores/:storeId/listings`
+  - Add `store_id` (required) and `vazi_eligible` (optional) to `CreateListingInput`
+
 ## 0.9.0
 
 ### Minor Changes

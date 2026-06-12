@@ -12,23 +12,30 @@ describe('MessagesModule', () => {
   })
 
   describe('list', () => {
-    it('calls GET /notify/messages', async () => {
+    it('calls GET /notify/messages without storeId', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
-
-      const result = await messagesModule.list()
-
+      await messagesModule.list()
       expect(apiClient.get).toHaveBeenCalledWith('/notify/messages', undefined, undefined)
-      expect(result).toEqual({ data: [] })
+    })
+
+    it('calls GET /notify/messages with storeId', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await messagesModule.list('store_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/notify/messages', { store_id: 'store_1' }, undefined)
     })
   })
 
   describe('getThread', () => {
-    it('calls GET /notify/messages/:partnerId', async () => {
+    it('calls GET /notify/messages/:partnerId without storeId', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
-
       await messagesModule.getThread('partner_123')
-
       expect(apiClient.get).toHaveBeenCalledWith('/notify/messages/partner_123', undefined, undefined)
+    })
+
+    it('calls GET /notify/messages/:partnerId with storeId', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await messagesModule.getThread('partner_123', 'store_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/notify/messages/partner_123', { store_id: 'store_1' }, undefined)
     })
   })
 

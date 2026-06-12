@@ -90,3 +90,14 @@ export interface PresignImageResponse {
   r2_key: string
   image_id: string
 }
+
+export interface SimilarListing {
+  id: string
+  title: string
+  price: number
+  condition: string
+  category_id: string
+  store_id: string | null
+  image_keys: string | null
+  created_at: string
+}

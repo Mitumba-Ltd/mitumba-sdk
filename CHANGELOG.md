@@ -1,5 +1,17 @@
 # @mitumba/sdk
 
+## 0.11.0
+
+### Minor Changes
+
+- 8df05a4: Add `sdk.wishlists` module:
+
+  - `list()` — get saved listings (GET /listings/wishlists)
+  - `add(listingId)` — save a listing (POST /listings/wishlists/:listingId)
+  - `remove(listingId)` — unsave a listing (DELETE /listings/wishlists/:listingId)
+
+  New exported type: `WishlistListing`
+
 ## 0.10.0
 
 ### Minor Changes

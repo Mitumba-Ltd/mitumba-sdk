@@ -1,5 +1,16 @@
 # @mitumba/sdk
 
+## 0.13.0
+
+### Minor Changes
+
+- cb85f2e: Add search history to `sdk.search`:
+
+  - `getHistory()` — get user's recent searches (GET /search/history)
+  - `saveHistory(input)` — save a search query (POST /search/history)
+
+  New exported types: `SearchHistoryItem`, `SaveSearchInput`
+
 ## 0.12.0
 
 ### Minor Changes

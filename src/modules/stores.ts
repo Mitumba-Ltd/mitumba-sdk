@@ -30,8 +30,8 @@ export class StoresModule {
    */
   async getListings(storeId: string, page?: number, options?: RequestOptions): Promise<{ data: Listing[] }> {
     return this.client.get<{ data: Listing[] }>(
-      '/listings',
-      { store_id: storeId, ...(page !== undefined ? { page } : {}) },
+      `/listings/stores/${storeId}/listings`,
+      page !== undefined ? { page } : undefined,
       options
     )
   }

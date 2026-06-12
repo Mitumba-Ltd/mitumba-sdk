@@ -53,12 +53,14 @@ export interface ListingsFeedParams {
 }
 
 export interface CreateListingInput {
+  store_id: string
   title: string
   description?: string
   category_id: string
   city_id: string
   price: number
   condition: Condition
+  vazi_eligible?: boolean
 }
 
 export type UpdateListingInput = Partial<CreateListingInput>

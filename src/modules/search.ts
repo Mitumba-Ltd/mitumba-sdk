@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { PaginatedResponse, SearchParams, SearchResult, TrendingTerm, RequestOptions } from '../types'
+import type { PaginatedResponse, SearchParams, SearchResult, SearchHistoryItem, SaveSearchInput, TrendingTerm, RequestOptions } from '../types'
 
 export class SearchModule {
   constructor(private readonly client: APIClient) {}
@@ -24,5 +24,19 @@ export class SearchModule {
       params as unknown as Record<string, string | number | boolean | undefined>,
       options
     )
+  }
+
+  /**
+   * Get the user's search history.
+   */
+  async getHistory(options?: RequestOptions): Promise<{ data: SearchHistoryItem[] }> {
+    return this.client.get<{ data: SearchHistoryItem[] }>('/search/history', undefined, options)
+  }
+
+  /**
+   * Save a search query to history.
+   */
+  async saveHistory(input: SaveSearchInput, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/search/history', input, options)
   }
 }

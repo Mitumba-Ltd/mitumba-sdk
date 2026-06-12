@@ -39,4 +39,21 @@ describe('SearchModule', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/search/trending', { city_id: 'nbi' }, undefined)
     })
   })
+
+  describe('getHistory', () => {
+    it('calls GET /search/history', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await searchModule.getHistory()
+      expect(apiClient.get).toHaveBeenCalledWith('/search/history', undefined, undefined)
+    })
+  })
+
+  describe('saveHistory', () => {
+    it('calls POST /search/history', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+      const input = { query: 'denim jacket', result_count: 12, first_listing_id: 'lst_1' }
+      await searchModule.saveHistory(input)
+      expect(apiClient.post).toHaveBeenCalledWith('/search/history', input, undefined)
+    })
+  })
 })

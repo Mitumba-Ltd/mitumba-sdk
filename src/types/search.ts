@@ -20,3 +20,18 @@ export interface TrendingTerm {
   term: string
   count: number
 }
+
+export interface SearchHistoryItem {
+  id: string
+  query: string
+  result_count: number
+  first_listing_id: string | null
+  first_image: string | null
+  created_at: string
+}
+
+export interface SaveSearchInput {
+  query: string
+  result_count: number
+  first_listing_id?: string
+}

@@ -1,5 +1,13 @@
 # @mitumba/sdk
 
+## 0.10.0
+
+### Minor Changes
+
+- 26fb9e1: Add `sdk.listings.getSimilar(listingId, mode?)` — fetches up to 8 similar listings (GET /listings/:id/similar).
+
+  New exported type: `SimilarListing`
+
 ## 0.9.1
 
 ### Patch Changes

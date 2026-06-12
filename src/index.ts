@@ -10,6 +10,7 @@ import { MessagesModule } from './modules/messages'
 import { NotificationsModule } from './modules/notifications'
 import { StoresModule } from './modules/stores'
 import { ReviewsModule } from './modules/reviews'
+import { WishlistsModule } from './modules/wishlists'
 
 export class MitumbaClient {
   public readonly api: APIClient
@@ -23,6 +24,7 @@ export class MitumbaClient {
   public readonly notifications: NotificationsModule
   public readonly stores: StoresModule
   public readonly reviews: ReviewsModule
+  public readonly wishlists: WishlistsModule
 
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
@@ -36,6 +38,7 @@ export class MitumbaClient {
     this.notifications = new NotificationsModule(this.api)
     this.stores = new StoresModule(this.api)
     this.reviews = new ReviewsModule(this.api)
+    this.wishlists = new WishlistsModule(this.api)
   }
 
   /**
@@ -73,3 +76,4 @@ export { MessagesModule } from './modules/messages'
 export { NotificationsModule } from './modules/notifications'
 export { StoresModule } from './modules/stores'
 export { ReviewsModule } from './modules/reviews'
+export { WishlistsModule } from './modules/wishlists'

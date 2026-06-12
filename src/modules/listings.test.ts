@@ -120,4 +120,18 @@ describe('ListingsModule', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/search', { q: 'jacket', min_price: 500 }, undefined)
     })
   })
+
+  describe('getSimilar', () => {
+    it('calls GET /listings/:id/similar without mode', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await listingsModule.getSimilar('lst_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/lst_1/similar', undefined, undefined)
+    })
+
+    it('calls GET /listings/:id/similar with mode', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await listingsModule.getSimilar('lst_1', 'store')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/lst_1/similar', { mode: 'store' }, undefined)
+    })
+  })
 })

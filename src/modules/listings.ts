@@ -11,6 +11,7 @@ import type {
   PaginatedResponse,
   PresignImageResponse,
   SellerStorefront,
+  SimilarListing,
   UpdateListingInput,
   RequestOptions,
 } from '../types'
@@ -127,6 +128,17 @@ export class ListingsModule {
     return this.client.get<{ data: Listing[]; total: number }>(
       '/search',
       params as unknown as Record<string, string | number | boolean | undefined>,
+      options
+    )
+  }
+
+  /**
+   * Get similar listings for a given listing.
+   */
+  async getSimilar(listingId: string, mode?: 'global' | 'store', options?: RequestOptions): Promise<{ data: SimilarListing[] }> {
+    return this.client.get<{ data: SimilarListing[] }>(
+      `/listings/${listingId}/similar`,
+      mode ? { mode } : undefined,
       options
     )
   }

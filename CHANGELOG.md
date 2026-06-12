@@ -1,5 +1,15 @@
 # @mitumba/sdk
 
+## 0.12.0
+
+### Minor Changes
+
+- 873d17e: Update `sdk.messages` for store-scoped inboxes:
+
+  - `list(storeId?)` — optional `storeId` param to filter by store inbox
+  - `getThread(partnerId, storeId?)` — optional `storeId` param for store context
+  - `Conversation` type now includes `listing_title` field
+
 ## 0.11.0
 
 ### Minor Changes

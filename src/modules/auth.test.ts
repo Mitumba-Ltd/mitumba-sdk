@@ -161,4 +161,14 @@ describe('AuthModule', () => {
       expect(result).toEqual(mockResponse)
     })
   })
+
+  describe('completeOnboarding', () => {
+    it('calls POST /auth/onboarding/complete', async () => {
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
+      const input = { display_name: 'Jane', county: 'Nairobi', phone: '+254712345678' }
+      const result = await authModule.completeOnboarding(input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/onboarding/complete', input, undefined)
+      expect(result).toEqual({ ok: true })
+    })
+  })
 })

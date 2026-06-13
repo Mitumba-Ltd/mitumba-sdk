@@ -1,5 +1,16 @@
 # @mitumba/sdk
 
+## 0.15.0
+
+### Minor Changes
+
+- b22352e: Add Paystack support to `sdk.pay`:
+
+  - `initMpesa(input)` — M-Pesa STK Push (alias for initiateStk)
+  - `initPaystack(input)` — Paystack inline payment (POST /pay/paystack/init)
+
+  New exported types: `MpesaInput`, `PaystackInput`, `PaystackInitResponse`
+
 ## 0.14.0
 
 ### Minor Changes

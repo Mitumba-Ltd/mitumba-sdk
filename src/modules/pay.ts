@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { PaymentStatusResponse, StkPushInput, StkPushResponse, RequestOptions } from '../types'
+import type { MpesaInput, PaystackInput, PaystackInitResponse, PaymentStatusResponse, StkPushInput, StkPushResponse, RequestOptions } from '../types'
 
 export class PayModule {
   constructor(private readonly client: APIClient) {}
@@ -9,6 +9,20 @@ export class PayModule {
    */
   async initiateStk(input: StkPushInput, options?: RequestOptions): Promise<StkPushResponse> {
     return this.client.post<StkPushResponse>('/pay/stk', input, options)
+  }
+
+  /**
+   * Initiate M-Pesa STK Push (alias for initiateStk).
+   */
+  async initMpesa(input: MpesaInput, options?: RequestOptions): Promise<StkPushResponse> {
+    return this.client.post<StkPushResponse>('/pay/stk', input, options)
+  }
+
+  /**
+   * Initiate a Paystack payment — returns access_code for inline popup.
+   */
+  async initPaystack(input: PaystackInput, options?: RequestOptions): Promise<PaystackInitResponse> {
+    return this.client.post<PaystackInitResponse>('/pay/paystack/init', input, options)
   }
 
   /**

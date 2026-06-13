@@ -6,6 +6,7 @@ import type {
   VerifyOtpInput,
   ForgotPasswordInput,
   ResetPasswordInput,
+  CompleteOnboardingInput,
   UserProfile,
   AuthTokens,
   MessageResponse,
@@ -81,5 +82,12 @@ export class AuthModule {
    */
   async me(options?: RequestOptions): Promise<UserProfile> {
     return this.client.get<UserProfile>('/auth/me', undefined, options)
+  }
+
+  /**
+   * Complete the onboarding flow.
+   */
+  async completeOnboarding(input: CompleteOnboardingInput, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/onboarding/complete', input, options)
   }
 }

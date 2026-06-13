@@ -49,6 +49,12 @@ export interface ResetPasswordInput {
   password: string
 }
 
+export interface CompleteOnboardingInput {
+  display_name: string
+  county: string
+  phone: string
+}
+
 export interface UserProfile {
   id: string
   email: string | null

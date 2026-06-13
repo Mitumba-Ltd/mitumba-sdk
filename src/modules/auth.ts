@@ -7,6 +7,8 @@ import type {
   ForgotPasswordInput,
   ResetPasswordInput,
   CompleteOnboardingInput,
+  Verify2FAInput,
+  TwoFactorRequired,
   UserProfile,
   AuthTokens,
   MessageResponse,
@@ -27,11 +29,11 @@ export class AuthModule {
 
   /**
    * Log in to an existing account.
-   * If using EmailLoginInput, returns AuthTokens.
+   * If using EmailLoginInput, returns AuthTokens (or TwoFactorRequired if 2FA enabled).
    * If using PhoneLoginInput, returns MessageResponse (OTP sent).
    */
-  async login(input: LoginInput, options?: RequestOptions): Promise<AuthTokens | MessageResponse> {
-    return this.client.post<AuthTokens | MessageResponse>('/auth/login', input, options)
+  async login(input: LoginInput, options?: RequestOptions): Promise<AuthTokens | MessageResponse | TwoFactorRequired> {
+    return this.client.post<AuthTokens | MessageResponse | TwoFactorRequired>('/auth/login', input, options)
   }
 
   /**
@@ -89,5 +91,12 @@ export class AuthModule {
    */
   async completeOnboarding(input: CompleteOnboardingInput, options?: RequestOptions): Promise<{ ok: true }> {
     return this.client.post<{ ok: true }>('/auth/onboarding/complete', input, options)
+  }
+
+  /**
+   * Verify 2FA code during login (when login returns requires_2fa).
+   */
+  async verify2FA(input: Verify2FAInput, options?: RequestOptions): Promise<AuthTokens> {
+    return this.client.post<AuthTokens>('/auth/2fa/login', input, options)
   }
 }

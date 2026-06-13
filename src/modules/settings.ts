@@ -114,4 +114,18 @@ export class SettingsModule {
   async unlinkAccount(provider: LinkedAccountProvider, options?: RequestOptions): Promise<{ ok: true }> {
     return this.client.delete<{ ok: true }>(`/auth/linked-accounts/${provider}`, options)
   }
+
+  // ── 2FA ──
+
+  async setup2FA(options?: RequestOptions): Promise<{ secret: string; otpauth_uri: string }> {
+    return this.client.post<{ secret: string; otpauth_uri: string }>('/auth/2fa/setup', undefined, options)
+  }
+
+  async verify2FA(code: string, options?: RequestOptions): Promise<{ ok: true; backup_codes: string[] }> {
+    return this.client.post<{ ok: true; backup_codes: string[] }>('/auth/2fa/verify', { code }, options)
+  }
+
+  async disable2FA(code: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/2fa/disable', { code }, options)
+  }
 }

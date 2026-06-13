@@ -57,6 +57,16 @@ export interface CompleteOnboardingInput {
   phone: string
 }
 
+export interface TwoFactorRequired {
+  requires_2fa: true
+  temp_token: string
+}
+
+export interface Verify2FAInput {
+  temp_token: string
+  code: string
+}
+
 export interface UserProfile {
   id: string
   email: string | null

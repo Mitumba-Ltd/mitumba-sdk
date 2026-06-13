@@ -12,6 +12,7 @@ export interface EmailRegisterInput {
   email: string
   password: string // min 8 chars
   display_name?: string
+  device?: string
 }
 
 export interface PhoneRegisterInput {
@@ -23,6 +24,7 @@ export type RegisterInput = EmailRegisterInput | PhoneRegisterInput
 export interface EmailLoginInput {
   email: string
   password: string
+  device?: string
 }
 
 export interface PhoneLoginInput {

@@ -147,4 +147,24 @@ describe('SettingsModule', () => {
       expect(apiClient.delete).toHaveBeenCalledWith('/auth/linked-accounts/apple', undefined)
     })
   })
+
+  describe('2FA', () => {
+    it('setup2FA calls POST /auth/2fa/setup', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ secret: 'ABCD', otpauth_uri: 'otpauth://...' })
+      await settings.setup2FA()
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/setup', undefined, undefined)
+    })
+
+    it('verify2FA calls POST /auth/2fa/verify', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, backup_codes: ['a', 'b'] })
+      await settings.verify2FA('123456')
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/verify', { code: '123456' }, undefined)
+    })
+
+    it('disable2FA calls POST /auth/2fa/disable', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+      await settings.disable2FA('654321')
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/disable', { code: '654321' }, undefined)
+    })
+  })
 })

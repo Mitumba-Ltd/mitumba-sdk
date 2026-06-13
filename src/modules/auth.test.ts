@@ -171,4 +171,15 @@ describe('AuthModule', () => {
       expect(result).toEqual({ ok: true })
     })
   })
+
+  describe('verify2FA', () => {
+    it('calls POST /auth/2fa/login', async () => {
+      const mockResponse = { access_token: 'access', refresh_token: 'refresh', expires_in: 900 }
+      vi.mocked(apiClient.post).mockResolvedValueOnce(mockResponse)
+      const input = { temp_token: 'tmp_123', code: '123456' }
+      const result = await authModule.verify2FA(input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/login', input, undefined)
+      expect(result).toEqual(mockResponse)
+    })
+  })
 })

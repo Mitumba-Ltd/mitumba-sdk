@@ -47,6 +47,7 @@ export * from './types/stores'
 export * from './types/reviews'
 export * from './types/wishlists'
 export * from './types/cart'
+export * from './types/settings'
 
 export interface RequestOptions {
   signal?: AbortSignal

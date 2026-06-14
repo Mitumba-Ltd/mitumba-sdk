@@ -25,6 +25,7 @@ export interface EmailLoginInput {
   email: string
   password: string
   device?: string
+  remember?: boolean
 }
 
 export interface PhoneLoginInput {

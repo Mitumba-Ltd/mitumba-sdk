@@ -182,4 +182,20 @@ describe('AuthModule', () => {
       expect(result).toEqual(mockResponse)
     })
   })
+
+  describe('sendVerificationCode', () => {
+    it('calls POST /auth/verify-email/send', async () => {
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
+      await authModule.sendVerificationCode()
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/verify-email/send', undefined, undefined)
+    })
+  })
+
+  describe('verifyEmail', () => {
+    it('calls POST /auth/verify-email/confirm with code', async () => {
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
+      await authModule.verifyEmail('123456')
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/verify-email/confirm', { code: '123456' }, undefined)
+    })
+  })
 })

@@ -75,6 +75,7 @@ export interface UserProfile {
   display_name: string | null
   city_id: string | null
   onboarding_completed: boolean
+  email_verified: boolean
   is_active: boolean
   created_at: string
   roles: string[]

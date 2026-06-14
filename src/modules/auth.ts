@@ -99,4 +99,18 @@ export class AuthModule {
   async verify2FA(input: Verify2FAInput, options?: RequestOptions): Promise<AuthTokens> {
     return this.client.post<AuthTokens>('/auth/2fa/login', input, options)
   }
+
+  /**
+   * Send a verification code to the user's email.
+   */
+  async sendVerificationCode(options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/verify-email/send', undefined, options)
+  }
+
+  /**
+   * Verify the email with the 6-digit code.
+   */
+  async verifyEmail(code: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/verify-email/confirm', { code }, options)
+  }
 }

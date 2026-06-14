@@ -1,5 +1,15 @@
 # @mitumba/sdk
 
+## 0.20.0
+
+### Minor Changes
+
+- 5a0d2a3: Add email verification to `sdk.auth`:
+
+  - `sendVerificationCode()` — send 6-digit code to user's email (POST /auth/verify-email/send)
+  - `verifyEmail(code)` — confirm email with code (POST /auth/verify-email/confirm)
+  - `UserProfile` now includes `email_verified: boolean`
+
 ## 0.19.0
 
 ### Minor Changes

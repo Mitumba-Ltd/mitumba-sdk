@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 0.18.1
+
+### Patch Changes
+
+- c78fe50: Add optional `remember` field to `EmailLoginInput` — controls refresh token TTL (180 days vs 7 days).
+
 ## 0.18.0
 
 ### Minor Changes

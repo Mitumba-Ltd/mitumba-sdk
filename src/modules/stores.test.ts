@@ -98,4 +98,18 @@ describe('StoresModule', () => {
       expect(apiClient.put).toHaveBeenCalledWith('/listings/stores/store_1/settings', input, undefined)
     })
   })
+
+  describe('getAnalytics', () => {
+    it('calls GET /listings/stores/:storeId/analytics with period', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({})
+      await storesModule.getAnalytics('store_1', 'weekly')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/analytics', { period: 'weekly' }, undefined)
+    })
+
+    it('calls GET /listings/stores/:storeId/analytics without period', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({})
+      await storesModule.getAnalytics('store_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/analytics', undefined, undefined)
+    })
+  })
 })

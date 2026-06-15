@@ -65,4 +65,20 @@ describe('StoresModule', () => {
       expect(apiClient.post).toHaveBeenCalledWith('/listings/stores', input, undefined)
     })
   })
+
+  describe('update', () => {
+    it('calls PUT /listings/stores/:storeId', async () => {
+      vi.spyOn(apiClient, 'put').mockResolvedValue({ ok: true })
+      await storesModule.update('store_1', { name: 'New Name', tagline: 'Fresh' })
+      expect(apiClient.put).toHaveBeenCalledWith('/listings/stores/store_1', { name: 'New Name', tagline: 'Fresh' }, undefined)
+    })
+  })
+
+  describe('getStats', () => {
+    it('calls GET /listings/stores/:storeId/stats', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ listings: 10, orders: 5, revenue: 50000, followers: 20 })
+      await storesModule.getStats('store_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/stats', undefined, undefined)
+    })
+  })
 })

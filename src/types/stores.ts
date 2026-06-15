@@ -23,3 +23,37 @@ export interface CreateStoreInput {
   tagline?: string
   city_id?: string
 }
+
+export interface UpdateStoreInput {
+  name?: string
+  tagline?: string
+  description?: string
+  category?: string
+  logo_url?: string
+  banner_url?: string
+  city_id?: string
+}
+
+export interface StoreStats {
+  listings: number
+  orders: number
+  revenue: number
+  followers: number
+}
+
+export interface UpdateStoreInput {
+  name?: string
+  tagline?: string
+  description?: string
+  category?: string
+  logo_url?: string
+  banner_url?: string
+  city_id?: string
+}
+
+export interface StoreStats {
+  listings: number
+  orders: number
+  revenue: number
+  followers: number
+}

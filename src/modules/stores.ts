@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { CreateStoreInput, Listing, Store, RequestOptions } from '../types'
+import type { CreateStoreInput, UpdateStoreInput, StoreStats, Listing, Store, RequestOptions } from '../types'
 
 export class StoresModule {
   constructor(private readonly client: APIClient) {}
@@ -48,5 +48,19 @@ export class StoresModule {
    */
   async create(input: CreateStoreInput, options?: RequestOptions): Promise<{ id: string; slug: string }> {
     return this.client.post<{ id: string; slug: string }>('/listings/stores', input, options)
+  }
+
+  /**
+   * Update a store's details.
+   */
+  async update(storeId: string, input: UpdateStoreInput, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.put<{ ok: true }>(`/listings/stores/${storeId}`, input, options)
+  }
+
+  /**
+   * Get store statistics.
+   */
+  async getStats(storeId: string, options?: RequestOptions): Promise<StoreStats> {
+    return this.client.get<StoreStats>(`/listings/stores/${storeId}/stats`, undefined, options)
   }
 }

@@ -184,18 +184,30 @@ describe('AuthModule', () => {
   })
 
   describe('sendVerificationCode', () => {
-    it('calls POST /auth/verify-email/send', async () => {
+    it('calls POST /auth/verify-email/send without email when authenticated', async () => {
       vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
       await authModule.sendVerificationCode()
       expect(apiClient.post).toHaveBeenCalledWith('/auth/verify-email/send', undefined, undefined)
     })
+
+    it('calls POST /auth/verify-email/send with email when unauthenticated', async () => {
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
+      await authModule.sendVerificationCode('user@example.com')
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/verify-email/send', { email: 'user@example.com' }, undefined)
+    })
   })
 
   describe('verifyEmail', () => {
-    it('calls POST /auth/verify-email/confirm with code', async () => {
+    it('calls POST /auth/verify-email/confirm with code only', async () => {
       vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
       await authModule.verifyEmail('123456')
       expect(apiClient.post).toHaveBeenCalledWith('/auth/verify-email/confirm', { code: '123456' }, undefined)
+    })
+
+    it('calls POST /auth/verify-email/confirm with code and email', async () => {
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
+      await authModule.verifyEmail('123456', 'user@example.com')
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/verify-email/confirm', { code: '123456', email: 'user@example.com' }, undefined)
     })
   })
 })

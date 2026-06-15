@@ -102,15 +102,17 @@ export class AuthModule {
 
   /**
    * Send a verification code to the user's email.
+   * If unauthenticated, pass the email address.
    */
-  async sendVerificationCode(options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.post<{ ok: true }>('/auth/verify-email/send', undefined, options)
+  async sendVerificationCode(email?: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/verify-email/send', email ? { email } : undefined, options)
   }
 
   /**
    * Verify the email with the 6-digit code.
+   * If unauthenticated, pass the email address.
    */
-  async verifyEmail(code: string, options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.post<{ ok: true }>('/auth/verify-email/confirm', { code }, options)
+  async verifyEmail(code: string, email?: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/verify-email/confirm', email ? { code, email } : { code }, options)
   }
 }

@@ -70,3 +70,13 @@ export interface StoreSettings {
   created_at: string
   updated_at: string
 }
+
+export interface StoreAnalytics {
+  revenue: { date: string; revenue: number; orders: number }[]
+  orders_breakdown: { date: string; completed: number; pending: number; cancelled: number }[]
+  traffic_sources: { source: string; count: number }[]
+  top_listings: { listing_id: string; title: string; views: number; revenue: number }[]
+  geography: { city: string; orders: number }[]
+  sti_trend: { date: string; score: number }[]
+  totals: { views: number; orders: number; revenue: number; followers: number }
+}

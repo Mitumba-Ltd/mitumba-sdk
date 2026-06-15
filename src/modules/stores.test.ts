@@ -48,4 +48,21 @@ describe('StoresModule', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/listings', undefined, undefined)
     })
   })
+
+  describe('getMyStores', () => {
+    it('calls GET /listings/stores/mine', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await storesModule.getMyStores()
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/mine', undefined, undefined)
+    })
+  })
+
+  describe('create', () => {
+    it('calls POST /listings/stores', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'store_1', slug: 'my-store' })
+      const input = { name: 'My Store', slug: 'my-store', description: 'A cool store' }
+      await storesModule.create(input)
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/stores', input, undefined)
+    })
+  })
 })

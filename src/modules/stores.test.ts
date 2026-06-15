@@ -81,4 +81,21 @@ describe('StoresModule', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/stats', undefined, undefined)
     })
   })
+
+  describe('getSettings', () => {
+    it('calls GET /listings/stores/:storeId/settings', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({})
+      await storesModule.getSettings('store_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/settings', undefined, undefined)
+    })
+  })
+
+  describe('updateSettings', () => {
+    it('calls PUT /listings/stores/:storeId/settings', async () => {
+      vi.spyOn(apiClient, 'put').mockResolvedValue({ ok: true })
+      const input = { shipping_type: 'flat' as const, flat_rate: 200 }
+      await storesModule.updateSettings('store_1', input)
+      expect(apiClient.put).toHaveBeenCalledWith('/listings/stores/store_1/settings', input, undefined)
+    })
+  })
 })

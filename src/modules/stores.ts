@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { CreateStoreInput, UpdateStoreInput, StoreStats, Listing, Store, RequestOptions } from '../types'
+import type { CreateStoreInput, UpdateStoreInput, StoreStats, StoreSettings, Listing, Store, RequestOptions } from '../types'
 
 export class StoresModule {
   constructor(private readonly client: APIClient) {}
@@ -62,5 +62,19 @@ export class StoresModule {
    */
   async getStats(storeId: string, options?: RequestOptions): Promise<StoreStats> {
     return this.client.get<StoreStats>(`/listings/stores/${storeId}/stats`, undefined, options)
+  }
+
+  /**
+   * Get store settings.
+   */
+  async getSettings(storeId: string, options?: RequestOptions): Promise<StoreSettings> {
+    return this.client.get<StoreSettings>(`/listings/stores/${storeId}/settings`, undefined, options)
+  }
+
+  /**
+   * Update store settings (partial).
+   */
+  async updateSettings(storeId: string, input: Partial<StoreSettings>, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.put<{ ok: true }>(`/listings/stores/${storeId}/settings`, input, options)
   }
 }

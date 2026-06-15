@@ -1,5 +1,16 @@
 # @mitumba/sdk
 
+## 0.22.0
+
+### Minor Changes
+
+- 69c2478: Add store management methods to `sdk.stores`:
+
+  - `update(storeId, input)` — update store details (PUT /listings/stores/:storeId)
+  - `getStats(storeId)` — get store statistics (GET /listings/stores/:storeId/stats)
+
+  New exported types: `UpdateStoreInput`, `StoreStats`
+
 ## 0.21.0
 
 ### Minor Changes

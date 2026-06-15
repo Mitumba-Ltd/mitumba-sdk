@@ -1,5 +1,13 @@
 # @mitumba/sdk
 
+## 0.24.0
+
+### Minor Changes
+
+- f5f1b3a: Add `sdk.stores.getAnalytics(storeId, period?)` — get store analytics with revenue, orders breakdown, traffic sources, top listings, geography, and STI trend (GET /listings/stores/:storeId/analytics).
+
+  New exported type: `StoreAnalytics`
+
 ## 0.23.0
 
 ### Minor Changes

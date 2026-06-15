@@ -14,3 +14,12 @@ export interface Store {
   follower_count?: number
   is_following?: boolean
 }
+
+export interface CreateStoreInput {
+  name: string
+  slug: string
+  category?: string
+  description?: string
+  tagline?: string
+  city_id?: string
+}

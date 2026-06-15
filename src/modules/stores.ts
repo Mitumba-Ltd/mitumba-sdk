@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { Listing, Store, RequestOptions } from '../types'
+import type { CreateStoreInput, Listing, Store, RequestOptions } from '../types'
 
 export class StoresModule {
   constructor(private readonly client: APIClient) {}
@@ -34,5 +34,19 @@ export class StoresModule {
       page !== undefined ? { page } : undefined,
       options
     )
+  }
+
+  /**
+   * Get all stores owned by the authenticated user.
+   */
+  async getMyStores(options?: RequestOptions): Promise<{ data: Store[] }> {
+    return this.client.get<{ data: Store[] }>('/listings/stores/mine', undefined, options)
+  }
+
+  /**
+   * Create a new store.
+   */
+  async create(input: CreateStoreInput, options?: RequestOptions): Promise<{ id: string; slug: string }> {
+    return this.client.post<{ id: string; slug: string }>('/listings/stores', input, options)
   }
 }

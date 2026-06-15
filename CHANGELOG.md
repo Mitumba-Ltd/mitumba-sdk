@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 0.20.1
+
+### Patch Changes
+
+- 7538302: Update `sendVerificationCode(email?)` and `verifyEmail(code, email?)` to support unauthenticated flows by accepting an optional email parameter.
+
 ## 0.20.0
 
 ### Minor Changes

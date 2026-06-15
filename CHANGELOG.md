@@ -1,5 +1,16 @@
 # @mitumba/sdk
 
+## 0.21.0
+
+### Minor Changes
+
+- 7e60d9f: Add store management to `sdk.stores`:
+
+  - `getMyStores()` — get all stores owned by the authenticated user (GET /listings/stores/mine)
+  - `create(input)` — create a new store (POST /listings/stores)
+
+  New exported type: `CreateStoreInput`
+
 ## 0.20.1
 
 ### Patch Changes

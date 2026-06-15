@@ -1,5 +1,18 @@
 # @mitumba/sdk
 
+## 0.23.0
+
+### Minor Changes
+
+- e4ad6d1: Add store settings to `sdk.stores`:
+
+  - `getSettings(storeId)` — get full store settings (GET /listings/stores/:storeId/settings)
+  - `updateSettings(storeId, input)` — partial update settings (PUT /listings/stores/:storeId/settings)
+
+  New exported type: `StoreSettings`
+
+  Also fixes duplicate type definitions in stores types file.
+
 ## 0.22.0
 
 ### Minor Changes

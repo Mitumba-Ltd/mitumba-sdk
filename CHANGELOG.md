@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 0.29.0
+
+### Minor Changes
+
+- 797a2db: Add `business_id` to `CreateStoreInput` and `business_name` to `BecomeSellerInput` — links stores to business entities created during seller onboarding.
+
 ## 0.28.0
 
 ### Minor Changes

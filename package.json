@@ -1,6 +1,6 @@
 {
   "name": "@mitumba/sdk",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "description": "The official TypeScript SDK for the Mitumba marketplace platform.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

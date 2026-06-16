@@ -23,9 +23,17 @@ graph LR
         I["OrdersModule"]
         J["PayModule"]
         K["VaziModule"]
+        L["StoresModule"]
+        M["MessagesModule"]
+        N["NotificationsModule"]
+        O["ReviewsModule"]
+        P["WishlistsModule"]
+        Q["CartModule"]
+        R["SettingsModule"]
+        S["MailerModule"]
     end
 
-    L["API Gateway<br/>api.mitumba.stanl.ink"]
+    T["API Gateway<br/>api.mitumba.stanl.ink"]
 
     A --> D
     B --> D
@@ -37,7 +45,15 @@ graph LR
     D --> I
     D --> J
     D --> K
-    E --> L
+    D --> L
+    D --> M
+    D --> N
+    D --> O
+    D --> P
+    D --> Q
+    D --> R
+    D --> S
+    E --> T
 ```
 
 All client applications interact with a **single API gateway** at `https://api.mitumba.stanl.ink`. The SDK wraps every public endpoint behind typed, ergonomic methods.
@@ -48,12 +64,20 @@ All client applications interact with a **single API gateway** at `https://api.m
 
 | SDK Module | API Prefix | Auth | Description |
 |---|---|---|---|
-| `sdk.auth` | `/auth/*` | Mixed | Registration, login (email + phone OTP), token lifecycle |
-| `sdk.listings` | `/listings/*` | Mixed | Browse feed, CRUD listings, seller storefronts, image upload |
-| `sdk.search` | `/search/*` | Public | Full-text search with filters, trending terms |
-| `sdk.orders` | `/orders/*` | Protected | Create orders, track lifecycle, view history |
-| `sdk.pay` | `/pay/*` | Protected | M-Pesa STK Push payments, payment status polling |
+| `sdk.auth` | `/auth/*` | Mixed | Registration, login (email + phone OTP), 2FA, token lifecycle, email verification, onboarding |
+| `sdk.listings` | `/listings/*` | Mixed | Browse feed, CRUD listings, seller storefronts, image upload, similar listings |
+| `sdk.search` | `/search/*` | Mixed | Full-text search with filters, trending terms, search history |
+| `sdk.orders` | `/orders/*` | Protected | Create orders, track lifecycle, view history, multi-store checkout |
+| `sdk.pay` | `/pay/*` | Protected | M-Pesa STK Push, Paystack payments, payment status polling |
 | `sdk.vazi` | `/vazi/*` | Public | AI-powered outfit feed and outfit completion |
+| `sdk.stores` | `/listings/stores/*` | Mixed | Store CRUD, follow/unfollow, stats, settings, analytics |
+| `sdk.messages` | `/notify/messages/*` | Protected | Conversations (store-scoped), message threads, send messages |
+| `sdk.notifications` | `/notify/notifications/*` | Protected | Notification feed with unread count, mark as read |
+| `sdk.reviews` | `/listings/stores/:id/reviews` | Mixed | List store reviews, create review |
+| `sdk.wishlists` | `/listings/wishlists/*` | Protected | Save/unsave listings |
+| `sdk.cart` | `/listings/cart/*` | Protected | Cart management, multi-store checkout |
+| `sdk.settings` | `/auth/*` | Protected | Profile, security (sessions, 2FA, password), addresses, payment methods, linked accounts, notification prefs |
+| `sdk.mailer` | `/notify/email` | Protected | Send typed transactional emails (39 templates) |
 
 > **Note:** The Seller Trust Index (STI) is an internal scoring system. It surfaces through seller profile data in listings and search results but has no direct SDK module. STI data is read-only from the SDK's perspective.
 
@@ -66,14 +90,15 @@ The SDK is built in four layers:
 ### 1. `MitumbaClient` — Entry Point
 
 The public-facing class that consumers instantiate. It:
-- Accepts configuration (`baseUrl`, `token`, `onTokenRefresh` callback)
+- Accepts configuration (`baseUrl`, `token`, `refreshToken`, `onTokenRefresh`, `debug`, `maxRetries`)
 - Creates and holds a single `APIClient` instance
-- Lazy-initializes domain modules as readonly properties
+- Initializes all 14 domain modules as readonly properties
 
 ```typescript
 const sdk = new MitumbaClient({
   baseUrl: 'https://api.mitumba.stanl.ink',
-  token: storedAccessToken,
+  debug: true,       // Logs all HTTP requests and latency
+  maxRetries: 3,     // Retries 5xx errors with exponential backoff
 })
 
 sdk.listings.getFeed({ city_id: 'nairobi' })
@@ -87,15 +112,18 @@ The internal HTTP layer. It handles:
 - **Query params** — serializes objects into URL search params for GET requests
 - **JSON parsing** — extracts and returns the response body
 - **Error wrapping** — converts non-2xx responses into typed `APIError` instances
-- **Token refresh** — intercepts 401 responses, calls refresh, retries the request
+- **Token refresh** — intercepts 401 responses, calls refresh, retries the request (with deduplication)
+- **Retry logic** — retries on 5xx errors and network failures with exponential backoff
+- **Request cancellation** — supports `AbortController` via `RequestOptions.signal`
+- **Debug logging** — logs requests, responses, and timings when `debug: true`
 
 ```typescript
-// Generic methods:
-client.get<T>(path, params?)    → Promise<T>
-client.post<T>(path, body?)     → Promise<T>
-client.put<T>(path, body?)      → Promise<T>
-client.patch<T>(path, body?)    → Promise<T>
-client.delete<T>(path)          → Promise<T>
+// Generic methods (all accept optional RequestOptions):
+client.get<T>(path, params?, options?)    → Promise<T>
+client.post<T>(path, body?, options?)     → Promise<T>
+client.put<T>(path, body?, options?)      → Promise<T>
+client.patch<T>(path, body?, options?)    → Promise<T>
+client.delete<T>(path, options?)          → Promise<T>
 ```
 
 ### 3. `APIError` — Typed Error Class
@@ -161,15 +189,35 @@ sequenceDiagram
     SDK-->>App: TokenResponse
 ```
 
+### 2FA (TOTP) Flow
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant SDK
+    participant API
+
+    App->>SDK: sdk.auth.login({ email, password })
+    SDK->>API: POST /auth/login
+    API-->>SDK: { requires_2fa: true, temp_token }
+    SDK-->>App: TwoFactorRequired
+
+    App->>SDK: sdk.auth.verify2FA({ temp_token, code })
+    SDK->>API: POST /auth/2fa/login
+    API-->>SDK: { access_token, refresh_token, expires_in: 900 }
+    SDK-->>App: TokenResponse
+```
+
 ### Token Lifecycle
 
 | Token | Format | TTL | Storage |
 |---|---|---|---|
 | Access token | JWT string | 15 minutes | SDK holds in memory |
-| Refresh token | 64-char hex | 30 days | Consumer persists (localStorage, SecureStore, etc.) |
+| Refresh token | 64-char hex | 7 days (default) / 180 days (remember) | Consumer persists (localStorage, SecureStore, etc.) |
 
 - **Automatic refresh:** The SDK's `APIClient` intercepts `401` responses, calls `POST /auth/refresh` with the stored refresh token, retries the original request, and invokes `onTokenRefresh` so the consumer can persist the new pair.
 - **Token rotation:** Every refresh invalidates the old refresh token and issues a new pair.
+- **Deduplication:** Multiple concurrent 401s share the same refresh promise to avoid race conditions.
 
 ---
 
@@ -218,6 +266,7 @@ try {
 | `not_found` | 404 | Resource doesn't exist |
 | `email_taken` | 409 | Duplicate email on registration |
 | `otp_rate_limited` | 429 | Too many OTP requests |
+| `network_error` | 0 | Network failure after max retries |
 | `internal_error` | 500 | Server error |
 
 ---

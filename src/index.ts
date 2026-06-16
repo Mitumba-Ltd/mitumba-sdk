@@ -14,6 +14,7 @@ import { WishlistsModule } from './modules/wishlists'
 import { CartModule } from './modules/cart'
 import { SettingsModule } from './modules/settings'
 import { MailerModule } from './modules/mailer'
+import { BusinessesModule } from './modules/businesses'
 
 export class MitumbaClient {
   public readonly api: APIClient
@@ -31,6 +32,7 @@ export class MitumbaClient {
   public readonly cart: CartModule
   public readonly settings: SettingsModule
   public readonly mailer: MailerModule
+  public readonly businesses: BusinessesModule
 
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
@@ -48,6 +50,7 @@ export class MitumbaClient {
     this.cart = new CartModule(this.api)
     this.settings = new SettingsModule(this.api)
     this.mailer = new MailerModule(this.api)
+    this.businesses = new BusinessesModule(this.api)
   }
 
   /**
@@ -89,3 +92,4 @@ export { WishlistsModule } from './modules/wishlists'
 export { CartModule } from './modules/cart'
 export { SettingsModule } from './modules/settings'
 export { MailerModule } from './modules/mailer'
+export { BusinessesModule } from './modules/businesses'

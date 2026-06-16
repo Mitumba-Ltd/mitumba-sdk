@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 0.28.0
+
+### Minor Changes
+
+- 997cd2a: Add optional `logo_url` and `banner_url` to `CreateStoreInput` — allows passing store images during creation.
+
 ## 0.27.0
 
 ### Minor Changes

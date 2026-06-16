@@ -1,5 +1,13 @@
 # @mitumba/sdk
 
+## 0.27.0
+
+### Minor Changes
+
+- 0d56e86: Add `sdk.auth.becomeSeller(input)` — upgrades the current user to a seller role (POST /auth/become-seller). Idempotent.
+
+  New exported type: `BecomeSellerInput`
+
 ## 0.26.0
 
 ### Minor Changes

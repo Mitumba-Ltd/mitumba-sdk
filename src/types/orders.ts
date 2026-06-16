@@ -48,5 +48,6 @@ export interface TransitionOrderInput {
 
 export interface OrderHistoryParams {
   role?: 'buyer' | 'seller'
+  store_id?: string
   page?: number
 }

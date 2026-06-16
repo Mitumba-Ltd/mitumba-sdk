@@ -1,5 +1,17 @@
 # @mitumba/sdk
 
+## 0.30.0
+
+### Minor Changes
+
+- 8b85c83: Add `sdk.businesses` module for managing seller business entities:
+
+  - `getMine()` — get all businesses owned by the current user (GET /listings/businesses/mine)
+  - `getById(id)` — get a business by ID (GET /listings/businesses/:id)
+  - `update(id, input)` — update a business (PUT /listings/businesses/:id)
+
+  New exported types: `Business`, `UpdateBusinessInput`
+
 ## 0.29.0
 
 ### Minor Changes

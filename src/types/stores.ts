@@ -32,6 +32,7 @@ export interface CreateStoreInput {
   city_id?: string
   logo_url?: string
   banner_url?: string
+  business_id?: string
 }
 
 export interface UpdateStoreInput {

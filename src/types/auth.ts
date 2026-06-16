@@ -71,6 +71,7 @@ export interface Verify2FAInput {
 export interface BecomeSellerInput {
   seller_type: 'individual' | 'business'
   sti_score: number
+  business_name?: string
   id_number?: string
   kra_pin?: string
   phone?: string

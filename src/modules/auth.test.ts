@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { APIClient } from '../client'
 import { AuthModule } from './auth'
-import type { RegisterInput, LoginInput, SendOtpInput, VerifyOtpInput } from '../types'
+import type { RegisterInput, LoginInput, SendOtpInput, VerifyOtpInput, BecomeSellerInput } from '../types'
 
 describe('AuthModule', () => {
   let apiClient: APIClient
@@ -208,6 +208,17 @@ describe('AuthModule', () => {
       vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
       await authModule.verifyEmail('123456', 'user@example.com')
       expect(apiClient.post).toHaveBeenCalledWith('/auth/verify-email/confirm', { code: '123456', email: 'user@example.com' }, undefined)
+    })
+  })
+
+  describe('becomeSeller', () => {
+    it('calls POST /auth/become-seller with input', async () => {
+      const mockResponse = { ok: true, roles: ['buyer', 'seller'], sti_score: 55 }
+      vi.mocked(apiClient.post).mockResolvedValueOnce(mockResponse)
+      const input: BecomeSellerInput = { seller_type: 'individual', sti_score: 55, county: 'Nairobi' }
+      const result = await authModule.becomeSeller(input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/become-seller', input, undefined)
+      expect(result).toEqual(mockResponse)
     })
   })
 })

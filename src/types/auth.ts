@@ -68,6 +68,21 @@ export interface Verify2FAInput {
   code: string
 }
 
+export interface BecomeSellerInput {
+  seller_type: 'individual' | 'business'
+  sti_score: number
+  id_number?: string
+  kra_pin?: string
+  phone?: string
+  county?: string
+  town?: string
+  categories?: string[]
+  condition_grades?: string[]
+  delivery_method?: 'self' | 'mitumba-logistics'
+  price_range_min?: number
+  price_range_max?: number
+}
+
 export interface UserProfile {
   id: string
   email: string | null

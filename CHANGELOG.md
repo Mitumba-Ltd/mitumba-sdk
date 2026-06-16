@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 0.26.0
+
+### Minor Changes
+
+- 631507c: Add optional `store_id` to `OrderHistoryParams` — allows multi-store sellers to filter order history by store when using `sdk.orders.getHistory({ role: 'seller', store_id })`.
+
 ## 0.25.0
 
 ### Minor Changes

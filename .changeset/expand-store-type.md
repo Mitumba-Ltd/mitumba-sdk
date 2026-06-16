@@ -2,9 +2,11 @@
 "@mitumba/sdk": minor
 ---
 
-Expand `Store` type to match backend response:
+Expand `Store` type with fields now returned by the backend:
 
-- Add `seller_id`, `tagline`, `category`, `city_id`, `is_verified`, `updated_at`, `sti_score` fields
-- Rename `owner_id` → `seller_id`, `city` → `city_id`
-- Remove `premium` from `SubscriptionTier` (backend only supports `free` | `pro`)
-- Mark `sti_score`, `follower_count`, `is_following` as optional (only present on `getBySlug`)
+- Add `seller_id` — the store owner's user ID
+- Add `tagline`, `category` — store metadata fields
+- Add `city_id` — store's city reference
+- Add `is_verified` — store verification status
+- Add `updated_at` — last update timestamp
+- Add `sti_score` (optional) — seller's STI score (joined on getBySlug)

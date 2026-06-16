@@ -1,7 +1,8 @@
-export type SubscriptionTier = 'free' | 'pro'
+export type SubscriptionTier = 'free' | 'pro' | 'premium'
 
 export interface Store {
   id: string
+  owner_id: string
   seller_id: string
   name: string
   slug: string
@@ -10,6 +11,7 @@ export interface Store {
   category: string | null
   logo_url: string | null
   banner_url: string | null
+  city: string | null
   city_id: string | null
   subscription_tier: SubscriptionTier
   is_verified: number

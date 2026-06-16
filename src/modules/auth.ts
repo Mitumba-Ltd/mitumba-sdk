@@ -9,6 +9,7 @@ import type {
   CompleteOnboardingInput,
   Verify2FAInput,
   TwoFactorRequired,
+  BecomeSellerInput,
   UserProfile,
   AuthTokens,
   MessageResponse,
@@ -114,5 +115,13 @@ export class AuthModule {
    */
   async verifyEmail(code: string, email?: string, options?: RequestOptions): Promise<{ ok: true }> {
     return this.client.post<{ ok: true }>('/auth/verify-email/confirm', email ? { code, email } : { code }, options)
+  }
+
+  /**
+   * Upgrade the current user to a seller role.
+   * Idempotent — returns success if already a seller.
+   */
+  async becomeSeller(input: BecomeSellerInput, options?: RequestOptions): Promise<{ ok: true; roles: string[]; sti_score: number }> {
+    return this.client.post<{ ok: true; roles: string[]; sti_score: number }>('/auth/become-seller', input, options)
   }
 }

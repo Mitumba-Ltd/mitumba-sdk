@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.1.0
+
+### Minor Changes
+
+- 684cdd5: Add `sdk.listings.uploadImage(listingId, file, index)` — uploads a listing image directly via multipart/form-data (POST /listings/:id/images/upload). Returns `{ r2_key, image_id, url }`.
+
 ## 1.0.0
 
 ### Major Changes

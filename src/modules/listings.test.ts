@@ -97,6 +97,16 @@ describe('ListingsModule', () => {
     })
   })
 
+  describe('uploadImage', () => {
+    it('calls POST /listings/:id/images/upload with FormData', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ r2_key: 'key', image_id: 'img_1', url: 'https://cdn.mitumba.stanl.ink/key' })
+      const file = new Blob(['test'], { type: 'image/png' })
+      const result = await listingsModule.uploadImage('123', file, 0)
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/123/images/upload', expect.any(FormData), undefined)
+      expect(result).toEqual({ r2_key: 'key', image_id: 'img_1', url: 'https://cdn.mitumba.stanl.ink/key' })
+    })
+  })
+
   describe('feed', () => {
     it('calls GET /listings with params', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], page: 1 })

@@ -104,6 +104,17 @@ export class ListingsModule {
   }
 
   /**
+   * Upload an image file directly for a listing.
+   * Uses multipart/form-data.
+   */
+  async uploadImage(listingId: string, file: Blob, index: number, options?: RequestOptions): Promise<{ r2_key: string; image_id: string; url: string }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('index', String(index))
+    return this.client.post<{ r2_key: string; image_id: string; url: string }>(`/listings/${listingId}/images/upload`, formData, options)
+  }
+
+  /**
    * Browse the listing feed (alias for getFeed with simplified params).
    */
   async feed(params?: { page?: number; city?: string; category?: string; sort?: string }, options?: RequestOptions): Promise<{ data: Listing[]; page: number }> {

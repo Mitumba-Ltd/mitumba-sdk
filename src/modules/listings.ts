@@ -12,6 +12,7 @@ import type {
   PresignImageResponse,
   SellerStorefront,
   SimilarListing,
+  Store,
   UpdateListingInput,
   RequestOptions,
 } from '../types'
@@ -93,6 +94,31 @@ export class ListingsModule {
    */
   async getCities(options?: RequestOptions): Promise<City[]> {
     return this.client.get<City[]>('/listings/cities', undefined, options)
+  }
+
+  /**
+   * Get trending listings, optionally filtered by category.
+   */
+  async getTrending(categoryId?: string, options?: RequestOptions): Promise<{ data: Listing[] }> {
+    return this.client.get<{ data: Listing[] }>(
+      '/listings/trending',
+      categoryId ? { category_id: categoryId } : undefined,
+      options
+    )
+  }
+
+  /**
+   * Get top-performing stores for the home feed.
+   */
+  async getTopStores(options?: RequestOptions): Promise<{ data: Store[] }> {
+    return this.client.get<{ data: Store[] }>('/listings/top-stores', undefined, options)
+  }
+
+  /**
+   * Get personalized "for you" listings (returns recent for anonymous users).
+   */
+  async getForYou(options?: RequestOptions): Promise<{ data: Listing[] }> {
+    return this.client.get<{ data: Listing[] }>('/listings/for-you', undefined, options)
   }
 
   /**

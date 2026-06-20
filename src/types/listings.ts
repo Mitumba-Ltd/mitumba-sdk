@@ -31,6 +31,7 @@ export interface Listing {
   status: ListingStatus
   photo_verified: boolean
   vazi_eligible: boolean
+  size: string | null
   created_at: string
   updated_at: string
   // Seller profile (joined)
@@ -60,6 +61,7 @@ export interface CreateListingInput {
   city_id: string
   price: number
   condition: Condition
+  size?: string
   vazi_eligible?: boolean
 }
 

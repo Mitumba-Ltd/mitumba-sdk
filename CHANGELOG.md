@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.2.0
+
+### Minor Changes
+
+- 8037ec9: Add `size` field to `Listing` (as `string | null`), `CreateListingInput` (as optional `string`), and `CartItem` (as `string | null`). Also adds `store_slug` to `CartItem`.
+
 ## 1.1.0
 
 ### Minor Changes

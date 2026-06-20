@@ -89,6 +89,36 @@ describe('ListingsModule', () => {
     })
   })
 
+  describe('getTrending', () => {
+    it('calls GET /listings/trending without category', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await listingsModule.getTrending()
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/trending', undefined, undefined)
+    })
+
+    it('calls GET /listings/trending with category_id', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await listingsModule.getTrending('cat_shoes')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/trending', { category_id: 'cat_shoes' }, undefined)
+    })
+  })
+
+  describe('getTopStores', () => {
+    it('calls GET /listings/top-stores', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await listingsModule.getTopStores()
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/top-stores', undefined, undefined)
+    })
+  })
+
+  describe('getForYou', () => {
+    it('calls GET /listings/for-you', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await listingsModule.getForYou()
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/for-you', undefined, undefined)
+    })
+  })
+
   describe('presignImage', () => {
     it('calls POST /listings/:id/images/presign', async () => {
       vi.spyOn(apiClient, 'post').mockResolvedValue({})

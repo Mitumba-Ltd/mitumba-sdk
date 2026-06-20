@@ -51,4 +51,32 @@ describe('MessagesModule', () => {
       expect(result).toEqual(mockResponse)
     })
   })
+
+  describe('markRead', () => {
+    it('calls POST /notify/messages/:partnerId/read without storeId', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+      await messagesModule.markRead('partner_1')
+      expect(apiClient.post).toHaveBeenCalledWith('/notify/messages/partner_1/read', undefined, undefined)
+    })
+
+    it('calls POST /notify/messages/:partnerId/read with storeId', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+      await messagesModule.markRead('partner_1', 'store_1')
+      expect(apiClient.post).toHaveBeenCalledWith('/notify/messages/partner_1/read?store_id=store_1', undefined, undefined)
+    })
+  })
+
+  describe('connectTyping', () => {
+    it('constructs WebSocket URL with token', () => {
+      vi.spyOn(apiClient, 'getToken').mockReturnValue('my-token')
+      vi.spyOn(apiClient, 'getBaseUrl').mockReturnValue('https://api.mitumba.test')
+      const MockWebSocket = vi.fn()
+      vi.stubGlobal('WebSocket', MockWebSocket)
+
+      messagesModule.connectTyping('partner_1')
+
+      expect(MockWebSocket).toHaveBeenCalledWith('wss://api.mitumba.test/notify/messages/partner_1/ws?token=my-token')
+      vi.unstubAllGlobals()
+    })
+  })
 })

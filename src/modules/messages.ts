@@ -32,4 +32,24 @@ export class MessagesModule {
   async send(input: SendMessageInput, options?: RequestOptions): Promise<{ id: string }> {
     return this.client.post<{ id: string }>('/notify/messages', input, options)
   }
+
+  /**
+   * Mark all messages from a partner as read.
+   */
+  async markRead(partnerId: string, storeId?: string, options?: RequestOptions): Promise<{ ok: true }> {
+    const path = storeId
+      ? `/notify/messages/${partnerId}/read?store_id=${storeId}`
+      : `/notify/messages/${partnerId}/read`
+    return this.client.post<{ ok: true }>(path, undefined, options)
+  }
+
+  /**
+   * Connect to the typing indicator WebSocket for a conversation.
+   * Token is passed via query param since WebSocket can't set headers.
+   */
+  connectTyping(partnerId: string): WebSocket {
+    const token = this.client.getToken()
+    const wsUrl = this.client.getBaseUrl().replace(/^http/, 'ws') + `/notify/messages/${partnerId}/ws?token=${token}`
+    return new WebSocket(wsUrl)
+  }
 }

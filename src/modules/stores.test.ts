@@ -112,4 +112,24 @@ describe('StoresModule', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/analytics', undefined, undefined)
     })
   })
+
+  describe('uploadLogo', () => {
+    it('calls POST /listings/stores/:storeId/logo with FormData', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ url: 'https://cdn.mitumba.stanl.ink/logo.png' })
+      const file = new Blob(['img'], { type: 'image/png' })
+      const result = await storesModule.uploadLogo('store_1', file)
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/stores/store_1/logo', expect.any(FormData), undefined)
+      expect(result).toEqual({ url: 'https://cdn.mitumba.stanl.ink/logo.png' })
+    })
+  })
+
+  describe('uploadBanner', () => {
+    it('calls POST /listings/stores/:storeId/banner with FormData', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ url: 'https://cdn.mitumba.stanl.ink/banner.jpg' })
+      const file = new Blob(['img'], { type: 'image/jpeg' })
+      const result = await storesModule.uploadBanner('store_1', file)
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/stores/store_1/banner', expect.any(FormData), undefined)
+      expect(result).toEqual({ url: 'https://cdn.mitumba.stanl.ink/banner.jpg' })
+    })
+  })
 })

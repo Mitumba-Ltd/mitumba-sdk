@@ -88,4 +88,22 @@ export class StoresModule {
       options
     )
   }
+
+  /**
+   * Upload a store logo image.
+   */
+  async uploadLogo(storeId: string, file: Blob, options?: RequestOptions): Promise<{ url: string }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    return this.client.post<{ url: string }>(`/listings/stores/${storeId}/logo`, formData, options)
+  }
+
+  /**
+   * Upload a store banner image.
+   */
+  async uploadBanner(storeId: string, file: Blob, options?: RequestOptions): Promise<{ url: string }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    return this.client.post<{ url: string }>(`/listings/stores/${storeId}/banner`, formData, options)
+  }
 }

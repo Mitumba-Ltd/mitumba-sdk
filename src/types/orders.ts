@@ -22,6 +22,14 @@ export interface OrderEvent {
   created_at: string
 }
 
+export interface DeliveryAddress {
+  label: string
+  line1: string
+  city: string
+  county: string
+  phone: string
+}
+
 export interface Order {
   id: string
   buyer_id: string
@@ -34,6 +42,16 @@ export interface Order {
   city_id: string
   created_at: string
   updated_at: string
+  // Joined listing details
+  listing_title: string | null
+  listing_image_url: string | null
+  listing_condition: string | null
+  listing_size: string | null
+  // Joined buyer details
+  buyer_name: string | null
+  buyer_phone: string | null
+  // Buyer's default delivery address
+  delivery_address: DeliveryAddress | null
   events?: OrderEvent[]
 }
 

@@ -40,6 +40,8 @@ export interface Listing {
   seller_type: 'individual' | 'bale'
   // Images (only present on GET /listings/:id, not in feed)
   images?: ListingImage[]
+  // First image as full CDN URL (present in feeds/store listings)
+  image_url?: string | null
 }
 
 export interface ListingsFeedParams {

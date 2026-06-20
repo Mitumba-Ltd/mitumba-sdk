@@ -1,5 +1,15 @@
 # @mitumba/sdk
 
+## 1.3.0
+
+### Minor Changes
+
+- 32a2307: Add home feed methods to `sdk.listings`:
+
+  - `getTrending(categoryId?)` — trending listings (GET /listings/trending)
+  - `getTopStores()` — top stores for home feed (GET /listings/top-stores)
+  - `getForYou()` — personalized listings (GET /listings/for-you)
+
 ## 1.2.0
 
 ### Minor Changes

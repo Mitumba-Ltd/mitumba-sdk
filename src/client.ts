@@ -34,6 +34,10 @@ export class APIClient {
     return this.config.token
   }
 
+  public getBaseUrl(): string {
+    return this.config.baseUrl
+  }
+
   public clearToken() {
     this.config.token = undefined
     this.config.refreshToken = undefined

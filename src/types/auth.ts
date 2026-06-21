@@ -92,6 +92,7 @@ export interface UserProfile {
   city_id: string | null
   onboarding_completed: boolean
   email_verified: boolean
+  totp_enabled: boolean
   is_active: boolean
   created_at: string
   roles: string[]

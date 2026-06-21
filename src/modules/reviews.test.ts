@@ -34,4 +34,12 @@ describe('ReviewsModule', () => {
       expect(result).toEqual({ id: 'rev_1' })
     })
   })
+
+  describe('getReviewableOrders', () => {
+    it('calls GET /listings/stores/:storeId/reviews/eligible', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await reviewsModule.getReviewableOrders('store_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/reviews/eligible', undefined, undefined)
+    })
+  })
 })

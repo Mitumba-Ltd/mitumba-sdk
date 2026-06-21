@@ -14,3 +14,11 @@ export interface CreateReviewInput {
   comment?: string
   order_id?: string
 }
+
+export interface ReviewableOrder {
+  order_id: string
+  listing_title: string
+  listing_image_url: string | null
+  total: number
+  delivered_at: string
+}

@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.8.0
+
+### Minor Changes
+
+- 8e71710: Add `totp_enabled: boolean` to `UserProfile` type — indicates whether the user has 2FA enabled.
+
 ## 1.7.0
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # @mitumba/sdk
 
+## 1.9.0
+
+### Minor Changes
+
+- 4a44843: Add `sdk.vazi.getOutfit(outfitId)` — get a single outfit with full item details (GET /vazi/outfits/:id).
+
+  New exported types: `VAZIOutfitDetail`, `VAZIOutfitDetailItem`
+
 ## 1.8.0
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # @mitumba/sdk
 
+## 1.7.0
+
+### Minor Changes
+
+- 2275695: Add `sdk.reviews.getReviewableOrders(storeId)` — returns orders eligible for review (delivered/completed, not yet reviewed). GET /listings/stores/:storeId/reviews/eligible.
+
+  New exported type: `ReviewableOrder`
+
 ## 1.6.0
 
 ### Minor Changes

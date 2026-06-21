@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { CreateReviewInput, Review, RequestOptions } from '../types'
+import type { CreateReviewInput, Review, ReviewableOrder, RequestOptions } from '../types'
 
 export class ReviewsModule {
   constructor(private readonly client: APIClient) {}
@@ -20,5 +20,12 @@ export class ReviewsModule {
    */
   async create(storeId: string, input: CreateReviewInput, options?: RequestOptions): Promise<{ id: string }> {
     return this.client.post<{ id: string }>(`/listings/stores/${storeId}/reviews`, input, options)
+  }
+
+  /**
+   * Get orders eligible for review (delivered/completed, not yet reviewed).
+   */
+  async getReviewableOrders(storeId: string, options?: RequestOptions): Promise<{ data: ReviewableOrder[] }> {
+    return this.client.get<{ data: ReviewableOrder[] }>(`/listings/stores/${storeId}/reviews/eligible`, undefined, options)
   }
 }

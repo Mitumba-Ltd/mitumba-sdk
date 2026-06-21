@@ -21,6 +21,27 @@ export interface VaziFeedParams {
   offset?: number
 }
 
+export interface VAZIOutfitDetailItem {
+  id: string
+  title: string
+  price: number
+  condition: string
+  size: string | null
+  store_name: string | null
+  store_slug: string | null
+  image_url: string | null
+}
+
+export interface VAZIOutfitDetail {
+  id: string
+  name: string
+  total_price: number
+  webm_url: string | null
+  store_name: string | null
+  store_slug: string | null
+  items: VAZIOutfitDetailItem[]
+}
+
 export interface VaziFeedResponse {
   outfits: VAZIOutfit[]
   total: number

@@ -39,4 +39,12 @@ describe('VaziModule', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/vazi/complete/lst_123', undefined, undefined)
     })
   })
+
+  describe('getOutfit', () => {
+    it('calls GET /vazi/outfits/:id', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ id: 'outfit_1', name: 'Test', items: [] })
+      await vaziModule.getOutfit('outfit_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/vazi/outfits/outfit_1', undefined, undefined)
+    })
+  })
 })

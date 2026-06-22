@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.10.0
+
+### Minor Changes
+
+- 44132b3: Add optional `featuring` param to `VaziFeedParams` — filters outfits containing a specific listing ID.
+
 ## 1.9.0
 
 ### Minor Changes

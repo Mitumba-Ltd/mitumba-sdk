@@ -19,6 +19,7 @@ export interface VAZIOutfit {
 export interface VaziFeedParams {
   limit?: number
   offset?: number
+  featuring?: string
 }
 
 export interface VAZIOutfitDetailItem {

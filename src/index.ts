@@ -74,10 +74,26 @@ export class MitumbaClient {
   public clearToken() {
     this.api.clearToken()
   }
+
+  /**
+   * Hydrate tokens from persistent store (call on app boot).
+   */
+  public hydrate(): Promise<void> {
+    return this.api.hydrate()
+  }
+
+  /**
+   * Check if user has a stored session.
+   */
+  public isAuthenticated(): Promise<boolean> {
+    return this.api.isAuthenticated()
+  }
 }
 
 export * from './types'
 export { APIClient, APIError } from './client'
+export { MemoryTokenStore, IDBTokenStore, createTokenStore } from './token-store'
+export type { TokenStore } from './token-store'
 export { AuthModule } from './modules/auth'
 export { ListingsModule } from './modules/listings'
 export { SearchModule } from './modules/search'

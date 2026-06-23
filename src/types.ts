@@ -1,3 +1,5 @@
+import type { TokenStore } from './token-store'
+
 export interface MitumbaClientConfig {
   baseUrl: string
   debug?: boolean
@@ -19,6 +21,18 @@ export interface MitumbaClientConfig {
    * Useful for persisting the new tokens.
    */
   onTokenRefresh?: (tokens: { token: string; refreshToken: string }) => void
+
+  /**
+   * Callback invoked when the refresh token is invalid/expired and the user
+   * needs to re-authenticate. Only fires when session is truly dead.
+   */
+  onAuthExpired?: () => void
+
+  /**
+   * Custom token store for persisting tokens. Defaults to IndexedDB in browsers,
+   * in-memory elsewhere. Pass your own implementation for custom persistence.
+   */
+  tokenStore?: TokenStore
 }
 
 export interface APIErrorResponse {

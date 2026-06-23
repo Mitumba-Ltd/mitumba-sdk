@@ -26,6 +26,13 @@ export class CartModule {
   }
 
   /**
+   * Update the quantity of a cart item.
+   */
+  async updateQuantity(listingId: string, quantity: number, options?: RequestOptions): Promise<{ ok: true; quantity: number }> {
+    return this.client.patch<{ ok: true; quantity: number }>(`/listings/cart/${listingId}`, { quantity }, options)
+  }
+
+  /**
    * Checkout the cart — creates orders grouped by store and clears the cart.
    */
   async checkout(options?: RequestOptions): Promise<{ order_ids: string[]; count: number }> {

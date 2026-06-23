@@ -35,6 +35,15 @@ describe('CartModule', () => {
     })
   })
 
+  describe('updateQuantity', () => {
+    it('calls PATCH /listings/cart/:listingId with quantity', async () => {
+      vi.spyOn(apiClient, 'patch').mockResolvedValue({ ok: true, quantity: 3 })
+      const result = await cartModule.updateQuantity('lst_1', 3)
+      expect(apiClient.patch).toHaveBeenCalledWith('/listings/cart/lst_1', { quantity: 3 }, undefined)
+      expect(result).toEqual({ ok: true, quantity: 3 })
+    })
+  })
+
   describe('checkout', () => {
     it('calls POST /orders/checkout', async () => {
       const mockResponse = { order_ids: ['ord_1', 'ord_2'], count: 2 }

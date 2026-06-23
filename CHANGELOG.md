@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.11.0
+
+### Minor Changes
+
+- aa33622: Add `sdk.cart.updateQuantity(listingId, quantity)` — update cart item quantity (PATCH /listings/cart/:listingId).
+
 ## 1.10.0
 
 ### Minor Changes

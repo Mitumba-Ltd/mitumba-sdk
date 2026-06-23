@@ -16,6 +16,7 @@ import { SettingsModule } from './modules/settings'
 import { MailerModule } from './modules/mailer'
 import { BusinessesModule } from './modules/businesses'
 import { AdminModule } from './modules/admin'
+import { DisputesModule } from './modules/disputes'
 
 export class MitumbaClient {
   public readonly api: APIClient
@@ -35,6 +36,7 @@ export class MitumbaClient {
   public readonly mailer: MailerModule
   public readonly businesses: BusinessesModule
   public readonly admin: AdminModule
+  public readonly disputes: DisputesModule
 
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
@@ -54,6 +56,7 @@ export class MitumbaClient {
     this.mailer = new MailerModule(this.api)
     this.businesses = new BusinessesModule(this.api)
     this.admin = new AdminModule(this.api)
+    this.disputes = new DisputesModule(this.api)
   }
 
   /**
@@ -113,3 +116,4 @@ export { SettingsModule } from './modules/settings'
 export { MailerModule } from './modules/mailer'
 export { BusinessesModule } from './modules/businesses'
 export { AdminModule } from './modules/admin'
+export { DisputesModule } from './modules/disputes'

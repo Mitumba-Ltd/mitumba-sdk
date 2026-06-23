@@ -65,6 +65,7 @@ export * from './types/settings'
 export * from './types/mailer'
 export * from './types/businesses'
 export * from './types/admin'
+export * from './types/disputes'
 
 export interface RequestOptions {
   signal?: AbortSignal

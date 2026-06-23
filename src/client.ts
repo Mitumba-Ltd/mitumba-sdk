@@ -1,4 +1,5 @@
 import { MitumbaClientConfig, APIErrorResponse, RequestOptions } from './types'
+import { TokenStore, createTokenStore } from './token-store'
 
 export class APIError extends Error {
   public readonly code: string
@@ -14,20 +15,38 @@ export class APIError extends Error {
   }
 }
 
+function isExpiringSoon(token: string, thresholdSeconds: number): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const exp = payload.exp as number
+    return exp - (Date.now() / 1000) < thresholdSeconds
+  } catch {
+    return false
+  }
+}
+
 export class APIClient {
   private config: MitumbaClientConfig
+  private tokenStore: TokenStore
   private isRefreshing = false
   private refreshPromise: Promise<void> | null = null
 
   constructor(config: MitumbaClientConfig) {
     this.config = config
+    this.tokenStore = config.tokenStore ?? createTokenStore()
+
+    // Seed store from config if tokens provided
+    if (config.token) {
+      this.tokenStore.setTokens(config.token, config.refreshToken ?? '')
+    }
   }
 
-  public setToken(token: string, refreshToken?: string) {
+  public async setToken(token: string, refreshToken?: string): Promise<void> {
     this.config.token = token
     if (refreshToken) {
       this.config.refreshToken = refreshToken
     }
+    await this.tokenStore.setTokens(token, refreshToken ?? this.config.refreshToken ?? '')
   }
 
   public getToken(): string | undefined {
@@ -38,9 +57,45 @@ export class APIClient {
     return this.config.baseUrl
   }
 
-  public clearToken() {
+  public async clearToken(): Promise<void> {
     this.config.token = undefined
     this.config.refreshToken = undefined
+    await this.tokenStore.clear()
+  }
+
+  /**
+   * Check if user has a stored session (access or refresh token available).
+   */
+  public async isAuthenticated(): Promise<boolean> {
+    const access = this.config.token ?? await this.tokenStore.getAccessToken()
+    if (access) return true
+    const refresh = await this.tokenStore.getRefreshToken()
+    return !!refresh
+  }
+
+  /**
+   * Hydrate tokens from the store into memory (call on app boot).
+   */
+  public async hydrate(): Promise<void> {
+    const access = await this.tokenStore.getAccessToken()
+    const refresh = await this.tokenStore.getRefreshToken()
+    if (access) this.config.token = access
+    if (refresh) this.config.refreshToken = refresh
+  }
+
+  private async ensureFreshToken(): Promise<void> {
+    // Try hydrating from store if no in-memory token
+    if (!this.config.token) {
+      const stored = await this.tokenStore.getAccessToken()
+      if (stored) this.config.token = stored
+      const refresh = await this.tokenStore.getRefreshToken()
+      if (refresh) this.config.refreshToken = refresh
+    }
+
+    // Proactive refresh if token expires within 60 seconds
+    if (this.config.token && isExpiringSoon(this.config.token, 60) && this.config.refreshToken) {
+      await this.handleTokenRefresh()
+    }
   }
 
   private async request<T>(
@@ -50,6 +105,11 @@ export class APIClient {
     params?: Record<string, string | number | boolean | undefined>,
     options?: RequestOptions
   ): Promise<T> {
+    // Proactive refresh before request (skip for auth endpoints)
+    if (!path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+      await this.ensureFreshToken()
+    }
+
     const url = new URL(path, this.config.baseUrl)
     
     if (params) {
@@ -119,12 +179,20 @@ export class APIClient {
       break
     }
 
-    // Handle automatic token refresh
+    // Handle 401 — attempt refresh and retry
     if (response.status === 401 && this.config.refreshToken && !path.includes('/auth/refresh')) {
-      await this.handleTokenRefresh()
-      // Retry request with new token
-      headers.set('Authorization', `Bearer ${this.config.token}`)
-      response = await fetch(url.toString(), { ...init, headers })
+      try {
+        await this.handleTokenRefresh()
+        // Retry request with new token
+        headers.set('Authorization', `Bearer ${this.config.token}`)
+        response = await fetch(url.toString(), { ...init, headers })
+      } catch {
+        // Refresh failed — session is dead
+        if (this.config.onAuthExpired) {
+          this.config.onAuthExpired()
+        }
+        throw new APIError(401, { error: 'session_expired', message: 'Session expired. Please log in again.' })
+      }
     }
 
     if (!response.ok) {
@@ -164,14 +232,16 @@ export class APIClient {
         }
 
         const data = await response.json() as { access_token: string, refresh_token: string }
-        this.setToken(data.access_token, data.refresh_token)
+        this.config.token = data.access_token
+        this.config.refreshToken = data.refresh_token
+        await this.tokenStore.setTokens(data.access_token, data.refresh_token)
 
         if (this.config.onTokenRefresh) {
           this.config.onTokenRefresh({ token: data.access_token, refreshToken: data.refresh_token })
         }
       } catch (err) {
-        this.clearToken()
-        throw new APIError(401, { error: 'token_expired', message: 'Session expired. Please log in again.' })
+        await this.clearToken()
+        throw err
       } finally {
         this.isRefreshing = false
         this.refreshPromise = null

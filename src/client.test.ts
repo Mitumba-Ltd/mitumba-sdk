@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { APIClient, APIError } from './client'
+import { MemoryTokenStore } from './token-store'
 
 const BASE_URL = 'https://api.mitumba.test'
 
@@ -7,7 +8,7 @@ describe('APIClient', () => {
   let client: APIClient
 
   beforeEach(() => {
-    client = new APIClient({ baseUrl: BASE_URL })
+    client = new APIClient({ baseUrl: BASE_URL, tokenStore: new MemoryTokenStore() })
     globalThis.fetch = vi.fn()
   })
 
@@ -44,7 +45,7 @@ describe('APIClient', () => {
   })
 
   it('injects Authorization header when token is set', async () => {
-    client.setToken('test-token')
+    await client.setToken('test-token')
     vi.mocked(globalThis.fetch).mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -52,13 +53,6 @@ describe('APIClient', () => {
     } as Response)
 
     await client.get('/test')
-
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        headers: expect.any(Headers)
-      })
-    )
 
     const callArgs = vi.mocked(globalThis.fetch).mock.calls[0]
     const requestInit = callArgs[1] as RequestInit
@@ -103,7 +97,8 @@ describe('APIClient', () => {
       baseUrl: BASE_URL, 
       token: 'old-token', 
       refreshToken: 'refresh-token',
-      onTokenRefresh 
+      onTokenRefresh,
+      tokenStore: new MemoryTokenStore(),
     })
 
     // First call: returns 401
@@ -134,13 +129,12 @@ describe('APIClient', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(3)
     expect(onTokenRefresh).toHaveBeenCalledWith({ token: 'new-token', refreshToken: 'new-refresh' })
     
-    // Check if the final request used the new token
     const lastCallInit = vi.mocked(globalThis.fetch).mock.calls[2][1] as RequestInit
     expect((lastCallInit.headers as Headers).get('Authorization')).toBe('Bearer new-token')
   })
 
   it('retries requests on 5xx errors with exponential backoff', async () => {
-    client = new APIClient({ baseUrl: BASE_URL, maxRetries: 2, debug: false })
+    client = new APIClient({ baseUrl: BASE_URL, maxRetries: 2, debug: false, tokenStore: new MemoryTokenStore() })
 
     vi.mocked(globalThis.fetch)
       .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
@@ -164,8 +158,31 @@ describe('APIClient', () => {
 
     await expect(client.get('/abort-test', undefined, { signal: controller.signal })).rejects.toThrow('The operation was aborted')
     
-    // Check that fetch was called with the signal
     const callArgs = vi.mocked(globalThis.fetch).mock.calls[0]
     expect((callArgs[1] as RequestInit).signal).toBe(controller.signal)
+  })
+
+  it('calls onAuthExpired when refresh fails', async () => {
+    const onAuthExpired = vi.fn()
+    client = new APIClient({
+      baseUrl: BASE_URL,
+      token: 'expired-token',
+      refreshToken: 'bad-refresh',
+      onAuthExpired,
+      tokenStore: new MemoryTokenStore(),
+    })
+
+    // First call: 401
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false, status: 401, json: async () => ({ error: 'unauthorized' }),
+    } as Response)
+
+    // Refresh call: fails
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false, status: 401, json: async () => ({ error: 'invalid_token' }),
+    } as Response)
+
+    await expect(client.get('/protected')).rejects.toThrow(APIError)
+    expect(onAuthExpired).toHaveBeenCalledOnce()
   })
 })

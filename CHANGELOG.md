@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.15.0
+
+### Minor Changes
+
+- df5983b: Add `sdk.uploads.upload(file)` — generic file upload (POST /listings/uploads). Returns `{ url }` with the public CDN URL.
+
 ## 1.14.0
 
 ### Minor Changes

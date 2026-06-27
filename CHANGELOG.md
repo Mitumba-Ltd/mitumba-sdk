@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.17.0
+
+### Minor Changes
+
+- fa4f435: Add optional `media: string[]` to `Listing`, `SearchResult`, and `WishlistListing` — array of all image CDN URLs ordered by position, enabling swipeable carousels in list views.
+
 ## 1.16.0
 
 ### Minor Changes

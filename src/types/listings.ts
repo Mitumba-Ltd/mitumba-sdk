@@ -42,6 +42,8 @@ export interface Listing {
   images?: ListingImage[]
   // First image as full CDN URL (present in feeds/store listings)
   image_url?: string | null
+  // All image CDN URLs ordered by position (present in feeds)
+  media?: string[]
 }
 
 export interface ListingsFeedParams {

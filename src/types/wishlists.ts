@@ -5,4 +5,5 @@ export interface WishlistListing {
   condition: string
   size: string | null
   image_url: string | null
+  media?: string[]
 }

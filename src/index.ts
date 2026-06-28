@@ -74,6 +74,13 @@ export class MitumbaClient {
   }
 
   /**
+   * Set both tokens explicitly. Preferred — prevents dropping the refresh token.
+   */
+  public setSession(tokens: { access_token: string; refresh_token: string }) {
+    return this.api.setSession(tokens)
+  }
+
+  /**
    * Get the current access token.
    */
   public getToken(): string | undefined {

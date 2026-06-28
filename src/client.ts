@@ -37,16 +37,31 @@ export class APIClient {
 
     // Seed store from config if tokens provided
     if (config.token) {
-      this.tokenStore.setTokens(config.token, config.refreshToken ?? '')
+      this.tokenStore.setTokens(config.token, config.refreshToken || '')
     }
   }
 
   public async setToken(token: string, refreshToken?: string): Promise<void> {
     this.config.token = token
-    if (refreshToken) {
+    if (refreshToken && refreshToken.length > 0) {
       this.config.refreshToken = refreshToken
     }
-    await this.tokenStore.setTokens(token, refreshToken ?? this.config.refreshToken ?? '')
+    const effectiveRefresh = refreshToken && refreshToken.length > 0
+      ? refreshToken
+      : this.config.refreshToken && this.config.refreshToken.length > 0
+        ? this.config.refreshToken
+        : ''
+    await this.tokenStore.setTokens(token, effectiveRefresh)
+  }
+
+  /**
+   * Set both tokens explicitly. Requires a valid refresh token.
+   * Preferred over setToken() to avoid dropping the refresh token.
+   */
+  public async setSession(tokens: { access_token: string; refresh_token: string }): Promise<void> {
+    this.config.token = tokens.access_token
+    this.config.refreshToken = tokens.refresh_token
+    await this.tokenStore.setTokens(tokens.access_token, tokens.refresh_token)
   }
 
   public getToken(): string | undefined {
@@ -93,7 +108,7 @@ export class APIClient {
     }
 
     // Proactive refresh if token expires within 60 seconds
-    if (this.config.token && isExpiringSoon(this.config.token, 60) && this.config.refreshToken) {
+    if (this.config.token && isExpiringSoon(this.config.token, 60) && this.config.refreshToken && this.config.refreshToken.length > 0) {
       await this.handleTokenRefresh()
     }
   }
@@ -180,14 +195,22 @@ export class APIClient {
     }
 
     // Handle 401 — attempt refresh and retry
-    if (response.status === 401 && this.config.refreshToken && !path.includes('/auth/refresh')) {
-      try {
-        await this.handleTokenRefresh()
-        // Retry request with new token
-        headers.set('Authorization', `Bearer ${this.config.token}`)
-        response = await fetch(url.toString(), { ...init, headers })
-      } catch {
-        // Refresh failed — session is dead
+    if (response.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+      const hasRefreshToken = this.config.refreshToken && this.config.refreshToken.length > 0
+
+      if (hasRefreshToken) {
+        try {
+          await this.handleTokenRefresh()
+          headers.set('Authorization', `Bearer ${this.config.token}`)
+          response = await fetch(url.toString(), { ...init, headers })
+        } catch {
+          if (this.config.onAuthExpired) {
+            this.config.onAuthExpired()
+          }
+          throw new APIError(401, { error: 'session_expired', message: 'Session expired. Please log in again.' })
+        }
+      } else {
+        // No refresh token — session is dead, fire callback immediately
         if (this.config.onAuthExpired) {
           this.config.onAuthExpired()
         }

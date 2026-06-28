@@ -16,25 +16,37 @@ import type {
   RequestOptions,
 } from '../types'
 
+function isAuthTokens(result: unknown): result is AuthTokens {
+  return typeof result === 'object' && result !== null && 'access_token' in result && 'refresh_token' in result
+}
+
 export class AuthModule {
   constructor(private readonly client: APIClient) {}
 
   /**
    * Register a new account.
-   * If using EmailRegisterInput, returns AuthTokens.
+   * If using EmailRegisterInput, returns AuthTokens (auto-persisted).
    * If using PhoneRegisterInput, returns MessageResponse (OTP sent).
    */
   async register(input: RegisterInput, options?: RequestOptions): Promise<AuthTokens | MessageResponse> {
-    return this.client.post<AuthTokens | MessageResponse>('/auth/register', input, options)
+    const result = await this.client.post<AuthTokens | MessageResponse>('/auth/register', input, options)
+    if (isAuthTokens(result)) {
+      await this.client.setSession(result)
+    }
+    return result
   }
 
   /**
    * Log in to an existing account.
-   * If using EmailLoginInput, returns AuthTokens (or TwoFactorRequired if 2FA enabled).
+   * If using EmailLoginInput, returns AuthTokens (auto-persisted) or TwoFactorRequired.
    * If using PhoneLoginInput, returns MessageResponse (OTP sent).
    */
   async login(input: LoginInput, options?: RequestOptions): Promise<AuthTokens | MessageResponse | TwoFactorRequired> {
-    return this.client.post<AuthTokens | MessageResponse | TwoFactorRequired>('/auth/login', input, options)
+    const result = await this.client.post<AuthTokens | MessageResponse | TwoFactorRequired>('/auth/login', input, options)
+    if (isAuthTokens(result)) {
+      await this.client.setSession(result)
+    }
+    return result
   }
 
   /**
@@ -45,29 +57,34 @@ export class AuthModule {
   }
 
   /**
-   * Verify an OTP code.
+   * Verify an OTP code. Tokens are auto-persisted.
    */
   async verifyOtp(input: VerifyOtpInput, options?: RequestOptions): Promise<AuthTokens> {
-    return this.client.post<AuthTokens>('/auth/otp/verify', input, options)
+    const result = await this.client.post<AuthTokens>('/auth/otp/verify', input, options)
+    await this.client.setSession(result)
+    return result
   }
 
   /**
    * Refresh the access token using a refresh token.
    */
   async refresh(input: { refresh_token: string }, options?: RequestOptions): Promise<AuthTokens> {
-    return this.client.post<AuthTokens>('/auth/refresh', input, options)
+    const result = await this.client.post<AuthTokens>('/auth/refresh', input, options)
+    await this.client.setSession(result)
+    return result
   }
 
   /**
-   * Revoke the refresh token and log out.
+   * Revoke the refresh token and log out. Clears stored session.
    */
   async logout(input: { refresh_token: string }, options?: RequestOptions): Promise<{ ok: boolean }> {
-    return this.client.post<{ ok: boolean }>('/auth/logout', input, options)
+    const result = await this.client.post<{ ok: boolean }>('/auth/logout', input, options)
+    await this.client.clearToken()
+    return result
   }
 
   /**
    * Request a password reset email.
-   * Sends a reset link to the provided email address.
    */
   async forgotPassword(input: ForgotPasswordInput, options?: RequestOptions): Promise<MessageResponse> {
     return this.client.post<MessageResponse>('/auth/forgot-password', input, options)
@@ -95,15 +112,16 @@ export class AuthModule {
   }
 
   /**
-   * Verify 2FA code during login (when login returns requires_2fa).
+   * Verify 2FA code during login. Tokens are auto-persisted.
    */
   async verify2FA(input: Verify2FAInput, options?: RequestOptions): Promise<AuthTokens> {
-    return this.client.post<AuthTokens>('/auth/2fa/login', input, options)
+    const result = await this.client.post<AuthTokens>('/auth/2fa/login', input, options)
+    await this.client.setSession(result)
+    return result
   }
 
   /**
    * Send a verification code to the user's email.
-   * If unauthenticated, pass the email address.
    */
   async sendVerificationCode(email?: string, options?: RequestOptions): Promise<{ ok: true }> {
     return this.client.post<{ ok: true }>('/auth/verify-email/send', email ? { email } : undefined, options)
@@ -111,7 +129,6 @@ export class AuthModule {
 
   /**
    * Verify the email with the 6-digit code.
-   * If unauthenticated, pass the email address.
    */
   async verifyEmail(code: string, email?: string, options?: RequestOptions): Promise<{ ok: true }> {
     return this.client.post<{ ok: true }>('/auth/verify-email/confirm', email ? { code, email } : { code }, options)
@@ -119,7 +136,6 @@ export class AuthModule {
 
   /**
    * Upgrade the current user to a seller role.
-   * Idempotent — returns success if already a seller.
    */
   async becomeSeller(input: BecomeSellerInput, options?: RequestOptions): Promise<{ ok: true; roles: string[]; sti_score: number }> {
     return this.client.post<{ ok: true; roles: string[]; sti_score: number }>('/auth/become-seller', input, options)

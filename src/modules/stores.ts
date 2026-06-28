@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { CreateStoreInput, UpdateStoreInput, StoreStats, StoreSettings, StoreAnalytics, Listing, Store, RequestOptions } from '../types'
+import type { CreateStoreInput, UpdateStoreInput, StoreStats, StoreSettings, StoreAnalytics, Listing, Store, FollowedStore, RequestOptions } from '../types'
 
 export class StoresModule {
   constructor(private readonly client: APIClient) {}
@@ -41,6 +41,17 @@ export class StoresModule {
    */
   async getMyStores(options?: RequestOptions): Promise<{ data: Store[] }> {
     return this.client.get<{ data: Store[] }>('/listings/stores/mine', undefined, options)
+  }
+
+  /**
+   * Get stores the authenticated user follows.
+   */
+  async getFollowing(params?: { page?: number }, options?: RequestOptions): Promise<{ data: FollowedStore[]; page: number; page_size: number }> {
+    return this.client.get<{ data: FollowedStore[]; page: number; page_size: number }>(
+      '/listings/stores/following',
+      params as unknown as Record<string, string | number | boolean | undefined>,
+      options
+    )
   }
 
   /**

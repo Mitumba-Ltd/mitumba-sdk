@@ -1,5 +1,13 @@
 # @mitumba/sdk
 
+## 1.18.0
+
+### Minor Changes
+
+- 6854904: Add `sdk.stores.getFollowing(params?)` — list stores the authenticated user follows (GET /listings/stores/following).
+
+  New exported type: `FollowedStore`
+
 ## 1.17.0
 
 ### Minor Changes

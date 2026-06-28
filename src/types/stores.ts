@@ -23,6 +23,22 @@ export interface Store {
   is_following?: boolean
 }
 
+export interface FollowedStore {
+  id: string
+  name: string
+  slug: string
+  logo_url: string | null
+  banner_url: string | null
+  category: string | null
+  is_verified: boolean
+  sti_score: number | null
+  city_name: string | null
+  follower_count: number
+  listing_count: number
+  followed_at: string
+  is_following: true
+}
+
 export interface CreateStoreInput {
   name: string
   slug: string

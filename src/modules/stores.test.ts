@@ -57,6 +57,14 @@ describe('StoresModule', () => {
     })
   })
 
+  describe('getFollowing', () => {
+    it('calls GET /listings/stores/following', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], page: 1, page_size: 24 })
+      await storesModule.getFollowing({ page: 2 })
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/following', { page: 2 }, undefined)
+    })
+  })
+
   describe('create', () => {
     it('calls POST /listings/stores', async () => {
       vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'store_1', slug: 'my-store' })

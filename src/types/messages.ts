@@ -1,15 +1,13 @@
 export interface Conversation {
-  id: string
-  sender_id: string
-  receiver_id: string
   partner_id: string
-  partner_name: string | null
+  partner_name: string
+  store_name?: string | null
   body: string
-  listing_id: string | null
-  listing_title: string | null
-  store_id: string | null
-  read_at: string | null
   created_at: string
+  store_id?: string | null
+  listing_id?: string | null
+  listing_title?: string | null
+  unread_count: number
 }
 
 export interface Message {
@@ -19,6 +17,7 @@ export interface Message {
   body: string
   listing_id: string | null
   store_id: string | null
+  order_id?: string | null
   read_at: string | null
   created_at: string
 }
@@ -28,4 +27,5 @@ export interface SendMessageInput {
   body: string
   listing_id?: string
   store_id?: string
+  order_id?: string
 }

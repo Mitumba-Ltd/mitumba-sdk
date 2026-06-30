@@ -22,7 +22,7 @@ export class CartModule {
    * Remove a listing from the cart.
    */
   async remove(listingId: string, options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.delete<{ ok: true }>(`/listings/cart/${listingId}`, options)
+    return this.client.delete<{ ok: true }>(`/listings/cart/${listingId}`, undefined, options)
   }
 
   /**

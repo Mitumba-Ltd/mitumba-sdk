@@ -60,7 +60,7 @@ describe('ListingsModule', () => {
     it('calls DELETE /listings/:id', async () => {
       vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
       await listingsModule.delete('123')
-      expect(apiClient.delete).toHaveBeenCalledWith('/listings/123', undefined)
+      expect(apiClient.delete).toHaveBeenCalledWith('/listings/123', undefined, undefined)
     })
   })
 

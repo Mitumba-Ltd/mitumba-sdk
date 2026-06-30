@@ -64,7 +64,7 @@ export class ListingsModule {
    * Soft delete a listing (sets status to 'removed').
    */
   async delete(id: string, options?: RequestOptions): Promise<{ ok: boolean }> {
-    return this.client.delete<{ ok: boolean }>(`/listings/${id}`, options)
+    return this.client.delete<{ ok: boolean }>(`/listings/${id}`, undefined, options)
   }
 
   /**

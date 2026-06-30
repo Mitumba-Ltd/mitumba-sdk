@@ -22,6 +22,6 @@ export class WishlistsModule {
    * Remove a listing from the wishlist.
    */
   async remove(listingId: string, options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.delete<{ ok: true }>(`/listings/wishlists/${listingId}`, options)
+    return this.client.delete<{ ok: true }>(`/listings/wishlists/${listingId}`, undefined, options)
   }
 }

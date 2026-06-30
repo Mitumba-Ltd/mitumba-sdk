@@ -38,7 +38,7 @@ export class SettingsModule {
   }
 
   async revokeSession(sessionId: string, options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.delete<{ ok: true }>(`/auth/sessions/${sessionId}`, options)
+    return this.client.delete<{ ok: true }>(`/auth/sessions/${sessionId}`, undefined, options)
   }
 
   // ── Notification Preferences ──
@@ -76,7 +76,7 @@ export class SettingsModule {
   }
 
   async deleteAddress(id: string, options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.delete<{ ok: true }>(`/auth/addresses/${id}`, options)
+    return this.client.delete<{ ok: true }>(`/auth/addresses/${id}`, undefined, options)
   }
 
   async setDefaultAddress(id: string, options?: RequestOptions): Promise<{ ok: true }> {
@@ -94,7 +94,7 @@ export class SettingsModule {
   }
 
   async deletePaymentMethod(id: string, options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.delete<{ ok: true }>(`/auth/payment-methods/${id}`, options)
+    return this.client.delete<{ ok: true }>(`/auth/payment-methods/${id}`, undefined, options)
   }
 
   async setDefaultPaymentMethod(id: string, options?: RequestOptions): Promise<{ ok: true }> {
@@ -112,7 +112,7 @@ export class SettingsModule {
   }
 
   async unlinkAccount(provider: LinkedAccountProvider, options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.delete<{ ok: true }>(`/auth/linked-accounts/${provider}`, options)
+    return this.client.delete<{ ok: true }>(`/auth/linked-accounts/${provider}`, undefined, options)
   }
 
   // ── 2FA ──

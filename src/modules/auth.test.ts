@@ -221,4 +221,33 @@ describe('AuthModule', () => {
       expect(result).toEqual(mockResponse)
     })
   })
+
+  describe('getDeletionEligibility', () => {
+    it('calls GET /auth/account/deletion-eligibility', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValueOnce({ eligible: true, reasons: [], totp_enabled: false })
+      const result = await authModule.getDeletionEligibility()
+      expect(apiClient.get).toHaveBeenCalledWith('/auth/account/deletion-eligibility', undefined, undefined)
+      expect(result).toEqual({ eligible: true, reasons: [], totp_enabled: false })
+    })
+  })
+
+  describe('requestAccountDeletion', () => {
+    it('calls POST /auth/account/deletion-request', async () => {
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
+      const result = await authModule.requestAccountDeletion()
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/account/deletion-request', undefined, undefined)
+      expect(result).toEqual({ ok: true })
+    })
+  })
+
+  describe('confirmAccountDeletion', () => {
+    it('calls DELETE /auth/account with token and clears session', async () => {
+      vi.spyOn(apiClient, 'delete').mockResolvedValueOnce({ ok: true })
+      vi.spyOn(apiClient, 'clearToken').mockResolvedValueOnce(undefined)
+      const result = await authModule.confirmAccountDeletion({ token: 'del_token_123', code: '654321' })
+      expect(apiClient.delete).toHaveBeenCalledWith('/auth/account', { token: 'del_token_123', code: '654321' }, undefined)
+      expect(apiClient.clearToken).toHaveBeenCalled()
+      expect(result).toEqual({ ok: true })
+    })
+  })
 })

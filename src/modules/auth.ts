@@ -140,4 +140,27 @@ export class AuthModule {
   async becomeSeller(input: BecomeSellerInput, options?: RequestOptions): Promise<{ ok: true; roles: string[]; sti_score: number }> {
     return this.client.post<{ ok: true; roles: string[]; sti_score: number }>('/auth/become-seller', input, options)
   }
+
+  /**
+   * Check if the account is eligible for deletion and what blockers exist.
+   */
+  async getDeletionEligibility(options?: RequestOptions): Promise<{ eligible: boolean; reasons: string[]; totp_enabled: boolean }> {
+    return this.client.get<{ eligible: boolean; reasons: string[]; totp_enabled: boolean }>('/auth/account/deletion-eligibility', undefined, options)
+  }
+
+  /**
+   * Request account deletion. Sends a confirmation email if eligible.
+   */
+  async requestAccountDeletion(options?: RequestOptions): Promise<{ ok: true } | { blocked: true; reasons: string[] }> {
+    return this.client.post<{ ok: true } | { blocked: true; reasons: string[] }>('/auth/account/deletion-request', undefined, options)
+  }
+
+  /**
+   * Confirm account deletion (from emailed link). Clears local session on success.
+   */
+  async confirmAccountDeletion(input: { token: string; code?: string }, options?: RequestOptions): Promise<{ ok: true }> {
+    const result = await this.client.delete<{ ok: true }>('/auth/account', input, options)
+    await this.client.clearToken()
+    return result
+  }
 }

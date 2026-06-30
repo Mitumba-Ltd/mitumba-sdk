@@ -31,7 +31,7 @@ describe('WishlistsModule', () => {
     it('calls DELETE /listings/wishlists/:listingId', async () => {
       vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
       await wishlistsModule.remove('lst_1')
-      expect(apiClient.delete).toHaveBeenCalledWith('/listings/wishlists/lst_1', undefined)
+      expect(apiClient.delete).toHaveBeenCalledWith('/listings/wishlists/lst_1', undefined, undefined)
     })
   })
 })

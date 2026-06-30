@@ -290,7 +290,7 @@ export class APIClient {
     return this.request<T>('PATCH', path, body, undefined, options)
   }
 
-  public delete<T>(path: string, options?: RequestOptions): Promise<T> {
-    return this.request<T>('DELETE', path, undefined, undefined, options)
+  public delete<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    return this.request<T>('DELETE', path, body, undefined, options)
   }
 }

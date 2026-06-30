@@ -22,7 +22,7 @@ export class StoresModule {
    * Unfollow a store.
    */
   async unfollow(storeId: string, options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.delete<{ ok: true }>(`/listings/stores/${storeId}/follow`, options)
+    return this.client.delete<{ ok: true }>(`/listings/stores/${storeId}/follow`, undefined, options)
   }
 
   /**
@@ -116,5 +116,12 @@ export class StoresModule {
     const formData = new FormData()
     formData.append('file', file)
     return this.client.post<{ url: string }>(`/listings/stores/${storeId}/banner`, formData, options)
+  }
+
+  /**
+   * Delete a store. Blocked if active orders, pending payouts, or open disputes exist.
+   */
+  async delete(storeId: string, options?: RequestOptions): Promise<{ ok: true } | { blocked: true; reasons: string[] }> {
+    return this.client.delete<{ ok: true } | { blocked: true; reasons: string[] }>(`/listings/stores/${storeId}`, undefined, options)
   }
 }

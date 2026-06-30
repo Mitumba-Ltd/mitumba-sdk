@@ -31,7 +31,7 @@ describe('CartModule', () => {
     it('calls DELETE /listings/cart/:listingId', async () => {
       vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
       await cartModule.remove('lst_1')
-      expect(apiClient.delete).toHaveBeenCalledWith('/listings/cart/lst_1', undefined)
+      expect(apiClient.delete).toHaveBeenCalledWith('/listings/cart/lst_1', undefined, undefined)
     })
   })
 

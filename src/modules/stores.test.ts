@@ -31,7 +31,7 @@ describe('StoresModule', () => {
     it('calls DELETE /listings/stores/:storeId/follow', async () => {
       vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
       await storesModule.unfollow('store_1')
-      expect(apiClient.delete).toHaveBeenCalledWith('/listings/stores/store_1/follow', undefined)
+      expect(apiClient.delete).toHaveBeenCalledWith('/listings/stores/store_1/follow', undefined, undefined)
     })
   })
 
@@ -138,6 +138,15 @@ describe('StoresModule', () => {
       const result = await storesModule.uploadBanner('store_1', file)
       expect(apiClient.post).toHaveBeenCalledWith('/listings/stores/store_1/banner', expect.any(FormData), undefined)
       expect(result).toEqual({ url: 'https://cdn.mitumba.stanl.ink/banner.jpg' })
+    })
+  })
+
+  describe('delete', () => {
+    it('calls DELETE /listings/stores/:storeId', async () => {
+      vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
+      const result = await storesModule.delete('store_1')
+      expect(apiClient.delete).toHaveBeenCalledWith('/listings/stores/store_1', undefined, undefined)
+      expect(result).toEqual({ ok: true })
     })
   })
 })

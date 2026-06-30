@@ -42,7 +42,7 @@ describe('SettingsModule', () => {
     it('revokeSession calls DELETE /auth/sessions/:id', async () => {
       vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
       await settings.revokeSession('sess_1')
-      expect(apiClient.delete).toHaveBeenCalledWith('/auth/sessions/sess_1', undefined)
+      expect(apiClient.delete).toHaveBeenCalledWith('/auth/sessions/sess_1', undefined, undefined)
     })
   })
 
@@ -91,7 +91,7 @@ describe('SettingsModule', () => {
     it('deleteAddress calls DELETE /auth/addresses/:id', async () => {
       vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
       await settings.deleteAddress('addr_1')
-      expect(apiClient.delete).toHaveBeenCalledWith('/auth/addresses/addr_1', undefined)
+      expect(apiClient.delete).toHaveBeenCalledWith('/auth/addresses/addr_1', undefined, undefined)
     })
 
     it('setDefaultAddress calls POST /auth/addresses/:id/default', async () => {
@@ -118,7 +118,7 @@ describe('SettingsModule', () => {
     it('deletePaymentMethod calls DELETE /auth/payment-methods/:id', async () => {
       vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
       await settings.deletePaymentMethod('pm_1')
-      expect(apiClient.delete).toHaveBeenCalledWith('/auth/payment-methods/pm_1', undefined)
+      expect(apiClient.delete).toHaveBeenCalledWith('/auth/payment-methods/pm_1', undefined, undefined)
     })
 
     it('setDefaultPaymentMethod calls POST /auth/payment-methods/:id/default', async () => {
@@ -144,7 +144,7 @@ describe('SettingsModule', () => {
     it('unlinkAccount calls DELETE /auth/linked-accounts/:provider', async () => {
       vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
       await settings.unlinkAccount('apple')
-      expect(apiClient.delete).toHaveBeenCalledWith('/auth/linked-accounts/apple', undefined)
+      expect(apiClient.delete).toHaveBeenCalledWith('/auth/linked-accounts/apple', undefined, undefined)
     })
   })
 

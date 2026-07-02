@@ -166,5 +166,17 @@ describe('SettingsModule', () => {
       await settings.disable2FA('654321')
       expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/disable', { code: '654321' }, undefined)
     })
+
+    it('enable2FA calls POST /auth/2fa/enable', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+      await settings.enable2FA('123456')
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/enable', { code: '123456' }, undefined)
+    })
+
+    it('delete2FA calls DELETE /auth/2fa', async () => {
+      vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
+      await settings.delete2FA('123456')
+      expect(apiClient.delete).toHaveBeenCalledWith('/auth/2fa', { code: '123456' }, undefined)
+    })
   })
 })

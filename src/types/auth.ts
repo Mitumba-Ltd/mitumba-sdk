@@ -93,6 +93,7 @@ export interface UserProfile {
   onboarding_completed: boolean
   email_verified: boolean
   totp_enabled: boolean
+  totp_configured: boolean
   is_active: boolean
   created_at: string
   roles: string[]

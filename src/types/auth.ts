@@ -123,6 +123,7 @@ export interface UserProfile {
   totp_enabled: boolean
   totp_configured: boolean
   two_factor_methods_count?: number
+  sms_2fa_available?: boolean
   is_active: boolean
   created_at: string
   roles: string[]

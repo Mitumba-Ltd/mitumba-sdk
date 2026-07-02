@@ -128,4 +128,12 @@ export class SettingsModule {
   async disable2FA(code: string, options?: RequestOptions): Promise<{ ok: true }> {
     return this.client.post<{ ok: true }>('/auth/2fa/disable', { code }, options)
   }
+
+  async enable2FA(code: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/2fa/enable', { code }, options)
+  }
+
+  async delete2FA(code: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.delete<{ ok: true }>('/auth/2fa', { code }, options)
+  }
 }

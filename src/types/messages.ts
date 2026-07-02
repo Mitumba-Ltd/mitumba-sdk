@@ -18,6 +18,7 @@ export interface Message {
   listing_id: string | null
   store_id: string | null
   order_id?: string | null
+  from_store?: number
   read_at: string | null
   created_at: string
 }
@@ -28,4 +29,5 @@ export interface SendMessageInput {
   listing_id?: string
   store_id?: string
   order_id?: string
+  from_store?: boolean
 }

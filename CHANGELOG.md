@@ -1,5 +1,14 @@
 # @mitumba/sdk
 
+## 1.24.0
+
+### Minor Changes
+
+- d8aca26: Complete multi-method 2FA (Phase 3):
+
+  - `sdk.auth.sendLogin2FAChallenge({ temp_token, method_id })` — request SMS/email code at login time (POST /auth/2fa/login/challenge)
+  - `UserProfile.sms_2fa_available` — whether the platform offers SMS as a 2FA method
+
 ## 1.23.0
 
 ### Minor Changes

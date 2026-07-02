@@ -121,6 +121,14 @@ export class AuthModule {
   }
 
   /**
+   * Send a 2FA challenge during login (for SMS/email methods).
+   * Call before verify2FA when the user picks a non-TOTP method.
+   */
+  async sendLogin2FAChallenge(input: { temp_token: string; method_id: string }, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/2fa/login/challenge', input, options)
+  }
+
+  /**
    * Send a verification code to the user's email.
    */
   async sendVerificationCode(email?: string, options?: RequestOptions): Promise<{ ok: true }> {

@@ -183,6 +183,16 @@ describe('AuthModule', () => {
     })
   })
 
+  describe('sendLogin2FAChallenge', () => {
+    it('calls POST /auth/2fa/login/challenge', async () => {
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
+      const input = { temp_token: 'tmp_123', method_id: 'm_sms_1' }
+      const result = await authModule.sendLogin2FAChallenge(input)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/login/challenge', input, undefined)
+      expect(result).toEqual({ ok: true })
+    })
+  })
+
   describe('sendVerificationCode', () => {
     it('calls POST /auth/verify-email/send without email when authenticated', async () => {
       vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })

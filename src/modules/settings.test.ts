@@ -179,4 +179,42 @@ describe('SettingsModule', () => {
       expect(apiClient.delete).toHaveBeenCalledWith('/auth/2fa', { code: '123456' }, undefined)
     })
   })
+
+  describe('multi-method 2FA', () => {
+    it('list2FAMethods calls GET /auth/2fa/methods', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ methods: [] })
+      await settings.list2FAMethods()
+      expect(apiClient.get).toHaveBeenCalledWith('/auth/2fa/methods', undefined, undefined)
+    })
+
+    it('add2FAMethod calls POST /auth/2fa/methods', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'm_1', otpauth_uri: 'otpauth://...', secret: 'ABC' })
+      await settings.add2FAMethod({ type: 'totp', label: 'Phone' })
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/methods', { type: 'totp', label: 'Phone' }, undefined)
+    })
+
+    it('verify2FAMethod calls POST /auth/2fa/methods/:id/verify', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, backup_codes: ['a', 'b'] })
+      await settings.verify2FAMethod('m_1', '123456')
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/methods/m_1/verify', { code: '123456' }, undefined)
+    })
+
+    it('delete2FAMethod calls DELETE /auth/2fa/methods/:id', async () => {
+      vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
+      await settings.delete2FAMethod('m_1', '123456')
+      expect(apiClient.delete).toHaveBeenCalledWith('/auth/2fa/methods/m_1', { code: '123456' }, undefined)
+    })
+
+    it('setPrimary2FAMethod calls POST /auth/2fa/methods/:id/primary', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+      await settings.setPrimary2FAMethod('m_1')
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/methods/m_1/primary', undefined, undefined)
+    })
+
+    it('challenge2FAMethod calls POST /auth/2fa/methods/:id/challenge', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+      await settings.challenge2FAMethod('m_1')
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/methods/m_1/challenge', undefined, undefined)
+    })
+  })
 })

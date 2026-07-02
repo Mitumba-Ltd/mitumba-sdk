@@ -10,6 +10,9 @@ import type {
   AddPaymentMethodInput,
   LinkedAccount,
   LinkedAccountProvider,
+  TwoFactorMethod,
+  Add2FAMethodInput,
+  Add2FAMethodResult,
   UserProfile,
   RequestOptions,
 } from '../types'
@@ -135,5 +138,39 @@ export class SettingsModule {
 
   async delete2FA(code: string, options?: RequestOptions): Promise<{ ok: true }> {
     return this.client.delete<{ ok: true }>('/auth/2fa', { code }, options)
+  }
+
+  // ── Multi-Method 2FA ──
+
+  async list2FAMethods(options?: RequestOptions): Promise<{ methods: TwoFactorMethod[] }> {
+    return this.client.get<{ methods: TwoFactorMethod[] }>('/auth/2fa/methods', undefined, options)
+  }
+
+  async add2FAMethod(input: Add2FAMethodInput, options?: RequestOptions): Promise<Add2FAMethodResult> {
+    return this.client.post<Add2FAMethodResult>('/auth/2fa/methods', input, options)
+  }
+
+  async verify2FAMethod(id: string, code: string, options?: RequestOptions): Promise<{ ok: true; backup_codes?: string[] }> {
+    return this.client.post<{ ok: true; backup_codes?: string[] }>(`/auth/2fa/methods/${id}/verify`, { code }, options)
+  }
+
+  async enable2FAMethod(id: string, code: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/auth/2fa/methods/${id}/enable`, { code }, options)
+  }
+
+  async disable2FAMethod(id: string, code: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/auth/2fa/methods/${id}/disable`, { code }, options)
+  }
+
+  async delete2FAMethod(id: string, code: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.delete<{ ok: true }>(`/auth/2fa/methods/${id}`, { code }, options)
+  }
+
+  async setPrimary2FAMethod(id: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/auth/2fa/methods/${id}/primary`, undefined, options)
+  }
+
+  async challenge2FAMethod(id: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/auth/2fa/methods/${id}/challenge`, undefined, options)
   }
 }

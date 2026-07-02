@@ -61,11 +61,39 @@ export interface CompleteOnboardingInput {
 export interface TwoFactorRequired {
   requires_2fa: true
   temp_token: string
+  methods?: { id: string; type: TwoFactorMethodType; label: string | null }[]
 }
 
 export interface Verify2FAInput {
   temp_token: string
   code: string
+  method_id?: string
+}
+
+export const TWO_FACTOR_METHOD_TYPES = ['totp', 'sms', 'email'] as const
+export type TwoFactorMethodType = typeof TWO_FACTOR_METHOD_TYPES[number]
+
+export interface TwoFactorMethod {
+  id: string
+  type: TwoFactorMethodType
+  label: string | null
+  enabled: boolean
+  is_primary: boolean
+  verified_at: string | null
+  created_at: string
+  last_used_at: string | null
+}
+
+export interface Add2FAMethodInput {
+  type: TwoFactorMethodType
+  label?: string
+  target?: string
+}
+
+export interface Add2FAMethodResult {
+  id: string
+  otpauth_uri?: string
+  secret?: string
 }
 
 export interface BecomeSellerInput {
@@ -94,6 +122,7 @@ export interface UserProfile {
   email_verified: boolean
   totp_enabled: boolean
   totp_configured: boolean
+  two_factor_methods_count?: number
   is_active: boolean
   created_at: string
   roles: string[]

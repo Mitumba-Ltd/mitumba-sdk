@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.24.1
+
+### Patch Changes
+
+- 1b9aa1b: Add `email_2fa_available?: boolean` to `UserProfile` — platform flag for whether email 2FA is offered.
+
 ## 1.24.0
 
 ### Minor Changes

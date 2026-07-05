@@ -52,4 +52,14 @@ export class MessagesModule {
     const wsUrl = this.client.getBaseUrl().replace(/^http/, 'ws') + `/notify/messages/${partnerId}/ws?token=${token}`
     return new WebSocket(wsUrl)
   }
+
+  /**
+   * Connect to the user-scoped inbox WebSocket.
+   * Emits InboxRealtimeEvent for every inbound message across all conversations.
+   */
+  connectInbox(): WebSocket {
+    const token = this.client.getToken()
+    const wsUrl = this.client.getBaseUrl().replace(/^http/, 'ws') + `/notify/messages/inbox?token=${token}`
+    return new WebSocket(wsUrl)
+  }
 }

@@ -31,3 +31,14 @@ export interface SendMessageInput {
   order_id?: string
   from_store?: boolean
 }
+
+export interface InboxRealtimeEvent {
+  type: 'message'
+  conversation_key: string
+  partner_id: string
+  store_id?: string | null
+  from_store?: boolean
+  preview: string
+  created_at: string
+  unread_count?: number
+}

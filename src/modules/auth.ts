@@ -10,6 +10,8 @@ import type {
   Verify2FAInput,
   TwoFactorRequired,
   BecomeSellerInput,
+  PublicKeyCredentialRequestOptionsJSON,
+  AuthenticationResponseJSON,
   UserProfile,
   AuthTokens,
   MessageResponse,
@@ -169,6 +171,24 @@ export class AuthModule {
   async confirmAccountDeletion(input: { token: string; code?: string }, options?: RequestOptions): Promise<{ ok: true }> {
     const result = await this.client.delete<{ ok: true }>('/auth/account', input, options)
     await this.client.clearToken()
+    return result
+  }
+
+  // ── Passkey Login ──
+
+  /**
+   * Start passkey login — get assertion options for navigator.credentials.get().
+   */
+  async startPasskeyLogin(input: { temp_token: string; method_id?: string }, options?: RequestOptions): Promise<{ options: PublicKeyCredentialRequestOptionsJSON }> {
+    return this.client.post<{ options: PublicKeyCredentialRequestOptionsJSON }>('/auth/2fa/login/passkey/start', input, options)
+  }
+
+  /**
+   * Finish passkey login — submit the browser's assertion response. Tokens are auto-persisted.
+   */
+  async finishPasskeyLogin(input: { temp_token: string; credential: AuthenticationResponseJSON }, options?: RequestOptions): Promise<AuthTokens> {
+    const result = await this.client.post<AuthTokens>('/auth/2fa/login/passkey/finish', input, options)
+    await this.client.setSession(result)
     return result
   }
 }

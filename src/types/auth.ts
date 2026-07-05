@@ -70,7 +70,7 @@ export interface Verify2FAInput {
   method_id?: string
 }
 
-export const TWO_FACTOR_METHOD_TYPES = ['totp', 'sms', 'email'] as const
+export const TWO_FACTOR_METHOD_TYPES = ['totp', 'sms', 'email', 'passkey'] as const
 export type TwoFactorMethodType = typeof TWO_FACTOR_METHOD_TYPES[number]
 
 export interface TwoFactorMethod {
@@ -96,6 +96,49 @@ export interface Add2FAMethodResult {
   secret?: string
 }
 
+/** WebAuthn L2 JSON — options returned by the server for navigator.credentials.create() */
+export interface PublicKeyCredentialCreationOptionsJSON {
+  rp: { name: string; id?: string }
+  user: { id: string; name: string; displayName: string }
+  challenge: string
+  pubKeyCredParams: { type: string; alg: number }[]
+  timeout?: number
+  excludeCredentials?: { id: string; type: string; transports?: string[] }[]
+  authenticatorSelection?: { authenticatorAttachment?: string; residentKey?: string; requireResidentKey?: boolean; userVerification?: string }
+  attestation?: string
+  extensions?: Record<string, unknown>
+}
+
+/** WebAuthn L2 JSON — the browser's response from navigator.credentials.create() */
+export interface RegistrationResponseJSON {
+  id: string
+  rawId: string
+  response: { clientDataJSON: string; attestationObject: string; transports?: string[] }
+  type: string
+  clientExtensionResults?: Record<string, unknown>
+  authenticatorAttachment?: string
+}
+
+/** WebAuthn L2 JSON — options returned by the server for navigator.credentials.get() */
+export interface PublicKeyCredentialRequestOptionsJSON {
+  challenge: string
+  timeout?: number
+  rpId?: string
+  allowCredentials?: { id: string; type: string; transports?: string[] }[]
+  userVerification?: string
+  extensions?: Record<string, unknown>
+}
+
+/** WebAuthn L2 JSON — the browser's response from navigator.credentials.get() */
+export interface AuthenticationResponseJSON {
+  id: string
+  rawId: string
+  response: { clientDataJSON: string; authenticatorData: string; signature: string; userHandle?: string }
+  type: string
+  clientExtensionResults?: Record<string, unknown>
+  authenticatorAttachment?: string
+}
+
 export interface BecomeSellerInput {
   seller_type: 'individual' | 'business'
   sti_score: number
@@ -118,6 +161,9 @@ export interface UserProfile {
   phone: string | null
   display_name: string | null
   city_id: string | null
+  county: string | null
+  bio: string | null
+  avatar_url: string | null
   onboarding_completed: boolean
   email_verified: boolean
   totp_enabled: boolean

@@ -79,4 +79,18 @@ describe('MessagesModule', () => {
       vi.unstubAllGlobals()
     })
   })
+
+  describe('connectInbox', () => {
+    it('constructs inbox WebSocket URL with token', () => {
+      vi.spyOn(apiClient, 'getToken').mockReturnValue('my-token')
+      vi.spyOn(apiClient, 'getBaseUrl').mockReturnValue('https://api.mitumba.test')
+      const MockWebSocket = vi.fn()
+      vi.stubGlobal('WebSocket', MockWebSocket)
+
+      messagesModule.connectInbox()
+
+      expect(MockWebSocket).toHaveBeenCalledWith('wss://api.mitumba.test/notify/messages/inbox?token=my-token')
+      vi.unstubAllGlobals()
+    })
+  })
 })

@@ -13,6 +13,8 @@ import type {
   TwoFactorMethod,
   Add2FAMethodInput,
   Add2FAMethodResult,
+  PublicKeyCredentialCreationOptionsJSON,
+  RegistrationResponseJSON,
   UserProfile,
   RequestOptions,
 } from '../types'
@@ -172,5 +174,15 @@ export class SettingsModule {
 
   async challenge2FAMethod(id: string, options?: RequestOptions): Promise<{ ok: true }> {
     return this.client.post<{ ok: true }>(`/auth/2fa/methods/${id}/challenge`, undefined, options)
+  }
+
+  // ── Passkey Registration ──
+
+  async startPasskeyRegistration(input?: { label?: string }, options?: RequestOptions): Promise<{ method_id: string; options: PublicKeyCredentialCreationOptionsJSON }> {
+    return this.client.post<{ method_id: string; options: PublicKeyCredentialCreationOptionsJSON }>('/auth/2fa/methods', { type: 'passkey', ...input }, options)
+  }
+
+  async finishPasskeyRegistration(methodId: string, credential: RegistrationResponseJSON, options?: RequestOptions): Promise<{ ok: true; backup_codes?: string[] }> {
+    return this.client.post<{ ok: true; backup_codes?: string[] }>(`/auth/2fa/methods/${methodId}/passkey/finish`, credential, options)
   }
 }

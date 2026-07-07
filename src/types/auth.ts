@@ -139,9 +139,14 @@ export interface AuthenticationResponseJSON {
   authenticatorAttachment?: string
 }
 
+export type BusinessType = 'individual' | 'business'
+export type SellerType = 'retail' | 'bale'
+
 export interface BecomeSellerInput {
-  seller_type: 'individual' | 'business'
-  sti_score: number
+  business_type?: BusinessType
+  /** @deprecated Use business_type instead */
+  seller_type?: 'individual' | 'business'
+  sti_score?: number
   business_name?: string
   id_number?: string
   kra_pin?: string

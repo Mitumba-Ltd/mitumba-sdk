@@ -19,6 +19,7 @@ import { AdminModule } from './modules/admin'
 import { DisputesModule } from './modules/disputes'
 import { UploadsModule } from './modules/uploads'
 import { ReportsModule } from './modules/reports'
+import { WholesaleModule } from './modules/wholesale'
 
 export class MitumbaClient {
   public readonly api: APIClient
@@ -41,6 +42,7 @@ export class MitumbaClient {
   public readonly disputes: DisputesModule
   public readonly uploads: UploadsModule
   public readonly reports: ReportsModule
+  public readonly wholesale: WholesaleModule
 
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
@@ -63,6 +65,7 @@ export class MitumbaClient {
     this.disputes = new DisputesModule(this.api)
     this.uploads = new UploadsModule(this.api)
     this.reports = new ReportsModule(this.api)
+    this.wholesale = new WholesaleModule(this.api)
   }
 
   /**
@@ -132,3 +135,4 @@ export { AdminModule } from './modules/admin'
 export { DisputesModule } from './modules/disputes'
 export { UploadsModule } from './modules/uploads'
 export { ReportsModule } from './modules/reports'
+export { WholesaleModule } from './modules/wholesale'

@@ -90,3 +90,44 @@ export interface AddDepotInput {
   city_id?: string
   is_primary?: boolean
 }
+
+// ── Bale Orders ──
+
+export const BALE_ORDER_STATUSES = ['pending_payment', 'paid', 'confirmed', 'in_transit', 'delivered', 'completed', 'cancelled'] as const
+export type BaleOrderStatus = typeof BALE_ORDER_STATUSES[number]
+
+export type BaleFulfillment = 'pickup' | 'courier'
+
+export interface BaleOrder {
+  id: string
+  bale_id: string
+  buyer_id: string
+  seller_id: string
+  store_id: string
+  title: string
+  grade: string
+  origin: string | null
+  image_url: string | null
+  qty: number
+  unit_kes: number
+  total_kes: number
+  fulfillment: BaleFulfillment
+  freight_kes: number | null
+  status: BaleOrderStatus
+  city_id: string | null
+  created_at: string
+}
+
+export interface BaleOrderEvent {
+  actor: string
+  old_status: string | null
+  new_status: string
+  note: string | null
+  created_at: string
+}
+
+export interface CreateBaleOrderInput {
+  bale_id: string
+  qty?: number
+  fulfillment: BaleFulfillment
+}

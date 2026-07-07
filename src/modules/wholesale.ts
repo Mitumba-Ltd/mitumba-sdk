@@ -2,6 +2,7 @@ import { APIClient } from '../client'
 import type {
   WholesaleStore, WholesaleDepot, Bale, BaleDetail, BaleFeedItem,
   CreateBaleInput, SaveWholesaleStoreInput, AddDepotInput, WholesaleFeedParams,
+  BaleOrder, BaleOrderEvent, BaleOrderStatus, CreateBaleOrderInput,
   RequestOptions,
 } from '../types'
 
@@ -66,5 +67,32 @@ export class WholesaleModule {
       params as unknown as Record<string, string | number | boolean | undefined>,
       options
     )
+  }
+
+  // ── Bale Orders ──
+
+  /** Create a bale order (buyer). */
+  async createBaleOrder(input: CreateBaleOrderInput, options?: RequestOptions): Promise<{ id: string; total_kes: number }> {
+    return this.client.post<{ id: string; total_kes: number }>('/listings/bale-orders', input, options)
+  }
+
+  /** Get the buyer's bale orders. */
+  async myBaleOrders(options?: RequestOptions): Promise<{ data: BaleOrder[] }> {
+    return this.client.get<{ data: BaleOrder[] }>('/listings/bale-orders/mine', undefined, options)
+  }
+
+  /** Get incoming bale orders (seller). */
+  async incomingBaleOrders(options?: RequestOptions): Promise<{ data: BaleOrder[] }> {
+    return this.client.get<{ data: BaleOrder[] }>('/listings/wholesale/orders', undefined, options)
+  }
+
+  /** Get a bale order by ID with event timeline. */
+  async getBaleOrder(id: string, options?: RequestOptions): Promise<BaleOrder & { events: BaleOrderEvent[] }> {
+    return this.client.get<BaleOrder & { events: BaleOrderEvent[] }>(`/listings/bale-orders/${id}`, undefined, options)
+  }
+
+  /** Transition a bale order status. */
+  async transitionBaleOrder(id: string, action: 'confirm' | 'dispatch' | 'deliver' | 'receive', options?: RequestOptions): Promise<{ ok: true; status: BaleOrderStatus }> {
+    return this.client.post<{ ok: true; status: BaleOrderStatus }>(`/listings/bale-orders/${id}/transition`, { action }, options)
   }
 }

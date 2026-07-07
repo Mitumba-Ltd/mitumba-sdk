@@ -10,6 +10,7 @@ import type {
   Verify2FAInput,
   TwoFactorRequired,
   BecomeSellerInput,
+  BecomeBaleSellerInput,
   PublicKeyCredentialRequestOptionsJSON,
   AuthenticationResponseJSON,
   UserProfile,
@@ -149,6 +150,14 @@ export class AuthModule {
    */
   async becomeSeller(input: BecomeSellerInput, options?: RequestOptions): Promise<{ ok: true; roles: string[]; sti_score: number }> {
     return this.client.post<{ ok: true; roles: string[]; sti_score: number }>('/auth/become-seller', input, options)
+  }
+
+  /**
+   * Upgrade the current user to a bale (wholesale) seller role.
+   * Mutually exclusive with retail seller — 409 if already a retail seller.
+   */
+  async becomeBaleSeller(input: BecomeBaleSellerInput, options?: RequestOptions): Promise<{ ok: true; roles: string[] }> {
+    return this.client.post<{ ok: true; roles: string[] }>('/auth/become-bale-seller', input, options)
   }
 
   /**

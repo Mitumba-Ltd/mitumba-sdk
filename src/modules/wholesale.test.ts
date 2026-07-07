@@ -92,4 +92,44 @@ describe('WholesaleModule', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/listings/wholesale/feed', { grade: 'A', category: 'denim' }, undefined)
     })
   })
+
+  describe('createBaleOrder', () => {
+    it('calls POST /listings/bale-orders', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'bo_1', total_kes: 15000 })
+      await wholesale.createBaleOrder({ bale_id: 'bale_1', qty: 2, fulfillment: 'pickup' })
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/bale-orders', { bale_id: 'bale_1', qty: 2, fulfillment: 'pickup' }, undefined)
+    })
+  })
+
+  describe('myBaleOrders', () => {
+    it('calls GET /listings/bale-orders/mine', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await wholesale.myBaleOrders()
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/bale-orders/mine', undefined, undefined)
+    })
+  })
+
+  describe('incomingBaleOrders', () => {
+    it('calls GET /listings/wholesale/orders', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+      await wholesale.incomingBaleOrders()
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/wholesale/orders', undefined, undefined)
+    })
+  })
+
+  describe('getBaleOrder', () => {
+    it('calls GET /listings/bale-orders/:id', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ id: 'bo_1', events: [] })
+      await wholesale.getBaleOrder('bo_1')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/bale-orders/bo_1', undefined, undefined)
+    })
+  })
+
+  describe('transitionBaleOrder', () => {
+    it('calls POST /listings/bale-orders/:id/transition', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, status: 'confirmed' })
+      await wholesale.transitionBaleOrder('bo_1', 'confirm')
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/bale-orders/bo_1/transition', { action: 'confirm' }, undefined)
+    })
+  })
 })

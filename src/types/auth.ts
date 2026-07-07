@@ -160,6 +160,15 @@ export interface BecomeSellerInput {
   price_range_max?: number
 }
 
+export interface BecomeBaleSellerInput {
+  business_type?: BusinessType
+  business_name?: string
+  kra_pin?: string
+  id_number?: string
+  phone?: string
+  county?: string
+}
+
 export interface UserProfile {
   id: string
   email: string | null

@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.27.1
+
+### Patch Changes
+
+- 5bb8a5c: Add `buyer_name` and `store_name` to `BaleOrder` type (backend already returns them).
+
 ## 1.27.0
 
 ### Minor Changes

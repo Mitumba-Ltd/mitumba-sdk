@@ -115,6 +115,8 @@ export interface BaleOrder {
   freight_kes: number | null
   status: BaleOrderStatus
   city_id: string | null
+  buyer_name: string | null
+  store_name: string | null
   created_at: string
 }
 

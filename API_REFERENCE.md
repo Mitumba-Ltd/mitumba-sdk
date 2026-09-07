@@ -823,9 +823,11 @@ interface SearchHistoryItem {
 
 **Auth:** Protected
 
-**SDK:** `pay.getStatus(orderId)` is deprecated but retains this route and response for compatibility. Use `pay.getCheckoutStatus(orderId)` for buyer-visible checkout state.
+**SDK:** `pay.getStatus(orderId)` is deprecated but retains this route, declaration, and passthrough behavior for compatibility. Use `pay.getCheckoutStatus(orderId)` for buyer-visible checkout state.
 
-**Response:** `{ id, status: 'initiated' | 'funded' | 'failed' | 'refunded' | 'cancelled', total }`
+**Legacy SDK declaration:** `{ id, status: 'initiated' | 'funded' | 'failed' | 'refunded' | 'cancelled', total }`
+
+**Runtime behavior:** The unchanged route currently returns a retail order projection. The SDK continues to pass that payload through without transformation in this minor release.
 
 **Errors:** `not_found` (404)
 

@@ -60,6 +60,61 @@ describe('APIClient', () => {
     expect(headers.get('Authorization')).toBe('Bearer test-token')
   })
 
+  it('recovers an aborted checkout initiation by explicitly retrying the same request', async () => {
+    await client.setToken('checkout-token')
+    const input = {
+      order_id: 'order_checkout_1',
+      idempotency_key: 'checkout_attempt_1',
+      method: { type: 'mobile_money', phone: '+254700000000' },
+    } as const
+    const response = {
+      version: 1,
+      order_id: input.order_id,
+      attempt: {
+        id: 'attempt_checkout_1',
+        sequence: 1,
+        provider: 'daraja',
+        status: 'initiated',
+      },
+      next_action: { type: 'await_confirmation' },
+    } as const
+    const abortError = new Error('The operation was aborted')
+    abortError.name = 'AbortError'
+    vi.mocked(globalThis.fetch)
+      .mockRejectedValueOnce(abortError)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => response,
+      } as Response)
+
+    const cancelledController = new AbortController()
+    cancelledController.abort()
+    await expect(client.post('/pay/checkout/initiate', input, {
+      signal: cancelledController.signal,
+    })).rejects.toBe(abortError)
+
+    const retryController = new AbortController()
+    const result = await client.post('/pay/checkout/initiate', input, {
+      signal: retryController.signal,
+    })
+
+    expect(result).toBe(response)
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+    const [cancelledUrl, cancelledInit] = vi.mocked(globalThis.fetch).mock.calls[0]
+    const [retryUrl, retryInit] = vi.mocked(globalThis.fetch).mock.calls[1]
+    expect(cancelledUrl).toBe(`${BASE_URL}/pay/checkout/initiate`)
+    expect(retryUrl).toBe(cancelledUrl)
+    expect(cancelledInit?.method).toBe('POST')
+    expect(retryInit?.method).toBe('POST')
+    expect(cancelledInit?.body).toBe(JSON.stringify(input))
+    expect(retryInit?.body).toBe(cancelledInit?.body)
+    expect(cancelledInit?.signal).toBe(cancelledController.signal)
+    expect(retryInit?.signal).toBe(retryController.signal)
+    expect((cancelledInit?.headers as Headers).get('Authorization')).toBe('Bearer checkout-token')
+    expect((retryInit?.headers as Headers).get('Content-Type')).toBe('application/json')
+  })
+
   it('throws APIError on non-2xx response', async () => {
     const errorResponse = { error: 'invalid_input', message: 'Bad request' }
     vi.mocked(globalThis.fetch).mockResolvedValue({

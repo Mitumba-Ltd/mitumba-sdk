@@ -1,6 +1,8 @@
 import { APIClient } from '../client'
 import type {
   CheckoutStatusResponse,
+  InitiateCheckoutInput,
+  InitiateCheckoutResponse,
   MpesaInput,
   PaystackInput,
   PaystackInitResponse,
@@ -32,6 +34,25 @@ export class PayModule {
    */
   async initPaystack(input: PaystackInput, options?: RequestOptions): Promise<PaystackInitResponse> {
     return this.client.post<PaystackInitResponse>('/pay/paystack/init', input, options)
+  }
+
+  /**
+   * Initiate a provider-neutral checkout for an order.
+   *
+   * The payment provider is selected by the API. Continue checkout using the
+   * returned next action, then poll {@link getCheckoutStatus} for payment state.
+   * Retrying after cancellation requires the same input and idempotency key.
+   *
+   * @param input - Order, idempotency key, and buyer-selected payment method.
+   * @param options - Request options, including an optional abort signal.
+   * @returns The initiated attempt and its required continuation action.
+   * @throws {APIError} When the API rejects or cannot initiate the checkout.
+   */
+  async initiateCheckout(
+    input: InitiateCheckoutInput,
+    options?: RequestOptions,
+  ): Promise<InitiateCheckoutResponse> {
+    return this.client.post<InitiateCheckoutResponse>('/pay/checkout/initiate', input, options)
   }
 
   /**

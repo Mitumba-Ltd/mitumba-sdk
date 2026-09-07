@@ -36,6 +36,9 @@ export class PayModule {
 
   /**
    * Poll for the current status of a payment by its order ID.
+   *
+   * @deprecated Use {@link getCheckoutStatus} for the typed checkout lifecycle.
+   * This method retains its legacy route and response for compatibility.
    */
   async getStatus(orderId: string, options?: RequestOptions): Promise<PaymentStatusResponse> {
     return this.client.get<PaymentStatusResponse>(`/pay/status/${orderId}`, undefined, options)

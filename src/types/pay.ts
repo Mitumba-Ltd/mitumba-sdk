@@ -33,7 +33,41 @@ export interface PaymentStatusResponse {
   total: number
 }
 
-export type PaymentProvider = 'daraja' | 'intasend' | 'paystack' | 'airtel'
+export type KnownPaymentProvider =
+  | 'daraja'
+  | 'intasend'
+  | 'paystack'
+  | 'airtel'
+
+export type ProviderId = KnownPaymentProvider | (string & {})
+
+export type PaymentProvider = ProviderId
+
+export type CheckoutPaymentMethod =
+  | { type: 'mobile_money'; phone: string }
+  | { type: 'card' }
+
+export interface InitiateCheckoutInput {
+  order_id: string
+  idempotency_key: string
+  method: CheckoutPaymentMethod
+}
+
+export type CheckoutNextAction =
+  | { type: 'await_confirmation' }
+  | { type: 'redirect'; url: string; expires_at: string | null }
+
+export interface InitiateCheckoutResponse {
+  version: 1
+  order_id: string
+  attempt: {
+    id: string
+    sequence: number
+    provider: ProviderId
+    status: 'initiated'
+  }
+  next_action: CheckoutNextAction
+}
 
 export type PaymentAttemptStatus = 'initiated' | 'funded' | 'failed' | 'refunded' | 'cancelled'
 

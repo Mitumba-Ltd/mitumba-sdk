@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { APIClient } from '../client'
-import { checkoutStatusFixtures, retailPendingCheckout } from './__fixtures__/pay'
+import { APIClient, APIError } from '../client'
+import {
+  checkoutInitiationFixtures,
+  checkoutStatusFixtures,
+  retailPendingCheckout,
+} from './__fixtures__/pay'
 import { PayModule } from './pay'
 
 describe('PayModule', () => {
@@ -38,6 +42,38 @@ describe('PayModule', () => {
       const result = await payModule.initPaystack(input)
       expect(apiClient.post).toHaveBeenCalledWith('/pay/paystack/init', input, undefined)
       expect(result).toEqual(mockResponse)
+    })
+  })
+
+  describe('initiateCheckout', () => {
+    it.each(checkoutInitiationFixtures)(
+      'posts the $input.method.type method and passes through its next action',
+      async ({ input, response }) => {
+        const options = { signal: new AbortController().signal }
+        vi.spyOn(apiClient, 'post').mockResolvedValue(response)
+
+        const result = await payModule.initiateCheckout(input, options)
+
+        expect(apiClient.post).toHaveBeenCalledWith('/pay/checkout/initiate', input, options)
+        expect(result).toBe(response)
+      },
+    )
+
+    it.each([
+      [400, 'invalid_input'],
+      [401, 'unauthorized'],
+      [404, 'not_found'],
+      [409, 'order_not_payable'],
+      [409, 'idempotency_conflict'],
+      [422, 'payment_method_unavailable'],
+      [503, 'payment_initiation_paused'],
+      [503, 'payment_provider_unavailable'],
+    ] as const)('passes through APIError(%i, %s) unchanged', async (status, code) => {
+      const { input } = checkoutInitiationFixtures[0]
+      const error = new APIError(status, { error: code })
+      vi.spyOn(apiClient, 'post').mockRejectedValue(error)
+
+      await expect(payModule.initiateCheckout(input)).rejects.toBe(error)
     })
   })
 

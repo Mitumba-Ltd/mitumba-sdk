@@ -102,16 +102,30 @@ const trending = await mitumba.search.getTrending('nbi_01')
 
 ### 4. Orders & Pay Modules (`mitumba.orders`, `mitumba.pay`)
 
-End-to-end checkout and M-Pesa integration.
+End-to-end checkout with provider-neutral payment initiation.
+
+> `pay.initiateCheckout()` targets the documented backend route pending deployment. Confirm backend availability before using it in production.
 
 ```typescript
 // 1. Create an order
 const { order_id, total } = await mitumba.orders.create({ listing_id: 'lst_123' })
 
-// 2. Initiate M-Pesa STK Push
-await mitumba.pay.initiateStk({ order_id, phone: '+254700000000' })
+// 2. Select a payment method; the API selects the provider
+const initiation = await mitumba.pay.initiateCheckout({
+  order_id,
+  idempotency_key: 'checkout-attempt-123',
+  method: { type: 'mobile_money', phone: '+254700000000' }
+})
 
-// 3. Poll the aggregate checkout lifecycle
+// 3. Continue only through the returned action
+if (initiation.next_action.type === 'redirect') {
+  const { url, expires_at } = initiation.next_action
+  // Open the absolute HTTPS URL in your app's navigation layer.
+} else {
+  // Wait for out-of-band confirmation on the buyer's device.
+}
+
+// 4. Initiation is not payment success; poll the checkout lifecycle
 const checkout = await mitumba.pay.getCheckoutStatus(order_id)
 
 if (!checkout.terminal) {
@@ -123,7 +137,9 @@ if (checkout.checkout_status === 'paid') {
 }
 ```
 
-`pay.getStatus(orderId)` remains available for existing consumers but is deprecated because its legacy response does not represent the aggregate retail/bale checkout lifecycle. New integrations should use `getCheckoutStatus()` and follow `terminal`, `retryable`, and `poll_after_ms` rather than interpreting an individual payment attempt as order success.
+If an initiation request is cancelled or its result is lost, retry the identical input with the same `idempotency_key` to recover the authoritative result. Reusing the key with different input returns `idempotency_conflict`.
+
+`pay.initMpesa()`, `pay.initPaystack()`, and `pay.initiateStk()` remain source- and runtime-compatible while the provider-neutral endpoint is introduced. `pay.getStatus(orderId)` also remains available, but is deprecated because its legacy response does not represent the aggregate retail/bale checkout lifecycle. New integrations should use `getCheckoutStatus()` and follow `terminal`, `retryable`, and `poll_after_ms` rather than interpreting an individual payment attempt as order success.
 
 ### 5. Vazi Module (`mitumba.vazi`)
 

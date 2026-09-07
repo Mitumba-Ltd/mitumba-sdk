@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { APIClient } from '../client'
+import { checkoutStatusFixtures, retailPendingCheckout } from './__fixtures__/pay'
 import { PayModule } from './pay'
 
 describe('PayModule', () => {
@@ -41,10 +42,40 @@ describe('PayModule', () => {
   })
 
   describe('getStatus', () => {
-    it('calls GET /pay/status/:order_id', async () => {
-      vi.spyOn(apiClient, 'get').mockResolvedValue({ id: 'pay_1', status: 'funded', total: 1500 })
-      await payModule.getStatus('ord_1')
-      expect(apiClient.get).toHaveBeenCalledWith('/pay/status/ord_1', undefined, undefined)
+    it('preserves the legacy route, options, and response passthrough', async () => {
+      const response = { id: 'pay_1', status: 'funded' as const, total: 1500 }
+      const options = { signal: new AbortController().signal }
+      vi.spyOn(apiClient, 'get').mockResolvedValue(response)
+
+      const result = await payModule.getStatus('ord_1', options)
+
+      expect(apiClient.get).toHaveBeenCalledWith('/pay/status/ord_1', undefined, options)
+      expect(result).toBe(response)
+    })
+  })
+
+  describe('getCheckoutStatus', () => {
+    it('calls the checkout route with no query and forwards request options', async () => {
+      const options = { signal: new AbortController().signal }
+      vi.spyOn(apiClient, 'get').mockResolvedValue(retailPendingCheckout)
+
+      const result = await payModule.getCheckoutStatus('ord_1', options)
+
+      expect(apiClient.get).toHaveBeenCalledWith('/pay/checkout-status/ord_1', undefined, options)
+      expect(result).toBe(retailPendingCheckout)
+    })
+
+    it.each(checkoutStatusFixtures)('passes through the $order_id lifecycle fixture', async (fixture) => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue(fixture)
+
+      const result = await payModule.getCheckoutStatus(fixture.order_id)
+
+      expect(apiClient.get).toHaveBeenCalledWith(
+        `/pay/checkout-status/${fixture.order_id}`,
+        undefined,
+        undefined,
+      )
+      expect(result).toBe(fixture)
     })
   })
 })

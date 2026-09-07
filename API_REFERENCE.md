@@ -819,11 +819,64 @@ interface SearchHistoryItem {
 
 ---
 
-### `GET /pay/status/:order_id` — Poll payment status
+### `GET /pay/status/:order_id` — Poll legacy payment status (deprecated)
 
-**Auth:** Protected  
-**Response:** `{ id, status: 'initiated' | 'funded' | 'failed' | 'refunded' | 'cancelled', total }`  
+**Auth:** Protected
+
+**SDK:** `pay.getStatus(orderId)` is deprecated but retains this route, declaration, and passthrough behavior for compatibility. Use `pay.getCheckoutStatus(orderId)` for buyer-visible checkout state.
+
+**Legacy SDK declaration:** `{ id, status: 'initiated' | 'funded' | 'failed' | 'refunded' | 'cancelled', total }`
+
+**Runtime behavior:** The unchanged route currently returns a retail order projection. The SDK continues to pass that payload through without transformation in this minor release.
+
 **Errors:** `not_found` (404)
+
+---
+
+### `GET /pay/checkout-status/:order_id` — Get checkout lifecycle
+
+**Auth:** Protected (buyer-owned retail or bale order)
+
+**SDK:** `pay.getCheckoutStatus(orderId, options?)`
+
+**Response:**
+
+```typescript
+interface CheckoutStatusResponse {
+  version: 1
+  order_id: string
+  order:
+    | { type: 'retail'; status: OrderStatus }
+    | { type: 'bale'; status: BaleOrderStatus }
+  checkout_status: 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded'
+  terminal: boolean
+  retryable: boolean
+  amount: {
+    currency: 'KES'
+    minor_units: number
+  }
+  latest_attempt: {
+    id: string
+    sequence: number
+    provider: 'daraja' | 'intasend' | 'paystack' | 'airtel'
+    status: 'initiated' | 'funded' | 'failed' | 'refunded' | 'cancelled'
+    terminal: boolean
+    created_at: string
+    updated_at: string
+  } | null
+  attempt_count: number
+  order_updated_at: string
+  status_updated_at: string
+  server_time: string
+  poll_after_ms: number
+}
+```
+
+All timestamps are RFC 3339 UTC strings. Monetary values use integer minor units; KES 1,250.00 is `125000`.
+
+Checkout state is derived from the authoritative order lifecycle. A funded attempt remains `pending` until the order reaches `paid` or a later paid state. Failed or cancelled attempts on a still-payable order are nonterminal and retryable; a newer initiated retry returns to nonretryable `pending`. Refunds and order-level cancellations are terminal and not retryable. `latest_attempt.terminal` describes only the attempt, `sequence` is monotonic per order, and `status_updated_at` is the later order/attempt update time. Use `poll_after_ms` to avoid overlapping polls.
+
+**Errors:** `unauthorized` (401), `not_found` (404)
 
 ---
 

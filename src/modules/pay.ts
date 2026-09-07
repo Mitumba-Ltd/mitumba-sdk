@@ -1,5 +1,14 @@
 import { APIClient } from '../client'
-import type { MpesaInput, PaystackInput, PaystackInitResponse, PaymentStatusResponse, StkPushInput, StkPushResponse, RequestOptions } from '../types'
+import type {
+  CheckoutStatusResponse,
+  MpesaInput,
+  PaystackInput,
+  PaystackInitResponse,
+  PaymentStatusResponse,
+  StkPushInput,
+  StkPushResponse,
+  RequestOptions,
+} from '../types'
 
 export class PayModule {
   constructor(private readonly client: APIClient) {}
@@ -27,8 +36,18 @@ export class PayModule {
 
   /**
    * Poll for the current status of a payment by its order ID.
+   *
+   * @deprecated Use {@link getCheckoutStatus} for the typed checkout lifecycle.
+   * This method retains its legacy route and response for compatibility.
    */
   async getStatus(orderId: string, options?: RequestOptions): Promise<PaymentStatusResponse> {
     return this.client.get<PaymentStatusResponse>(`/pay/status/${orderId}`, undefined, options)
+  }
+
+  /**
+   * Get the buyer-visible checkout lifecycle for a retail or bale order.
+   */
+  async getCheckoutStatus(orderId: string, options?: RequestOptions): Promise<CheckoutStatusResponse> {
+    return this.client.get<CheckoutStatusResponse>(`/pay/checkout-status/${orderId}`, undefined, options)
   }
 }

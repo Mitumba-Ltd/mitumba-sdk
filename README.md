@@ -109,11 +109,21 @@ End-to-end checkout and M-Pesa integration.
 const { order_id, total } = await mitumba.orders.create({ listing_id: 'lst_123' })
 
 // 2. Initiate M-Pesa STK Push
-await mitumba.pay.initiateStkPush({ order_id, phone: '+254700000000' })
+await mitumba.pay.initiateStk({ order_id, phone: '+254700000000' })
 
-// 3. Poll for payment status
-const status = await mitumba.pay.getStatus(order_id)
+// 3. Poll the aggregate checkout lifecycle
+const checkout = await mitumba.pay.getCheckoutStatus(order_id)
+
+if (!checkout.terminal) {
+  console.log(`Poll again after ${checkout.poll_after_ms}ms`)
+}
+
+if (checkout.checkout_status === 'paid') {
+  console.log(`Order ${checkout.order_id} is paid`)
+}
 ```
+
+`pay.getStatus(orderId)` remains available for existing consumers but is deprecated because its legacy response does not represent the aggregate retail/bale checkout lifecycle. New integrations should use `getCheckoutStatus()` and follow `terminal`, `retryable`, and `poll_after_ms` rather than interpreting an individual payment attempt as order success.
 
 ### 5. Vazi Module (`mitumba.vazi`)
 

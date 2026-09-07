@@ -11,7 +11,9 @@ import type {
   OrderStatus,
   PaymentAttemptStatus,
   PaymentProvider,
+  PayModule,
   ProviderId,
+  RequestOptions,
 } from '../index'
 
 type Equal<Left, Right> =
@@ -51,6 +53,13 @@ export type InitiateCheckoutDeclarationAssertions = [
   Assert<Equal<InitiateCheckoutResponse['attempt']['provider'], ProviderId>>,
   Assert<Equal<InitiateCheckoutResponse['attempt']['status'], 'initiated'>>,
   Assert<Equal<InitiateCheckoutResponse['next_action'], CheckoutNextAction>>,
+  Assert<Equal<
+    PayModule['initiateCheckout'],
+    (
+      input: InitiateCheckoutInput,
+      options?: RequestOptions,
+    ) => Promise<InitiateCheckoutResponse>
+  >>,
 ]
 
 export function assertFuturePaymentProvider(): void {

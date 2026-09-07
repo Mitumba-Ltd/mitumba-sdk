@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.28.0
+
+### Minor Changes
+
+- 87acbde: Add `pay.getCheckoutStatus(orderId, options?)` with typed retail and bale checkout lifecycle responses, polling guidance, payment-attempt metadata, and package-root lifecycle type exports. Deprecate `pay.getStatus()` without changing its legacy route, declaration, or runtime response.
+
 ## 1.27.1
 
 ### Patch Changes

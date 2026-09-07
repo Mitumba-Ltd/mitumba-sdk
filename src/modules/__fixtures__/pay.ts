@@ -1,4 +1,9 @@
-import type { CheckoutStatusResponse, PaymentAttemptStatus } from '../../types'
+import type {
+  CheckoutStatusResponse,
+  InitiateCheckoutInput,
+  InitiateCheckoutResponse,
+  PaymentAttemptStatus,
+} from '../../types'
 
 const amount = {
   currency: 'KES',
@@ -23,6 +28,58 @@ function attempt(
     updated_at: updatedAt,
   }
 }
+
+interface CheckoutInitiationFixture {
+  input: InitiateCheckoutInput
+  response: InitiateCheckoutResponse
+}
+
+export const mobileMoneyCheckoutInitiation = {
+  input: {
+    order_id: 'retail_mobile_money',
+    idempotency_key: 'checkout_mobile_money_1',
+    method: { type: 'mobile_money', phone: '+254700000000' },
+  },
+  response: {
+    version: 1,
+    order_id: 'retail_mobile_money',
+    attempt: {
+      id: 'attempt_mobile_money',
+      sequence: 1,
+      provider: 'daraja',
+      status: 'initiated',
+    },
+    next_action: { type: 'await_confirmation' },
+  },
+} satisfies CheckoutInitiationFixture
+
+export const cardCheckoutInitiation = {
+  input: {
+    order_id: 'retail_card',
+    idempotency_key: 'checkout_card_1',
+    method: { type: 'card' },
+  },
+  response: {
+    version: 1,
+    order_id: 'retail_card',
+    attempt: {
+      id: 'attempt_card',
+      sequence: 2,
+      provider: 'future-card-provider',
+      status: 'initiated',
+    },
+    next_action: {
+      type: 'redirect',
+      url: 'https://payments.example.test/checkout/attempt_card',
+      expires_at: '2026-09-07T10:15:00.000Z',
+    },
+  },
+} satisfies CheckoutInitiationFixture
+
+export const checkoutInitiationFixtures = [
+  mobileMoneyCheckoutInitiation,
+  cardCheckoutInitiation,
+] as const
 
 export const retailPendingCheckout = {
   version: 1,

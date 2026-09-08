@@ -819,6 +819,61 @@ interface SearchHistoryItem {
 
 ---
 
+### `POST /pay/checkout/initiate` — Initiate provider-neutral checkout
+
+> **Availability:** The route is deployed. Payment initiation can be temporarily paused and return `503 payment_initiation_paused`.
+
+**Auth:** Protected
+
+**SDK:** `pay.initiateCheckout(input, options?)`
+
+The client selects a payment method only. The API selects the provider and returns the continuation action.
+
+**Body:**
+
+```typescript
+type CheckoutPaymentMethod =
+  | { type: 'mobile_money'; phone: string }
+  | { type: 'card' }
+
+interface InitiateCheckoutInput {
+  order_id: string
+  idempotency_key: string
+  method: CheckoutPaymentMethod
+}
+```
+
+**Response:**
+
+```typescript
+type KnownPaymentProvider = 'daraja' | 'intasend' | 'paystack' | 'airtel'
+type ProviderId = KnownPaymentProvider | (string & {})
+
+type CheckoutNextAction =
+  | { type: 'await_confirmation' }
+  | { type: 'redirect'; url: string; expires_at: string | null }
+
+interface InitiateCheckoutResponse {
+  version: 1
+  order_id: string
+  attempt: {
+    id: string
+    sequence: number
+    provider: ProviderId
+    status: 'initiated'
+  }
+  next_action: CheckoutNextAction
+}
+```
+
+Use only `next_action` to continue checkout: wait for out-of-band confirmation or open the supplied absolute HTTPS redirect URL. Successful initiation does not mean the order is paid; follow it with `pay.getCheckoutStatus(orderId)`.
+
+Repeating the same `idempotency_key` with semantically identical input returns the original result. Reusing a key with different input returns `idempotency_conflict`. `options.signal` cancels the client request only and does not imply server rollback; retry with the same key and input to recover the authoritative result.
+
+**Errors:** `invalid_input` (400), `unauthorized` (401), `not_found` (404), `order_not_payable` (409), `idempotency_conflict` (409), `payment_method_unavailable` (422), `payment_initiation_paused` (503), `payment_provider_unavailable` (503)
+
+---
+
 ### `GET /pay/status/:order_id` — Poll legacy payment status (deprecated)
 
 **Auth:** Protected
@@ -858,7 +913,7 @@ interface CheckoutStatusResponse {
   latest_attempt: {
     id: string
     sequence: number
-    provider: 'daraja' | 'intasend' | 'paystack' | 'airtel'
+    provider: ProviderId
     status: 'initiated' | 'funded' | 'failed' | 'refunded' | 'cancelled'
     terminal: boolean
     created_at: string

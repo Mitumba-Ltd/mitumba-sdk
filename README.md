@@ -104,7 +104,7 @@ const trending = await mitumba.search.getTrending('nbi_01')
 
 End-to-end checkout with provider-neutral payment initiation.
 
-> `pay.initiateCheckout()` targets the documented backend route pending deployment. Confirm backend availability before using it in production.
+> `pay.initiateCheckout()` is available on the production API. Payment initiation can be temporarily paused and return `payment_initiation_paused`.
 
 ```typescript
 // 1. Create an order

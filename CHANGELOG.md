@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.29.0
+
+### Minor Changes
+
+- 1323003: Add provider-neutral `pay.initiateCheckout()` types, transport, and continuation actions for the deployed checkout initiation route.
+
 ## 1.28.0
 
 ### Minor Changes

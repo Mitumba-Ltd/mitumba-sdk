@@ -821,7 +821,7 @@ interface SearchHistoryItem {
 
 ### `POST /pay/checkout/initiate` — Initiate provider-neutral checkout
 
-> **Deployment status:** The SDK contract targets this documented route, but the backend endpoint is pending deployment. Do not use it in production until backend availability is confirmed.
+> **Availability:** The route is deployed. Payment initiation can be temporarily paused and return `503 payment_initiation_paused`.
 
 **Auth:** Protected
 

@@ -254,6 +254,9 @@ export interface PendingPayoutApproval {
   dispute_count: number
   prior_payouts: number
   active_restrictions: number
+  /** Present once a finance operator has approved it; item stays in the queue until disbursed. */
+  approved_at: string | null
+  approved_by: string | null
   hold_reason: string | null
   held_at: string | null
 }

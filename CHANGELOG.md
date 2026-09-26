@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.30.1
+
+### Patch Changes
+
+- c38a456: Keep approved-but-not-yet-disbursed payouts visible in the approval queue, with the approval timestamp and operator id.
+
 ## 1.30.0
 
 ### Minor Changes

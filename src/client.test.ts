@@ -241,3 +241,38 @@ describe('APIClient', () => {
     expect(onAuthExpired).toHaveBeenCalledOnce()
   })
 })
+
+
+describe('custom request headers', () => {
+  beforeEach(() => {
+    globalThis.fetch = vi.fn()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+  it('sends a one-off protocol header', async () => {
+    const client = new APIClient({ baseUrl: BASE_URL })
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response)
+
+    await client.post('/auth/root/setup', { email: 'root@mitumba.africa' }, {
+      headers: { 'X-Root-Setup-Secret': 'one-time' },
+    })
+
+    const init = vi.mocked(globalThis.fetch).mock.calls.at(-1)?.[1] as RequestInit
+    expect((init.headers as Headers).get('X-Root-Setup-Secret')).toBe('one-time')
+  })
+
+  it('does not let a custom header replace the SDK session token', async () => {
+    const client = new APIClient({ baseUrl: BASE_URL })
+    await client.setToken('real-session')
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response)
+
+    await client.get('/admin/stats', undefined, {
+      headers: { Authorization: 'Bearer attacker-chosen' },
+    })
+
+    const init = vi.mocked(globalThis.fetch).mock.calls.at(-1)?.[1] as RequestInit
+    expect((init.headers as Headers).get('Authorization')).toBe('Bearer real-session')
+  })
+})

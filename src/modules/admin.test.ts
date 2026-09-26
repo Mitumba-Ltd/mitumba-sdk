@@ -12,10 +12,10 @@ describe('AdminModule', () => {
     admin = new AdminModule(apiClient)
   })
 
-  it('blockIp calls POST /admin/block-ip', async () => {
-    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, blocked: '1.2.3.4', hours: 24 })
-    await admin.blockIp('1.2.3.4')
-    expect(apiClient.post).toHaveBeenCalledWith('/admin/block-ip', { ip: '1.2.3.4', duration_hours: 24 }, undefined)
+  it('blockIp calls POST /admin/block-ip with a mandatory reason', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, blocked: '1.2.3.4', hours: 24, expires_at: 'later', note: 'shared address' })
+    await admin.blockIp('1.2.3.4', 'credential stuffing')
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/block-ip', { ip: '1.2.3.4', reason: 'credential stuffing', duration_hours: 24 }, undefined)
   })
 
   it('unblockIp calls POST /admin/unblock-ip', async () => {
@@ -130,5 +130,108 @@ describe('AdminModule', () => {
     vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, segment: 'all', recipients: 5000 })
     await admin.broadcast({ title: 'Sale!', body: '50% off everything', segment: 'all' })
     expect(apiClient.post).toHaveBeenCalledWith('/admin/broadcast', { title: 'Sale!', body: '50% off everything', segment: 'all' }, undefined)
+  })
+})
+
+
+
+describe('AdminModule IAM, payout approval, and wholesale coverage', () => {
+  let apiClient: APIClient
+  let admin: AdminModule
+
+  beforeEach(() => {
+    apiClient = new APIClient({ baseUrl: 'https://api.mitumba.test', tokenStore: new MemoryTokenStore() })
+    admin = new AdminModule(apiClient)
+  })
+
+  it('lists operators and the role catalogue', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ operators: [] })
+    await admin.listOperators()
+    expect(apiClient.get).toHaveBeenLastCalledWith('/admin/operators', undefined, undefined)
+
+    vi.mocked(apiClient.get).mockResolvedValue({ roles: [], permissions: [] })
+    await admin.listAdminRoles()
+    expect(apiClient.get).toHaveBeenLastCalledWith('/admin/roles', undefined, undefined)
+  })
+
+  it('grants and revokes one permission', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, already_held: false })
+    vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true, note: 'done' })
+
+    await admin.grantOperatorPermission('u 1', 'payouts:disburse')
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/operators/u 1/permissions', { permission: 'payouts:disburse' }, undefined)
+
+    await admin.revokeOperatorPermission('u 1', 'payouts:disburse')
+    expect(apiClient.delete).toHaveBeenCalledWith('/admin/operators/u 1/permissions/payouts%3Adisburse', undefined, undefined)
+  })
+
+  it('grants a role preset, which the backend expands into permissions', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, role: 'support_agent', granted: [], already_held: [] })
+
+    await admin.grantOperatorRole('u_1', 'support_agent')
+
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/operators/u_1/roles', { role: 'support_agent' }, undefined)
+  })
+
+  it('reads the audit trail', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ entries: [] })
+
+    await admin.getAuditLog(250)
+
+    expect(apiClient.get).toHaveBeenCalledWith('/admin/audit', { limit: 250 }, undefined)
+  })
+
+  it('lists, approves, and holds payouts', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ payouts: [] })
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+
+    await admin.listPayoutsAwaitingApproval()
+    expect(apiClient.get).toHaveBeenCalledWith('/admin/payouts/pending-approval', undefined, undefined)
+
+    await admin.approvePayout('p_1')
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/payouts/p_1/approve', undefined, undefined)
+
+    await admin.holdPayout('p_1', 'seller under review')
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/payouts/p_1/hold', { reason: 'seller under review' }, undefined)
+  })
+
+  it('repairs payout correlation through the endpoint the SDK previously missed', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+
+    await admin.repairPayoutCorrelation('p_1', 'originator-1')
+
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/payouts/p_1/correlation', { provider_ref: 'originator-1' }, undefined)
+  })
+
+  it('covers wholesale verification', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [] })
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+
+    await admin.listPendingWholesaleStores()
+    expect(apiClient.get).toHaveBeenCalledWith('/admin/wholesale/pending', undefined, undefined)
+
+    await admin.verifyWholesaleStore('s_1')
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/wholesale/stores/s_1/verify', undefined, undefined)
+
+    await admin.unverifyWholesaleStore('s_1')
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/wholesale/stores/s_1/unverify', undefined, undefined)
+  })
+})
+
+describe('AdminModule blockIp compatibility', () => {
+  it('keeps the published blockIp signature source-compatible', async () => {
+    const apiClient = new APIClient({ baseUrl: 'https://api.mitumba.test', tokenStore: new MemoryTokenStore() })
+    const admin = new AdminModule(apiClient)
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, blocked: '1.2.3.4', hours: 12, expires_at: 'later', note: 'legacy' })
+
+    // Old form: blockIp(ip, durationHours, options). The endpoint did not exist when published, but
+    // preserving it avoids turning an implementation fix into an unrelated SDK break.
+    await admin.blockIp('1.2.3.4', 12)
+
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/block-ip', {
+      ip: '1.2.3.4',
+      reason: 'No reason supplied by legacy SDK caller',
+      duration_hours: 12,
+    }, undefined)
   })
 })

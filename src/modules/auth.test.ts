@@ -261,3 +261,112 @@ describe('AuthModule', () => {
     })
   })
 })
+
+
+
+describe('AuthModule capabilities, backup codes, and recovery coverage', () => {
+  let apiClient: APIClient
+  let auth: AuthModule
+
+  beforeEach(() => {
+    apiClient = new APIClient({ baseUrl: 'https://api.mitumba.test' })
+    auth = new AuthModule(apiClient)
+  })
+
+  it('reads the public capability document', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ sms_otp_enabled: false, email_2fa_enabled: true, password_min_length: 8 })
+
+    await auth.capabilities()
+
+    expect(apiClient.get).toHaveBeenCalledWith('/auth/capabilities', undefined, undefined)
+  })
+
+  it('regenerates backup codes without persisting them', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ backup_codes: ['ABCD-EFGH-JK'], remaining: 1 })
+    const setSession = vi.spyOn(apiClient, 'setSession')
+
+    const result = await auth.regenerateBackupCodes('current password')
+
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/2fa/backup-codes/regenerate', { current_password: 'current password' }, undefined)
+    expect(result.backup_codes).toEqual(['ABCD-EFGH-JK'])
+    // Recovery credentials must never be written to the token store.
+    expect(setSession).not.toHaveBeenCalled()
+  })
+
+  it('requests and checks recovery using the temp token', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'r1', status: 'pending', cooling_off_hours: 72, already_open: false })
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ status: 'pending', cooling_off_hours: 72 })
+
+    await auth.requestRecovery({ temp_token: 'temp', reason: 'lost phone' })
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/recovery/request', { temp_token: 'temp', reason: 'lost phone' }, undefined)
+
+    await auth.recoveryStatus('temp')
+    expect(apiClient.get).toHaveBeenCalledWith('/auth/recovery/status', { temp_token: 'temp' }, undefined)
+  })
+
+  it('cancels with the emailed token', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true })
+
+    await auth.cancelRecovery('cancel-token')
+
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/recovery/cancel', { token: 'cancel-token' }, undefined)
+  })
+
+  it('persists tokens but not backup codes when recovery completes', async () => {
+    const response = {
+      access_token: 'access', refresh_token: 'refresh', expires_in: 900,
+      backup_codes: ['ABCD-EFGH-JK'], payout_frozen_until: '2026-10-01T00:00:00.000Z', payout_freeze_days: 7,
+    }
+    vi.spyOn(apiClient, 'post').mockResolvedValue(response)
+    const setSession = vi.spyOn(apiClient, 'setSession').mockResolvedValue(undefined)
+
+    const result = await auth.completeRecovery('fresh-temp')
+
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/recovery/complete', { temp_token: 'fresh-temp' }, undefined)
+    expect(setSession).toHaveBeenCalledWith(response)
+    expect(result.backup_codes).toEqual(['ABCD-EFGH-JK'])
+  })
+
+  it('covers the recovery review queue and event trail', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ requests: [] })
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'r1', status: 'approved', effective_at: 'later' })
+
+    await auth.listRecoveryRequests('pending')
+    expect(apiClient.get).toHaveBeenCalledWith('/auth/recovery/queue', { status: 'pending' }, undefined)
+
+    await auth.approveRecovery('r1', 'passport verified')
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/recovery/r1/approve', { review_note: 'passport verified' }, undefined)
+
+    vi.mocked(apiClient.post).mockResolvedValue({ id: 'r1', status: 'rejected' })
+    await auth.rejectRecovery('r1', 'details did not match')
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/recovery/r1/reject', { review_note: 'details did not match' }, undefined)
+
+    vi.mocked(apiClient.get).mockResolvedValue({ events: [] })
+    await auth.recoveryEvents('r1')
+    expect(apiClient.get).toHaveBeenCalledWith('/auth/recovery/r1/events', undefined, undefined)
+  })
+})
+
+
+
+describe('root setup and custom request headers', () => {
+  it('sends the bootstrap secret in a header, never in the JSON body', async () => {
+    const apiClient = new APIClient({ baseUrl: 'https://api.mitumba.test' })
+    const auth = new AuthModule(apiClient)
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, permissions: ['roles:grant', 'audit:read'], next_step: 'enrol' })
+
+    await auth.setupRoot({
+      email: 'root@mitumba.africa',
+      password: 'a-long-password',
+      setup_secret: 'one-time-secret',
+    })
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/auth/root/setup',
+      { email: 'root@mitumba.africa', password: 'a-long-password' },
+      { headers: { 'X-Root-Setup-Secret': 'one-time-secret' } },
+    )
+    const body = vi.mocked(apiClient.post).mock.calls[0]?.[1]
+    expect(JSON.stringify(body)).not.toContain('one-time-secret')
+  })
+})

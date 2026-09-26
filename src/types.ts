@@ -70,4 +70,11 @@ export * from './types/wholesale'
 
 export interface RequestOptions {
   signal?: AbortSignal
+  /**
+   * Additional request headers for one-off protocol credentials such as X-Root-Setup-Secret.
+   *
+   * Authorization is always overwritten by the SDK's token handling, so a caller cannot bypass
+   * refresh/session semantics through this escape hatch.
+   */
+  headers?: Record<string, string>
 }

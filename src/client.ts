@@ -135,12 +135,14 @@ export class APIClient {
       }
     }
 
-    const headers = new Headers()
+    const headers = new Headers(options?.headers)
     if (body && !(body instanceof FormData)) {
       headers.set('Content-Type', 'application/json')
     }
 
     if (this.config.token) {
+      // Always wins over a custom header: callers cannot bypass token refresh or impersonate a
+      // different session through RequestOptions.
       headers.set('Authorization', `Bearer ${this.config.token}`)
     }
 

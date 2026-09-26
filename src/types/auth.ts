@@ -185,7 +185,98 @@ export interface UserProfile {
   two_factor_methods_count?: number
   sms_2fa_available?: boolean
   email_2fa_available?: boolean
+  /** Unused backup codes left. */
+  backup_codes_remaining?: number
+  /** True at two or fewer, while a verified second factor exists. */
+  backup_codes_low?: boolean
+  /** Explicit admin grants, whether or not they currently reach the token. */
+  admin_permissions?: import('./admin').AdminPermission[]
+  /** Grants exist but are withheld until a second factor is verified. */
+  admin_enrolment_required?: boolean
   is_active: boolean
   created_at: string
   roles: string[]
+}
+
+
+// ── Public capabilities, backup-code lifecycle, and assisted recovery ─────────
+
+export interface AuthCapabilities {
+  sms_otp_enabled: boolean
+  email_2fa_enabled: boolean
+  password_min_length: number
+}
+
+export interface RegenerateBackupCodesResult {
+  /** Shown once. Never persisted by the SDK. */
+  backup_codes: string[]
+  remaining: number
+}
+
+export type RecoveryStatus = 'none' | 'pending' | 'approved'
+
+export interface RequestRecoveryInput {
+  temp_token: string
+  reason?: string
+}
+
+export interface RequestRecoveryResult {
+  id: string
+  status: 'pending' | 'approved'
+  cooling_off_hours: number
+  payout_freeze_days?: number
+  hours_remaining?: number | null
+  already_open: boolean
+}
+
+export interface RecoveryStatusResult {
+  status: RecoveryStatus
+  id?: string
+  cooling_off_hours: number
+  payout_freeze_days?: number
+  hours_remaining?: number | null
+  can_complete?: boolean
+}
+
+export interface CompleteRecoveryResult extends AuthTokens {
+  /** Shown once. Never persisted by the SDK. */
+  backup_codes: string[]
+  payout_frozen_until: string
+  payout_freeze_days: number
+}
+
+export interface AdminRecoveryRequest {
+  id: string
+  user_id: string
+  email: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed'
+  reason: string | null
+  requested_ip: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_note: string | null
+  effective_at: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export interface AdminRecoveryEvent {
+  id: string
+  event: string
+  actor_id: string | null
+  detail: string | null
+  created_at: string
+}
+
+export interface RootSetupInput {
+  email: string
+  password: string
+  /** One-time bootstrap secret, removed from the Worker immediately after setup. */
+  setup_secret: string
+}
+
+export interface RootSetupResult {
+  ok: true
+  permissions: import('./admin').AdminPermission[]
+  next_step: string
 }

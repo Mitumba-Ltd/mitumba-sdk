@@ -1,7 +1,10 @@
 export interface BlockedIp {
   ip: string
+  reason: string
   blocked_at: string
   expires_at: string
+  lifted_at: string | null
+  blocked_by_email: string | null
 }
 
 export interface SystemStats {
@@ -181,4 +184,83 @@ export interface CreateReportInput {
   target_id: string
   reason: 'counterfeit' | 'offensive' | 'spam' | 'scam' | 'other'
   detail?: string
+}
+
+
+// ── Scoped admin access ───────────────────────────────────────────────────────
+
+export type AdminPermission =
+  | 'admin:read'
+  | 'users:moderate'
+  | 'ip:block'
+  | 'listings:moderate'
+  | 'orders:transition'
+  | 'payouts:disburse'
+  | 'sellers:verify'
+  | 'recovery:review'
+  | 'broadcast:send'
+  | 'roles:grant'
+  | 'audit:read'
+
+export type AdminAuthStrength = 'password' | 'sms' | 'email' | 'totp' | 'passkey'
+
+export interface AdminRolePreset {
+  id: string
+  name: string
+  description: string
+  permissions: AdminPermission[]
+  sensitive: boolean
+}
+
+export interface AdminPermissionDescription {
+  permission: AdminPermission
+  requires_strength: AdminAuthStrength | null
+}
+
+export interface OperatorPermissionGrant {
+  permission: AdminPermission
+  granted_at: string
+  granted_by: string | null
+}
+
+export interface AdminOperator {
+  id: string
+  email: string
+  display_name: string | null
+  permissions: OperatorPermissionGrant[]
+}
+
+export interface AdminAuditEntry {
+  id: string
+  actor_id: string
+  action: string
+  target_type: string
+  target_id: string
+  detail: string | null
+  created_at: string
+}
+
+export interface PendingPayoutApproval {
+  id: string
+  order_id: string
+  seller_id: string
+  seller_email: string
+  seller_name: string | null
+  amount: number
+  created_at: string
+  order_status: string | null
+  fulfilled_at: string | null
+  received_at: string | null
+  dispute_count: number
+  prior_payouts: number
+  active_restrictions: number
+  hold_reason: string | null
+  held_at: string | null
+}
+
+export interface AdminWholesalePendingStore {
+  id: string
+  name: string
+  seller_id: string
+  [key: string]: unknown
 }

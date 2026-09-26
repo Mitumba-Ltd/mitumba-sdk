@@ -17,6 +17,16 @@ import type {
   AuthTokens,
   MessageResponse,
   RequestOptions,
+  AuthCapabilities,
+  RegenerateBackupCodesResult,
+  RequestRecoveryInput,
+  RequestRecoveryResult,
+  RecoveryStatusResult,
+  CompleteRecoveryResult,
+  AdminRecoveryRequest,
+  AdminRecoveryEvent,
+  RootSetupInput,
+  RootSetupResult,
 } from '../types'
 
 function isAuthTokens(result: unknown): result is AuthTokens {
@@ -199,5 +209,110 @@ export class AuthModule {
     const result = await this.client.post<AuthTokens>('/auth/2fa/login/passkey/finish', input, options)
     await this.client.setSession(result)
     return result
+  }
+
+  /**
+   * One-time root bootstrap. The setup secret travels in a header and is never part of the JSON
+   * body, where an error logger or request capture is more likely to record it.
+   */
+  async setupRoot(input: RootSetupInput, options?: RequestOptions): Promise<RootSetupResult> {
+    const { setup_secret, ...body } = input
+    return this.client.post<RootSetupResult>(
+      '/auth/root/setup',
+      body,
+      { ...options, headers: { ...options?.headers, 'X-Root-Setup-Secret': setup_secret } },
+    )
+  }
+
+  // ── Capabilities and backup-code lifecycle ──
+
+  /** Public auth-mode document. Never requires or changes the session. */
+  async capabilities(options?: RequestOptions): Promise<AuthCapabilities> {
+    return this.client.get<AuthCapabilities>('/auth/capabilities', undefined, options)
+  }
+
+  /**
+   * Replace every backup code after re-proving the current password.
+   *
+   * The result is intentionally not persisted by the SDK: codes are shown once, and storing them in
+   * a browser turns a recovery credential into something a stolen session can read.
+   */
+  async regenerateBackupCodes(
+    currentPassword: string,
+    options?: RequestOptions,
+  ): Promise<RegenerateBackupCodesResult> {
+    return this.client.post<RegenerateBackupCodesResult>(
+      '/auth/2fa/backup-codes/regenerate',
+      { current_password: currentPassword },
+      options,
+    )
+  }
+
+  // ── Assisted account recovery ──
+
+  async requestRecovery(
+    input: RequestRecoveryInput,
+    options?: RequestOptions,
+  ): Promise<RequestRecoveryResult> {
+    return this.client.post<RequestRecoveryResult>('/auth/recovery/request', input, options)
+  }
+
+  /**
+   * Cancel with the token from the email. Always returns ok, whether it was valid or already used,
+   * so this cannot be used to probe for live recoveries.
+   */
+  async cancelRecovery(token: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/recovery/cancel', { token }, options)
+  }
+
+  async recoveryStatus(tempToken: string, options?: RequestOptions): Promise<RecoveryStatusResult> {
+    return this.client.get<RecoveryStatusResult>('/auth/recovery/status', { temp_token: tempToken }, options)
+  }
+
+  /**
+   * Complete with a fresh temp token once cooling-off ends. Tokens are persisted; backup codes are
+   * returned to the caller only and never stored.
+   */
+  async completeRecovery(tempToken: string, options?: RequestOptions): Promise<CompleteRecoveryResult> {
+    const result = await this.client.post<CompleteRecoveryResult>('/auth/recovery/complete', { temp_token: tempToken }, options)
+    await this.client.setSession(result)
+    return result
+  }
+
+  // ── Account recovery review (requires recovery:review) ──
+
+  async listRecoveryRequests(
+    status: AdminRecoveryRequest['status'] = 'pending',
+    options?: RequestOptions,
+  ): Promise<{ requests: AdminRecoveryRequest[] }> {
+    return this.client.get<{ requests: AdminRecoveryRequest[] }>('/auth/recovery/queue', { status }, options)
+  }
+
+  async approveRecovery(
+    id: string,
+    reviewNote: string,
+    options?: RequestOptions,
+  ): Promise<{ id: string; status: 'approved'; effective_at: string }> {
+    return this.client.post<{ id: string; status: 'approved'; effective_at: string }>(
+      `/auth/recovery/${id}/approve`,
+      { review_note: reviewNote },
+      options,
+    )
+  }
+
+  async rejectRecovery(
+    id: string,
+    reviewNote: string,
+    options?: RequestOptions,
+  ): Promise<{ id: string; status: 'rejected' }> {
+    return this.client.post<{ id: string; status: 'rejected' }>(
+      `/auth/recovery/${id}/reject`,
+      { review_note: reviewNote },
+      options,
+    )
+  }
+
+  async recoveryEvents(id: string, options?: RequestOptions): Promise<{ events: AdminRecoveryEvent[] }> {
+    return this.client.get<{ events: AdminRecoveryEvent[] }>(`/auth/recovery/${id}/events`, undefined, options)
   }
 }

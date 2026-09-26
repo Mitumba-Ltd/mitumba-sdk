@@ -3,7 +3,9 @@ import type {
   BlockedIp, SystemStats, AdminUserListItem, AdminUserDetail, AdminStoreListItem,
   AdminStoreDetail, AdminVerificationItem, StiEvent, AdminListingItem,
   AdminOrderListItem, AdminOrderDetail, AdminPayoutItem, AdminReport,
-  AdminVaziOutfit, RequestOptions,
+  AdminVaziOutfit, RequestOptions, AdminPermission, AdminRolePreset,
+  AdminPermissionDescription, AdminOperator, AdminAuditEntry, PendingPayoutApproval,
+  AdminWholesalePendingStore,
 } from '../types'
 
 export class AdminModule {
@@ -11,8 +13,32 @@ export class AdminModule {
 
   // ── IP Blocking ──
 
-  async blockIp(ip: string, durationHours?: number, options?: RequestOptions): Promise<{ ok: true; blocked: string; hours: number }> {
-    return this.client.post<{ ok: true; blocked: string; hours: number }>('/admin/block-ip', { ip, duration_hours: durationHours ?? 24 }, options)
+  /**
+   * @deprecated Pass a reason as the second argument. Kept source-compatible because the method was
+   * already published, even though the endpoint did not exist at the time.
+   */
+  async blockIp(ip: string, durationHours?: number, options?: RequestOptions): Promise<{ ok: true; blocked: string; hours: number; expires_at: string; note: string }>
+  async blockIp(ip: string, reason: string, durationHours?: number, options?: RequestOptions): Promise<{ ok: true; blocked: string; hours: number; expires_at: string; note: string }>
+  async blockIp(
+    ip: string,
+    reasonOrDuration: string | number = 24,
+    durationOrOptions?: number | RequestOptions,
+    maybeOptions?: RequestOptions,
+  ): Promise<{ ok: true; blocked: string; hours: number; expires_at: string; note: string }> {
+    const modern = typeof reasonOrDuration === 'string'
+    const reason = modern ? reasonOrDuration : 'No reason supplied by legacy SDK caller'
+    const durationHours = modern
+      ? (typeof durationOrOptions === 'number' ? durationOrOptions : 24)
+      : reasonOrDuration
+    const options = modern
+      ? (typeof durationOrOptions === 'object' ? durationOrOptions : maybeOptions)
+      : (typeof durationOrOptions === 'object' ? durationOrOptions : undefined)
+
+    return this.client.post<{ ok: true; blocked: string; hours: number; expires_at: string; note: string }>(
+      '/admin/block-ip',
+      { ip, reason, duration_hours: durationHours },
+      options,
+    )
   }
 
   async unblockIp(ip: string, options?: RequestOptions): Promise<{ ok: true; unblocked: string }> {
@@ -179,6 +205,65 @@ export class AdminModule {
 
   async reinstateVaziOutfit(outfitId: string, options?: RequestOptions): Promise<{ ok: true; removed: false }> {
     return this.client.post<{ ok: true; removed: false }>(`/admin/vazi/outfits/${outfitId}/reinstate`, undefined, options)
+  }
+
+  // ── Operators, roles, and audit ──
+
+  async listOperators(options?: RequestOptions): Promise<{ operators: AdminOperator[] }> {
+    return this.client.get<{ operators: AdminOperator[] }>('/admin/operators', undefined, options)
+  }
+
+  async listAdminRoles(options?: RequestOptions): Promise<{ roles: AdminRolePreset[]; permissions: AdminPermissionDescription[] }> {
+    return this.client.get<{ roles: AdminRolePreset[]; permissions: AdminPermissionDescription[] }>('/admin/roles', undefined, options)
+  }
+
+  async grantOperatorPermission(userId: string, permission: AdminPermission, options?: RequestOptions): Promise<{ ok: true; already_held: boolean }> {
+    return this.client.post<{ ok: true; already_held: boolean }>(`/admin/operators/${userId}/permissions`, { permission }, options)
+  }
+
+  async revokeOperatorPermission(userId: string, permission: AdminPermission, options?: RequestOptions): Promise<{ ok: true; note: string }> {
+    return this.client.delete<{ ok: true; note: string }>(`/admin/operators/${userId}/permissions/${encodeURIComponent(permission)}`, undefined, options)
+  }
+
+  async grantOperatorRole(userId: string, role: string, options?: RequestOptions): Promise<{ ok: true; role: string; granted: AdminPermission[]; already_held: AdminPermission[] }> {
+    return this.client.post<{ ok: true; role: string; granted: AdminPermission[]; already_held: AdminPermission[] }>(`/admin/operators/${userId}/roles`, { role }, options)
+  }
+
+  async getAuditLog(limit = 100, options?: RequestOptions): Promise<{ entries: AdminAuditEntry[] }> {
+    return this.client.get<{ entries: AdminAuditEntry[] }>('/admin/audit', { limit }, options)
+  }
+
+  // ── Payout approval ──
+
+  async listPayoutsAwaitingApproval(options?: RequestOptions): Promise<{ payouts: PendingPayoutApproval[] }> {
+    return this.client.get<{ payouts: PendingPayoutApproval[] }>('/admin/payouts/pending-approval', undefined, options)
+  }
+
+  async approvePayout(payoutId: string, options?: RequestOptions): Promise<{ ok: true; already_approved: boolean }> {
+    return this.client.post<{ ok: true; already_approved: boolean }>(`/admin/payouts/${payoutId}/approve`, undefined, options)
+  }
+
+  async holdPayout(payoutId: string, reason: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/admin/payouts/${payoutId}/hold`, { reason }, options)
+  }
+
+  /** Repair a Daraja payout whose provider reference failed to persist. */
+  async repairPayoutCorrelation(payoutId: string, providerRef: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/admin/payouts/${payoutId}/correlation`, { provider_ref: providerRef }, options)
+  }
+
+  // ── Wholesale moderation ──
+
+  async listPendingWholesaleStores(options?: RequestOptions): Promise<{ data: AdminWholesalePendingStore[] }> {
+    return this.client.get<{ data: AdminWholesalePendingStore[] }>('/admin/wholesale/pending', undefined, options)
+  }
+
+  async verifyWholesaleStore(storeId: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/admin/wholesale/stores/${storeId}/verify`, undefined, options)
+  }
+
+  async unverifyWholesaleStore(storeId: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/admin/wholesale/stores/${storeId}/unverify`, undefined, options)
   }
 
   // ── Broadcast ──

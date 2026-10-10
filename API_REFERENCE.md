@@ -1051,6 +1051,26 @@ interface Notification {
 
 ---
 
+## Share URLs (`go.mitumba.africa`)
+
+Pure helpers, with no network call, for the canonical share links that open the Mitumba app when it's installed and otherwise show a rich preview. Use them for every share button, `navigator.share` call and clipboard fallback. Never hand-build these URLs.
+
+```ts
+import { listingShareUrl, storeShareUrl, baleShareUrl } from '@mitumba/sdk'
+
+listingShareUrl('3f9c0d2e4b7a41e8a5c6d7e8f9a0b1c2') // https://go.mitumba.africa/l/3f9c0d2e4b7a41e8a5c6d7e8f9a0b1c2
+storeShareUrl('Mama-Wanjiku')                       // https://go.mitumba.africa/s/mama-wanjiku
+baleShareUrl(baleId, { origin: process.env.NEXT_PUBLIC_SHARE_ORIGIN }) // staging override
+```
+
+| Function | Input rule | Throws |
+|---|---|---|
+| `listingShareUrl(id, options?)` | 32 hex characters (case-insensitive) | `TypeError` for anything else |
+| `storeShareUrl(slug, options?)` | `a-z0-9` words joined by single hyphens, ≤ 64 | `TypeError` |
+| `baleShareUrl(id, options?)` | 32 hex characters | `TypeError` |
+
+`options.origin` defaults to `DEFAULT_SHARE_ORIGIN` (`https://go.mitumba.africa`). It must be an `https://` origin, or `http://localhost` for development, with no path, query or credentials.
+
 ## Shared Types Quick Reference
 
 ### Enums

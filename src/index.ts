@@ -136,3 +136,6 @@ export { DisputesModule } from './modules/disputes'
 export { UploadsModule } from './modules/uploads'
 export { ReportsModule } from './modules/reports'
 export { WholesaleModule } from './modules/wholesale'
+
+export { DEFAULT_SHARE_ORIGIN, listingShareUrl, storeShareUrl, baleShareUrl } from './share'
+export type { ShareUrlOptions } from './share'

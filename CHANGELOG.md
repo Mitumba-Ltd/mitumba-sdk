@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.31.0
+
+### Minor Changes
+
+- 78cfd0a: Add `listingShareUrl`, `storeShareUrl` and `baleShareUrl`: validated builders for canonical go.mitumba.africa share links with a configurable staging origin.
+
 ## 1.30.1
 
 ### Patch Changes

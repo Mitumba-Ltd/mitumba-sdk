@@ -223,10 +223,10 @@ export type ThreadTimelineItem =
     }
 
 /** Shared support lifecycle for Listing and Order threads. */
-export type ThreadStatus = 'open' | 'resolved'
+type ThreadStatus = 'open' | 'resolved'
 
 /** Perspective-private presentation preferences for one thread. */
-export interface ThreadPreferences {
+interface ThreadPreferences {
   /** Whether the current perspective archived this thread. */
   archived: boolean
   /** Whether the current perspective pinned this thread. */
@@ -236,7 +236,7 @@ export interface ThreadPreferences {
 }
 
 /** Perspective-private presentation preferences for one conversation. */
-export interface ConversationPreferences {
+interface ConversationPreferences {
   /** Whether the current perspective archived this conversation. */
   archived: boolean
   /** Whether the current perspective muted this conversation. */
@@ -409,7 +409,12 @@ export type ListThreadMessagesParams =
 
 /** Caller-owned, idempotent input for one human-authored message. */
 export interface SendThreadMessageInput {
-  /** Stable caller-generated identifier reused for every retry. */
+  /**
+   * Stable caller-generated identifier reused for every retry.
+   *
+   * The runtime method maps this value to the `Idempotency-Key` header, omits it from the JSON
+   * body, and never generates a replacement key during retry.
+   */
   client_message_id: string
   /** Required trimmed body of 1–2,000 characters. */
   body: string
@@ -455,18 +460,6 @@ export interface MessagingCapabilities {
     /** Allowed upload media types. */
     allowed_content_types: string[]
   }
-}
-
-/** Input used to authorize a private staged attachment upload. */
-export interface CreateThreadAttachmentUploadInput {
-  /** Sanitized local file name. */
-  file_name: string
-  /** Declared media type. */
-  content_type: string
-  /** Declared byte size. */
-  size_bytes: number
-  /** Lowercase hexadecimal SHA-256 digest. */
-  sha256: string
 }
 
 /** Short-lived authorization for one private staged attachment upload. */
@@ -561,30 +554,7 @@ export type LegacyLinkResolution =
       result: 'unavailable'
     }
 
-/** Closed messaging-specific API error code vocabulary. */
-export type MessagingErrorCode =
-  | 'invalid_input'
-  | 'unauthorized'
-  | 'session_expired'
-  | 'forbidden'
-  | 'conversation_not_found'
-  | 'thread_not_found'
-  | 'message_not_found'
-  | 'timeline_item_not_found'
-  | 'context_mismatch'
-  | 'idempotency_conflict'
-  | 'cursor_invalid'
-  | 'cursor_expired'
-  | 'attachment_not_ready'
-  | 'blocked'
-  | 'legacy_context_required'
-  | 'client_upgrade_required'
-  | 'rate_limited'
-  | 'temporarily_unavailable'
-  | 'internal_error'
-  | 'network_error'
-
-const MESSAGING_ERROR_CODES: ReadonlySet<string> = new Set([
+const MESSAGING_ERROR_CODES = [
   'invalid_input',
   'unauthorized',
   'session_expired',
@@ -605,7 +575,12 @@ const MESSAGING_ERROR_CODES: ReadonlySet<string> = new Set([
   'temporarily_unavailable',
   'internal_error',
   'network_error',
-])
+] as const
+
+/** Closed messaging-specific API error code vocabulary. */
+export type MessagingErrorCode = typeof MESSAGING_ERROR_CODES[number]
+
+const MESSAGING_ERROR_CODE_SET: ReadonlySet<string> = new Set(MESSAGING_ERROR_CODES)
 
 type MessagingAPIError = APIError & { code: MessagingErrorCode }
 
@@ -644,7 +619,7 @@ export function isMessagingAPIError(
   if (
     typeof candidate.code !== 'string' ||
     typeof candidate.status !== 'number' ||
-    !MESSAGING_ERROR_CODES.has(candidate.code)
+    !MESSAGING_ERROR_CODE_SET.has(candidate.code)
   ) {
     return false
   }

@@ -1,13 +1,44 @@
 import { describe, expect, it } from 'vitest'
 
-import { APIError } from '../client'
 import {
+  APIError,
   isMessagingAPIError,
   RealtimeProtocolError,
   RealtimeUnavailableError,
-} from './messages-v2'
+} from '../index'
+
+import type { MessagingErrorCode } from '../index'
+
+const MESSAGING_ERROR_CODES: MessagingErrorCode[] = [
+  'invalid_input',
+  'unauthorized',
+  'session_expired',
+  'forbidden',
+  'conversation_not_found',
+  'thread_not_found',
+  'message_not_found',
+  'timeline_item_not_found',
+  'context_mismatch',
+  'idempotency_conflict',
+  'cursor_invalid',
+  'cursor_expired',
+  'attachment_not_ready',
+  'blocked',
+  'legacy_context_required',
+  'client_upgrade_required',
+  'rate_limited',
+  'temporarily_unavailable',
+  'internal_error',
+  'network_error',
+]
 
 describe('isMessagingAPIError', () => {
+  it('accepts every documented messaging error code', () => {
+    for (const code of MESSAGING_ERROR_CODES) {
+      expect(isMessagingAPIError(new APIError(400, { error: code }), code)).toBe(true)
+    }
+  })
+
   it('accepts recognized messaging API errors', () => {
     const error = new APIError(404, {
       error: 'thread_not_found',

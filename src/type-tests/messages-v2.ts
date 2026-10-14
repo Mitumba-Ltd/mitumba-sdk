@@ -35,8 +35,6 @@ import type {
   ThreadCard,
   ThreadId,
   ThreadMessage,
-  ThreadPreferences,
-  ThreadStatus,
   ThreadSubject,
   ThreadSystemEvent,
   ThreadTimelineItem,
@@ -63,6 +61,28 @@ type MessageItem = Extract<ThreadTimelineItem, { kind: 'message' }>
 type SystemItem = Extract<ThreadTimelineItem, { kind: 'system' }>
 type ListingToOrderLink = Extract<ThreadSystemEvent['link'], { direction: 'listing_to_order' }>
 type OrderToListingLink = Extract<ThreadSystemEvent['link'], { direction: 'order_to_listing' }>
+type ResolvedLegacyLink = Extract<LegacyLinkResolution, { result: 'resolved' }>
+type ChooseStoreLegacyLink = Extract<LegacyLinkResolution, { result: 'choose_store' }>
+type ArchiveLegacyLink = Extract<LegacyLinkResolution, { result: 'legacy_archive' }>
+type UnavailableLegacyLink = Extract<LegacyLinkResolution, { result: 'unavailable' }>
+type RootSDKExports = typeof import('../index')
+
+export type MessagingV2RuntimeExportAssertions = [
+  Assert<Equal<
+    RootSDKExports['isMessagingAPIError'],
+    {
+      (value: unknown): value is import('../client').APIError & { code: MessagingErrorCode }
+      <Code extends MessagingErrorCode>(
+        value: unknown,
+        code: Code,
+      ): value is import('../client').APIError & { code: Code }
+    }
+  >>,
+  Assert<Equal<ConstructorParameters<RootSDKExports['RealtimeProtocolError']>, []>>,
+  Assert<Equal<InstanceType<RootSDKExports['RealtimeProtocolError']>, import('../index').RealtimeProtocolError>>,
+  Assert<Equal<ConstructorParameters<RootSDKExports['RealtimeUnavailableError']>, []>>,
+  Assert<Equal<InstanceType<RootSDKExports['RealtimeUnavailableError']>, import('../index').RealtimeUnavailableError>>,
+]
 
 export type MessagingV2IdentifierAssertions = [
   Assert<Equal<ConversationId, string>>,
@@ -99,8 +119,12 @@ export type MessagingV2ResourceAssertions = [
   Assert<Equal<ConversationSummary['id'], ConversationId>>,
   Assert<Equal<ConversationSummary['last_thread'], ThreadCard | null>>,
   Assert<Equal<ConversationSummary['unread_count'], number>>,
-  Assert<Equal<ThreadCard['status'], ThreadStatus>>,
-  Assert<Equal<ThreadCard['preferences'], ThreadPreferences>>,
+  Assert<Equal<ThreadCard['status'], 'open' | 'resolved'>>,
+  Assert<Equal<ThreadCard['preferences'], {
+    archived: boolean
+    pinned: boolean
+    muted: boolean
+  }>>,
   Assert<Equal<ThreadCard['unread_count'], number>>,
   Assert<Equal<ThreadMessage['id'], MessageId>>,
   Assert<Equal<ThreadMessage['thread_id'], ThreadId>>,
@@ -124,6 +148,14 @@ export type MessagingV2CapabilityAndLegacyAssertions = [
   Assert<Equal<LegacyLinkResolution['result'],
     'resolved' | 'choose_store' | 'legacy_archive' | 'unavailable'
   >>,
+  Assert<Equal<ResolvedLegacyLink, {
+    result: 'resolved'
+    conversation_id: ConversationId
+    thread_id: ThreadId
+  }>>,
+  Assert<Equal<ChooseStoreLegacyLink, { result: 'choose_store'; stores: StoreSummary[] }>>,
+  Assert<Equal<ArchiveLegacyLink, { result: 'legacy_archive'; legacy_thread_id: string }>>,
+  Assert<Equal<UnavailableLegacyLink, { result: 'unavailable' }>>,
 ]
 
 export type MessagingV2InputAssertions = [
@@ -135,9 +167,72 @@ export type MessagingV2InputAssertions = [
 ]
 
 export type MessagingV2ErrorAssertions = [
-  Assert<Equal<Extract<MessagingErrorCode, 'network_error'>, 'network_error'>>,
-  Assert<Equal<Extract<MessagingErrorCode, 'idempotency_conflict'>, 'idempotency_conflict'>>,
-  Assert<Equal<Extract<MessagingErrorCode, 'cursor_expired'>, 'cursor_expired'>>,
+  Assert<Equal<MessagingErrorCode,
+    | 'invalid_input'
+    | 'unauthorized'
+    | 'session_expired'
+    | 'forbidden'
+    | 'conversation_not_found'
+    | 'thread_not_found'
+    | 'message_not_found'
+    | 'timeline_item_not_found'
+    | 'context_mismatch'
+    | 'idempotency_conflict'
+    | 'cursor_invalid'
+    | 'cursor_expired'
+    | 'attachment_not_ready'
+    | 'blocked'
+    | 'legacy_context_required'
+    | 'client_upgrade_required'
+    | 'rate_limited'
+    | 'temporarily_unavailable'
+    | 'internal_error'
+    | 'network_error'
+  >>,
+]
+
+export type LegacyMessageDeclarationAssertions = [
+  Assert<Equal<Conversation, {
+    partner_id: string
+    partner_name: string
+    store_name?: string | null
+    body: string
+    created_at: string
+    store_id?: string | null
+    listing_id?: string | null
+    listing_title?: string | null
+    unread_count: number
+  }>>,
+  Assert<Equal<Message, {
+    id: string
+    sender_id: string
+    receiver_id: string
+    body: string
+    listing_id: string | null
+    store_id: string | null
+    order_id?: string | null
+    from_store?: number
+    read_at: string | null
+    created_at: string
+  }>>,
+  Assert<Equal<SendMessageInput, {
+    receiver_id: string
+    body: string
+    listing_id?: string
+    store_id?: string
+    order_id?: string
+    from_store?: boolean
+  }>>,
+  Assert<Equal<InboxRealtimeEvent, {
+    type: 'message'
+    conversation_key: string
+    partner_id: string
+    store_id?: string | null
+    from_store?: boolean
+    preview: string
+    created_at: string
+    unread_count?: number
+  }>>,
 ]
 
 export type LegacyMessagesMethodAssertions = [
@@ -206,6 +301,50 @@ export function assertThreadTimelineNarrowing(item: ThreadTimelineItem): void {
   const message: ThreadMessage = item.message
   void event
   void message
+}
+
+export function assertAcceptedCursorForms(): void {
+  const newest: ListThreadMessagesParams = {}
+  const older: ListThreadMessagesParams = { before: 'older', limit: 30 }
+  const catchUp: ListThreadMessagesParams = { after: 'newer', limit: 100 }
+  void newest
+  void older
+  void catchUp
+}
+
+export function assertLegacyResolutionNarrowing(resolution: LegacyLinkResolution): void {
+  if (resolution.result === 'resolved') {
+    const conversationId: ConversationId = resolution.conversation_id
+    const threadId: ThreadId = resolution.thread_id
+    // @ts-expect-error Resolved links do not expose store choices.
+    const stores: StoreSummary[] = resolution.stores
+    void conversationId
+    void threadId
+    void stores
+    return
+  }
+
+  if (resolution.result === 'choose_store') {
+    const stores: StoreSummary[] = resolution.stores
+    // @ts-expect-error Store-choice results do not expose a canonical thread yet.
+    const threadId: ThreadId = resolution.thread_id
+    void stores
+    void threadId
+    return
+  }
+
+  if (resolution.result === 'legacy_archive') {
+    const archiveId: string = resolution.legacy_thread_id
+    // @ts-expect-error Legacy archive results do not expose a v2 conversation.
+    const conversationId: ConversationId = resolution.conversation_id
+    void archiveId
+    void conversationId
+    return
+  }
+
+  // @ts-expect-error Unavailable results deliberately expose no resource identifier.
+  const threadId: ThreadId = resolution.thread_id
+  void threadId
 }
 
 export function rejectInvalidCursorCombination(): void {

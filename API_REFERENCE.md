@@ -1008,6 +1008,116 @@ interface Message {
 
 ---
 
+## Messaging v2 contract (`/notify/v2`) — methods not yet available
+
+> **Contract-only:** The types below are exported for cross-client integration work. Runtime SDK methods and live endpoint availability land in later reviewed changes. Existing partner-based methods above remain unchanged throughout the 1.x compatibility period.
+
+Every successful Messaging v2 operation uses a versioned envelope:
+
+```typescript
+interface ApiResponse<T> {
+  api_version: 2
+  data: T
+}
+```
+
+Every resource request selects an explicit acting perspective. Store author projections expose the store only—never the human operator:
+
+```typescript
+type MessagingPerspective =
+  | { kind: 'buyer' }
+  | { kind: 'store'; store_id: string }
+
+type MessageAuthor =
+  | { side: 'buyer'; buyer: BuyerSummary }
+  | { side: 'store'; store: StoreSummary }
+```
+
+The public hierarchy is one all-time Buyer/Store conversation containing isolated General, Listing, and Order thread cards. The conversation itself contains no loose messages. `ThreadCard` correlates `kind` with its matching `ThreadSubject`, so a Listing card cannot carry an Order subject.
+
+```typescript
+type ThreadSubject =
+  | { kind: 'general' }
+  | {
+      kind: 'listing'
+      listing_id: string
+      title: string
+      image_url: string | null
+      availability: 'active' | 'sold' | 'inactive' | 'unknown'
+    }
+  | {
+      kind: 'order'
+      order_id: string
+      short_id: string
+      listing_title: string
+      image_url: string | null
+      order_status: string
+    }
+
+interface ConversationSummary {
+  id: ConversationId
+  buyer: BuyerSummary
+  store: StoreSummary
+  last_thread: ThreadCard | null
+  unread_count: number
+  last_activity_at: string
+  preferences: { archived: boolean; muted: boolean }
+  created_at: string
+  updated_at: string
+}
+```
+
+Thread timelines are ascending sequences of canonical human messages and typed server system events. Listing-to-Order and Order-to-Listing links correlate direction with the related subject at compile time.
+
+```typescript
+type ThreadTimelineItem =
+  | { kind: 'message'; message: ThreadMessage }
+  | { kind: 'system'; event: ThreadSystemEvent }
+
+interface MessagePage {
+  items: ThreadTimelineItem[]
+  older_cursor: MessagingCursor | null
+  newer_cursor: MessagingCursor | null
+  has_older: boolean
+  has_newer: boolean
+}
+```
+
+Message sends require a caller-owned `client_message_id`. The eventual SDK method maps that value to `Idempotency-Key`, omits it from request JSON, and returns the canonical accepted/deduplicated result. Callers retain the same identifier after ambiguous failure. Message bodies remain required after trimming and are limited to 1–2,000 characters.
+
+```typescript
+interface SendThreadMessageInput {
+  client_message_id: string
+  body: string
+  reply_to_message_id?: MessageId
+  attachment_ids?: string[]
+}
+
+interface SendThreadMessageResult {
+  message: ThreadMessage
+  deduplicated: boolean
+  policy: { body_modified: boolean; notices: string[] }
+}
+```
+
+Message pagination accepts `before` or `after`, never both. Read state advances monotonically by a committed message or system-event ID. Optional attachment declarations remain capability-gated; clients hide controls until the server reports the capability enabled. Ambiguous historic partner messages use exported read-only Legacy archive types and cannot be sent to, marked unread, or used for typing.
+
+Messaging-specific `APIError` values can be narrowed without parsing arbitrary error text:
+
+```typescript
+try {
+  // Future perspective-scoped Messaging v2 method.
+} catch (error) {
+  if (isMessagingAPIError(error, 'cursor_expired')) {
+    // Discard the expired cursor and perform an authoritative refetch.
+  }
+}
+```
+
+The exported error vocabulary covers validation, authorization, missing resources, context/idempotency/cursor conflicts, blocking, capability and upgrade gates, rate limits, temporary/internal failures, and `network_error`. `RealtimeProtocolError` and `RealtimeUnavailableError` provide stable messages without echoing untrusted realtime frames.
+
+---
+
 ## Notifications Module (`/notify/notifications`)
 
 ### `GET /notify/notifications` — List notifications

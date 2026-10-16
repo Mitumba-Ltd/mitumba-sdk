@@ -48,7 +48,7 @@ main
 
 **Types:** `feat`, `fix`, `test`, `docs`, `chore`, `refactor`
 
-**Scopes:** `core`, `client`, `types`, `auth`, `listings`, `search`, `orders`, `pay`, `vazi`, `deps`, `ci`
+**Scopes:** `core`, `client`, `types`, `auth`, `listings`, `search`, `orders`, `pay`, `vazi`, `messages`, `deps`, `ci`
 
 **Examples:**
 ```
@@ -163,6 +163,7 @@ The SDK covers the following domain modules:
 | **Orders** | `OrdersModule` | Create, view, transition, history |
 | **Pay** | `PayModule` | STK Push, payment status polling |
 | **Vazi** | `VaziModule` | AI outfit feed, outfit completion |
+| **Messages** | `MessagesModule` | Buyer/store conversations, commerce threads, moderation, attachments, managed realtime |
 
 ---
 

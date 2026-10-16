@@ -1,5 +1,16 @@
 # @mitumba/sdk
 
+## 1.32.0
+
+### Minor Changes
+
+- 11943ef: Define and export the additive Messaging v2 public contracts, correlated resource unions, cursor and idempotency inputs, error guard, and stable realtime errors while preserving the partner-based v1 API.
+- 11943ef: Add Messaging v2 conversation and thread methods, cursor-paged idempotent messages, monotonic reads, derived-context moderation, private attachment staging, injectable WebSocket transport, and managed resumable realtime.
+
+### Patch Changes
+
+- 11943ef: Preserve valid sessions when token refresh or replay fails transiently, forward abort signals to refresh, and add a fresh-token legacy inbox connection.
+
 ## 1.31.0
 
 ### Minor Changes

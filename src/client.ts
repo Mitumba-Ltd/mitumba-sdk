@@ -26,6 +26,28 @@ function isExpiringSoon(token: string, thresholdSeconds: number): boolean {
   }
 }
 
+function isErrorRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function normalizeAPIErrorResponse(value: unknown, fallbackMessage?: string): APIErrorResponse {
+  if (isErrorRecord(value) && typeof value.error === 'string') {
+    return {
+      error: value.error,
+      message: typeof value.message === 'string' ? value.message : fallbackMessage,
+      details: value.details,
+    }
+  }
+  if (isErrorRecord(value) && isErrorRecord(value.error) && typeof value.error.code === 'string') {
+    return {
+      error: value.error.code,
+      message: typeof value.error.message === 'string' ? value.error.message : fallbackMessage,
+      details: value.error.details,
+    }
+  }
+  return { error: 'unknown_error', message: fallbackMessage }
+}
+
 class InvalidRefreshCredentialsError extends Error {
   constructor() {
     super('Refresh credentials are invalid.')
@@ -247,13 +269,13 @@ export class APIClient {
     }
 
     if (!response.ok) {
-      let errorData: APIErrorResponse
+      let decoded: unknown
       try {
-        errorData = await response.json()
+        decoded = await response.json()
       } catch {
-        errorData = { error: 'unknown_error', message: response.statusText }
+        decoded = null
       }
-      throw new APIError(response.status, errorData)
+      throw new APIError(response.status, normalizeAPIErrorResponse(decoded, response.statusText))
     }
 
     if (response.status === 204) {
@@ -284,13 +306,13 @@ export class APIClient {
           throw new InvalidRefreshCredentialsError()
         }
         if (!response.ok) {
-          let errorData: APIErrorResponse
+          let decoded: unknown
           try {
-            errorData = await response.json() as APIErrorResponse
+            decoded = await response.json()
           } catch {
-            errorData = { error: 'refresh_failed', message: response.statusText || 'Token refresh failed.' }
+            decoded = null
           }
-          throw new APIError(response.status, errorData)
+          throw new APIError(response.status, normalizeAPIErrorResponse(decoded, response.statusText || 'Token refresh failed.'))
         }
 
         let decoded: unknown

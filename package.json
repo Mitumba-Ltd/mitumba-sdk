@@ -28,6 +28,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:client-lifecycle:coverage": "vitest run src/client.test.ts --coverage --coverage.include=src/client.ts --coverage.thresholds.branches=75 --coverage.thresholds.functions=80 --coverage.thresholds.lines=85 --coverage.thresholds.statements=85",
+    "test:messages:coverage": "vitest run src/modules/messages.test.ts src/modules/messages-v2.test.ts src/realtime/messages-realtime.test.ts src/types/messages-v2.test.ts --coverage --coverage.include=src/modules/messages.ts --coverage.include=src/realtime/messages-realtime.ts --coverage.include=src/types/messages-v2.ts --coverage.thresholds.branches=85 --coverage.thresholds.functions=100 --coverage.thresholds.lines=95 --coverage.thresholds.statements=95",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/ --ext .ts",
     "prepare": "npm run build",

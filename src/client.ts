@@ -1,4 +1,5 @@
-import { MitumbaClientConfig, APIErrorResponse, RequestOptions } from './types'
+import { MitumbaClientConfig, APIErrorResponse, RequestOptions, WebSocketLike } from './types'
+import { RealtimeUnavailableError } from './types/messages-v2'
 import { TokenStore, createTokenStore } from './token-store'
 
 export class APIError extends Error {
@@ -23,6 +24,44 @@ function isExpiringSoon(token: string, thresholdSeconds: number): boolean {
   } catch {
     return false
   }
+}
+
+function isErrorRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function normalizeAPIErrorResponse(value: unknown, fallbackMessage?: string): APIErrorResponse {
+  if (isErrorRecord(value) && typeof value.error === 'string') {
+    return {
+      error: value.error,
+      message: typeof value.message === 'string' ? value.message : fallbackMessage,
+      details: value.details,
+    }
+  }
+  if (isErrorRecord(value) && isErrorRecord(value.error) && typeof value.error.code === 'string') {
+    return {
+      error: value.error.code,
+      message: typeof value.error.message === 'string' ? value.error.message : fallbackMessage,
+      details: value.error.details,
+    }
+  }
+  return { error: 'unknown_error', message: fallbackMessage }
+}
+
+class InvalidRefreshCredentialsError extends Error {
+  constructor() {
+    super('Refresh credentials are invalid.')
+    this.name = 'InvalidRefreshCredentialsError'
+  }
+}
+
+function isTokenResponse(value: unknown): value is { access_token: string; refresh_token: string } {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return typeof candidate.access_token === 'string'
+    && candidate.access_token.length > 0
+    && typeof candidate.refresh_token === 'string'
+    && candidate.refresh_token.length > 0
 }
 
 export class APIClient {
@@ -72,6 +111,14 @@ export class APIClient {
     return this.config.baseUrl
   }
 
+  /** Create an isomorphic WebSocket using the configured or global transport. */
+  public createWebSocket(url: string, protocols: string | string[]): WebSocketLike {
+    if (this.config.webSocketFactory) return this.config.webSocketFactory(url, protocols)
+    const Constructor = globalThis.WebSocket
+    if (typeof Constructor !== 'function') throw new RealtimeUnavailableError()
+    return new Constructor(url, protocols) as unknown as WebSocketLike
+  }
+
   public async clearToken(): Promise<void> {
     this.config.token = undefined
     this.config.refreshToken = undefined
@@ -98,7 +145,7 @@ export class APIClient {
     if (refresh) this.config.refreshToken = refresh
   }
 
-  private async ensureFreshToken(): Promise<void> {
+  public async ensureFreshToken(options?: RequestOptions): Promise<void> {
     // Try hydrating from store if no in-memory token
     if (!this.config.token) {
       const stored = await this.tokenStore.getAccessToken()
@@ -109,7 +156,7 @@ export class APIClient {
 
     // Proactive refresh if token expires within 60 seconds
     if (this.config.token && isExpiringSoon(this.config.token, 60) && this.config.refreshToken && this.config.refreshToken.length > 0) {
-      await this.handleTokenRefresh()
+      await this.handleTokenRefresh(options?.signal)
     }
   }
 
@@ -122,7 +169,7 @@ export class APIClient {
   ): Promise<T> {
     // Proactive refresh before request (skip for auth endpoints)
     if (!path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
-      await this.ensureFreshToken()
+      await this.ensureFreshToken(options)
     }
 
     const url = new URL(path, this.config.baseUrl)
@@ -202,15 +249,16 @@ export class APIClient {
 
       if (hasRefreshToken) {
         try {
-          await this.handleTokenRefresh()
-          headers.set('Authorization', `Bearer ${this.config.token}`)
-          response = await fetch(url.toString(), { ...init, headers })
-        } catch {
-          if (this.config.onAuthExpired) {
-            this.config.onAuthExpired()
-          }
+          await this.handleTokenRefresh(options?.signal)
+        } catch (error) {
+          if (!(error instanceof InvalidRefreshCredentialsError)) throw error
+          this.config.onAuthExpired?.()
           throw new APIError(401, { error: 'session_expired', message: 'Session expired. Please log in again.' })
         }
+        headers.set('Authorization', `Bearer ${this.config.token}`)
+        // Replay failures deliberately propagate unchanged. A successful refresh is not an
+        // expired session merely because the network drops or the caller aborts the replay.
+        response = await fetch(url.toString(), { ...init, headers })
       } else {
         // No refresh token — session is dead, fire callback immediately
         if (this.config.onAuthExpired) {
@@ -221,13 +269,13 @@ export class APIClient {
     }
 
     if (!response.ok) {
-      let errorData: APIErrorResponse
+      let decoded: unknown
       try {
-        errorData = await response.json()
+        decoded = await response.json()
       } catch {
-        errorData = { error: 'unknown_error', message: response.statusText }
+        decoded = null
       }
-      throw new APIError(response.status, errorData)
+      throw new APIError(response.status, normalizeAPIErrorResponse(decoded, response.statusText))
     }
 
     if (response.status === 204) {
@@ -237,7 +285,7 @@ export class APIClient {
     return response.json() as Promise<T>
   }
 
-  private async handleTokenRefresh(): Promise<void> {
+  private async handleTokenRefresh(signal?: AbortSignal): Promise<void> {
     if (this.isRefreshing && this.refreshPromise) {
       return this.refreshPromise
     }
@@ -250,23 +298,37 @@ export class APIClient {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh_token: this.config.refreshToken }),
+          signal,
         })
 
+        if (response.status === 400 || response.status === 401) {
+          await this.clearToken()
+          throw new InvalidRefreshCredentialsError()
+        }
         if (!response.ok) {
-          throw new Error('Refresh failed')
+          let decoded: unknown
+          try {
+            decoded = await response.json()
+          } catch {
+            decoded = null
+          }
+          throw new APIError(response.status, normalizeAPIErrorResponse(decoded, response.statusText || 'Token refresh failed.'))
         }
 
-        const data = await response.json() as { access_token: string, refresh_token: string }
-        this.config.token = data.access_token
-        this.config.refreshToken = data.refresh_token
-        await this.tokenStore.setTokens(data.access_token, data.refresh_token)
-
-        if (this.config.onTokenRefresh) {
-          this.config.onTokenRefresh({ token: data.access_token, refreshToken: data.refresh_token })
+        let decoded: unknown
+        try {
+          decoded = await response.json()
+        } catch {
+          throw new APIError(response.status, { error: 'refresh_response_invalid', message: 'Token refresh returned an invalid response.' })
         }
-      } catch (err) {
-        await this.clearToken()
-        throw err
+        if (!isTokenResponse(decoded)) {
+          throw new APIError(response.status, { error: 'refresh_response_invalid', message: 'Token refresh returned an invalid response.' })
+        }
+
+        this.config.token = decoded.access_token
+        this.config.refreshToken = decoded.refresh_token
+        await this.tokenStore.setTokens(decoded.access_token, decoded.refresh_token)
+        this.config.onTokenRefresh?.({ token: decoded.access_token, refreshToken: decoded.refresh_token })
       } finally {
         this.isRefreshing = false
         this.refreshPromise = null

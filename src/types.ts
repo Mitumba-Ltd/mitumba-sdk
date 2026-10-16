@@ -1,4 +1,5 @@
 import type { TokenStore } from './token-store'
+import type { WebSocketFactory } from './types/messages-v2'
 
 export interface MitumbaClientConfig {
   baseUrl: string
@@ -29,6 +30,11 @@ export interface MitumbaClientConfig {
   onAuthExpired?: () => void
 
   /**
+   * Optional isomorphic WebSocket factory. Defaults to globalThis.WebSocket when available.
+   */
+  webSocketFactory?: WebSocketFactory
+
+  /**
    * Custom token store for persisting tokens. Defaults to IndexedDB in browsers,
    * in-memory elsewhere. Pass your own implementation for custom persistence.
    */
@@ -56,6 +62,7 @@ export * from './types/orders'
 export * from './types/pay'
 export * from './types/vazi'
 export * from './types/messages'
+export * from './types/messages-v2'
 export * from './types/notifications'
 export * from './types/stores'
 export * from './types/reviews'

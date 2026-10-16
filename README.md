@@ -42,7 +42,7 @@ mitumba.setToken('eyJhbGciOiJIUzI1...', 'my-refresh-token-hex')
 
 ## API Overview
 
-The SDK is split into 5 core modules representing the marketplace domains.
+The SDK exposes typed domain modules for the complete marketplace API.
 
 ### 1. Auth Module (`mitumba.auth`)
 
@@ -152,6 +152,26 @@ const feed = await mitumba.vazi.getFeed({ limit: 10, offset: 0 })
 // Get a full outfit built around a specific seed item
 const { outfits } = await mitumba.vazi.completeOutfit('lst_123')
 ```
+
+### Messaging (`mitumba.messages`)
+
+Use explicit buyer/store perspectives and stable commerce-thread IDs:
+
+```typescript
+const perspective = { kind: 'buyer' } as const
+const resolved = await mitumba.messages.resolveThread(
+  perspective,
+  { kind: 'listing', store_id: 'store_123', listing_id: 'listing_456' },
+  { idempotencyKey: 'listing-456' },
+)
+
+await mitumba.messages.sendThreadMessage(perspective, resolved.thread.id, {
+  client_message_id: crypto.randomUUID(),
+  body: 'Is this available?',
+})
+```
+
+Managed realtime uses short-lived one-use tickets and supports an injected `webSocketFactory` for non-browser runtimes. Private attachments are capability-gated. See [the Messaging v2 migration guide](./MESSAGING_V2_MIGRATION.md) and [API reference](./API_REFERENCE.md#messages-module-notify).
 
 ## Error Handling
 

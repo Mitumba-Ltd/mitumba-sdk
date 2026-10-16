@@ -276,3 +276,205 @@ describe('custom request headers', () => {
     expect((init.headers as Headers).get('Authorization')).toBe('Bearer real-session')
   })
 })
+
+
+describe('token refresh failure classification', () => {
+  const expiringToken = (): string => {
+    const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 10 }))
+    return `header.${payload}.signature`
+  }
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each([
+    ['AbortError', Object.assign(new Error('aborted replay'), { name: 'AbortError' })],
+    ['network error', new TypeError('offline replay')],
+  ])('propagates a replay %s without expiring a successfully refreshed session', async (_label, replayError) => {
+    const onAuthExpired = vi.fn()
+    const store = new MemoryTokenStore()
+    const client = new APIClient({
+      baseUrl: BASE_URL,
+      token: 'old-access',
+      refreshToken: 'valid-refresh',
+      onAuthExpired,
+      tokenStore: store,
+      maxRetries: 0,
+    })
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce({ ok: false, status: 401 } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ access_token: 'fresh-access', refresh_token: 'fresh-refresh' }),
+      } as Response)
+      .mockRejectedValueOnce(replayError)
+
+    await expect(client.get('/protected')).rejects.toBe(replayError)
+    expect(onAuthExpired).not.toHaveBeenCalled()
+    expect(client.getToken()).toBe('fresh-access')
+    expect(await store.getRefreshToken()).toBe('fresh-refresh')
+  })
+
+  it.each([
+    ['offline', new TypeError('offline')],
+    ['abort', Object.assign(new Error('aborted'), { name: 'AbortError' })],
+  ])('preserves tokens when proactive refresh fails from %s', async (_label, refreshError) => {
+    const store = new MemoryTokenStore()
+    const token = expiringToken()
+    const client = new APIClient({ baseUrl: BASE_URL, token, refreshToken: 'valid-refresh', tokenStore: store })
+    const controller = new AbortController()
+    vi.mocked(globalThis.fetch).mockRejectedValueOnce(refreshError)
+
+    await expect(client.ensureFreshToken({ signal: controller.signal })).rejects.toBe(refreshError)
+    expect(client.getToken()).toBe(token)
+    expect(await store.getRefreshToken()).toBe('valid-refresh')
+    expect((vi.mocked(globalThis.fetch).mock.calls[0]![1] as RequestInit).signal).toBe(controller.signal)
+  })
+
+  it('preserves tokens for refresh 5xx and malformed transient responses', async () => {
+    const store = new MemoryTokenStore()
+    const token = expiringToken()
+    const client = new APIClient({ baseUrl: BASE_URL, token, refreshToken: 'valid-refresh', tokenStore: store })
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false, status: 503, statusText: 'Unavailable', json: async () => ({ error: 'temporarily_unavailable' }),
+    } as Response)
+    await expect(client.ensureFreshToken()).rejects.toMatchObject({ status: 503, code: 'temporarily_unavailable' })
+    expect(client.getToken()).toBe(token)
+    expect(await store.getRefreshToken()).toBe('valid-refresh')
+
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ nope: true }) } as Response)
+    await expect(client.ensureFreshToken()).rejects.toMatchObject({ code: 'refresh_response_invalid' })
+    expect(client.getToken()).toBe(token)
+  })
+
+  it.each([400, 401])('clears tokens only for definitive refresh credential status %i', async (status) => {
+    const onAuthExpired = vi.fn()
+    const store = new MemoryTokenStore()
+    const client = new APIClient({
+      baseUrl: BASE_URL, token: 'old', refreshToken: 'invalid', tokenStore: store, onAuthExpired, maxRetries: 0,
+    })
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce({ ok: false, status: 401 } as Response)
+      .mockResolvedValueOnce({ ok: false, status } as Response)
+
+    await expect(client.get('/protected')).rejects.toMatchObject({ code: 'session_expired' })
+    expect(onAuthExpired).toHaveBeenCalledOnce()
+    expect(client.getToken()).toBeUndefined()
+    expect(await store.getRefreshToken()).toBeNull()
+  })
+
+  it('shares one in-flight proactive refresh across concurrent callers', async () => {
+    const token = expiringToken()
+    const client = new APIClient({ baseUrl: BASE_URL, token, refreshToken: 'refresh', tokenStore: new MemoryTokenStore() })
+    let resolveRefresh!: (response: Response) => void
+    vi.mocked(globalThis.fetch).mockReturnValueOnce(new Promise<Response>((resolve) => { resolveRefresh = resolve }))
+
+    const first = client.ensureFreshToken()
+    const second = client.ensureFreshToken()
+    expect(globalThis.fetch).toHaveBeenCalledOnce()
+    resolveRefresh({
+      ok: true, status: 200, json: async () => ({ access_token: 'new', refresh_token: 'new-refresh' }),
+    } as Response)
+    await Promise.all([first, second])
+    expect(client.getToken()).toBe('new')
+  })
+})
+
+
+describe('isomorphic WebSocket factory', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('uses an injected transport without requiring a browser global', () => {
+    const socket = { readyState: 0 } as unknown as import('./types').WebSocketLike
+    const webSocketFactory = vi.fn(() => socket)
+    const client = new APIClient({ baseUrl: BASE_URL, webSocketFactory })
+    expect(client.createWebSocket('wss://example.test/socket', 'protocol')).toBe(socket)
+    expect(webSocketFactory).toHaveBeenCalledWith('wss://example.test/socket', 'protocol')
+  })
+
+  it('uses globalThis.WebSocket when available and fails with a typed error otherwise', async () => {
+    const Constructor = vi.fn(function MockSocket() { return { readyState: 0 } })
+    vi.stubGlobal('WebSocket', Constructor)
+    const client = new APIClient({ baseUrl: BASE_URL })
+    client.createWebSocket('wss://example.test/socket', ['protocol'])
+    expect(Constructor).toHaveBeenCalledWith('wss://example.test/socket', ['protocol'])
+
+    vi.stubGlobal('WebSocket', undefined)
+    expect(() => client.createWebSocket('wss://example.test/socket', 'protocol'))
+      .toThrow('Messaging realtime is unavailable in this runtime.')
+  })
+})
+
+
+describe('versioned API error envelopes', () => {
+  beforeEach(() => { globalThis.fetch = vi.fn() })
+  afterEach(() => vi.restoreAllMocks())
+
+  it('normalizes nested Messaging v2 errors into APIError', async () => {
+    const client = new APIClient({ baseUrl: BASE_URL, maxRetries: 0 })
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      statusText: 'Conflict',
+      json: async () => ({
+        api_version: 2,
+        error: { code: 'idempotency_conflict', message: 'Key reused', details: { field: 'body' } },
+      }),
+    } as Response)
+
+    await expect(client.post('/notify/v2/inboxes/buyer/threads/t/messages', {})).rejects.toMatchObject({
+      name: 'APIError', code: 'idempotency_conflict', status: 409, message: 'Key reused', details: { field: 'body' },
+    })
+  })
+
+  it('uses a stable unknown error when an error body is malformed', async () => {
+    const client = new APIClient({ baseUrl: BASE_URL, maxRetries: 0 })
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false, status: 418, statusText: 'Unexpected', json: async () => ({ error: { nope: true } }),
+    } as Response)
+    await expect(client.get('/test')).rejects.toMatchObject({ code: 'unknown_error', message: 'Unexpected' })
+  })
+})
+
+
+describe('core client lifecycle coverage', () => {
+  beforeEach(() => { globalThis.fetch = vi.fn() })
+  afterEach(() => vi.restoreAllMocks())
+
+  it('sets, hydrates, detects, and clears a complete persisted session', async () => {
+    const store = new MemoryTokenStore()
+    const first = new APIClient({ baseUrl: BASE_URL, tokenStore: store })
+    await first.setSession({ access_token: 'access', refresh_token: 'refresh' })
+    expect(await first.isAuthenticated()).toBe(true)
+    expect(first.getBaseUrl()).toBe(BASE_URL)
+
+    const hydrated = new APIClient({ baseUrl: BASE_URL, tokenStore: store })
+    await hydrated.hydrate()
+    expect(hydrated.getToken()).toBe('access')
+    await hydrated.clearToken()
+    expect(await hydrated.isAuthenticated()).toBe(false)
+  })
+
+  it('executes PUT and PATCH wrappers with JSON bodies', async () => {
+    const client = new APIClient({ baseUrl: BASE_URL, maxRetries: 0 })
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ put: true }) } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ patch: true }) } as Response)
+    await expect(client.put('/resource', { value: 1 })).resolves.toEqual({ put: true })
+    await expect(client.patch('/resource', { value: 2 })).resolves.toEqual({ patch: true })
+    expect(vi.mocked(globalThis.fetch).mock.calls.map((call) => (call[1] as RequestInit).method)).toEqual(['PUT', 'PATCH'])
+  })
+
+  it('recognizes a refresh-only stored session', async () => {
+    const store = new MemoryTokenStore()
+    await store.setTokens('', 'refresh-only')
+    const client = new APIClient({ baseUrl: BASE_URL, tokenStore: store })
+    expect(await client.isAuthenticated()).toBe(true)
+  })
+})

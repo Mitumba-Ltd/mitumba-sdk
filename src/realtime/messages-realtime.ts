@@ -1,7 +1,6 @@
 import { APIClient, APIError } from '../client'
 import { RealtimeProtocolError, RealtimeUnavailableError } from '../types/messages-v2'
 import type {
-  ApiResponse,
   AttachmentUploadStatus,
   ConversationSummary,
   MessageAuthor,
@@ -150,7 +149,12 @@ function parseTicket(value: unknown): MessagesRealtimeTicket {
     || (ticket.resume_cursor !== null && typeof ticket.resume_cursor !== 'string')) {
     throw new RealtimeProtocolError()
   }
-  const url = new URL(ticket.websocket_url)
+  let url: URL
+  try {
+    url = new URL(ticket.websocket_url)
+  } catch {
+    throw new RealtimeProtocolError()
+  }
   if (!['ws:', 'wss:'].includes(url.protocol) || url.searchParams.has('token') || !url.searchParams.has('ticket')) {
     throw new RealtimeProtocolError()
   }
@@ -228,6 +232,7 @@ export class ManagedMessagesRealtimeConnection implements MessagesRealtimeConnec
 
   async start(): Promise<void> {
     if (this.explicitClose) throw new RealtimeUnavailableError()
+    if (this.currentState === 'open') return
     if (this.startPromise) return this.startPromise
     const pending = new Promise<void>((resolve, reject) => {
       this.resolveStart = resolve
@@ -376,7 +381,9 @@ export class ManagedMessagesRealtimeConnection implements MessagesRealtimeConnec
     if (timer) clearTimeout(timer)
     this.typingTimers.delete(threadId)
     this.typingSentAt.delete(threadId)
-    if (sendFalse) this.setTyping(threadId, false)
+    if (sendFalse && this.subscribedThreads.has(threadId)) {
+      this.send({ protocol_version: 1, type: 'typing.set', thread_id: threadId, is_typing: false })
+    }
   }
 
   private clearAllTyping(): void {

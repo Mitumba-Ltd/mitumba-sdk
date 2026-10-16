@@ -1,4 +1,5 @@
-import { MitumbaClientConfig, APIErrorResponse, RequestOptions } from './types'
+import { MitumbaClientConfig, APIErrorResponse, RequestOptions, WebSocketLike } from './types'
+import { RealtimeUnavailableError } from './types/messages-v2'
 import { TokenStore, createTokenStore } from './token-store'
 
 export class APIError extends Error {
@@ -86,6 +87,14 @@ export class APIClient {
 
   public getBaseUrl(): string {
     return this.config.baseUrl
+  }
+
+  /** Create an isomorphic WebSocket using the configured or global transport. */
+  public createWebSocket(url: string, protocols: string | string[]): WebSocketLike {
+    if (this.config.webSocketFactory) return this.config.webSocketFactory(url, protocols)
+    const Constructor = globalThis.WebSocket
+    if (typeof Constructor !== 'function') throw new RealtimeUnavailableError()
+    return new Constructor(url, protocols) as unknown as WebSocketLike
   }
 
   public async clearToken(): Promise<void> {

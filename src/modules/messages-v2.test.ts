@@ -238,3 +238,27 @@ describe('fresh legacy inbox compatibility', () => {
     )
   })
 })
+
+
+describe('MessagesModule managed realtime factories', () => {
+  it('creates an inert connection and starts the convenience variant', async () => {
+    const client = new APIClient({
+      baseUrl: 'https://api.mitumba.test',
+      webSocketFactory: () => ({
+        readyState: 1,
+        send: () => undefined,
+        close: () => undefined,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      }),
+    })
+    const messages = new MessagesModule(client)
+    const inert = messages.createMessagesRealtimeConnection({ perspective: { kind: 'buyer' } })
+    expect(inert.state).toBe('closed')
+
+    const started = { start: vi.fn().mockResolvedValue(undefined) }
+    vi.spyOn(messages, 'createMessagesRealtimeConnection').mockReturnValue(started as unknown as import('../types').MessagesRealtimeConnection)
+    await expect(messages.connectMessagesRealtime({ perspective: { kind: 'buyer' } })).resolves.toBe(started)
+    expect(started.start).toHaveBeenCalledOnce()
+  })
+})

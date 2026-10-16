@@ -316,3 +316,102 @@ describe('ManagedMessagesRealtimeConnection', () => {
     await expect(connection.start()).rejects.toBeInstanceOf(Error)
   })
 })
+
+
+describe('managed realtime event contract coverage', () => {
+  it('validates every durable and ephemeral event type before exposure', async () => {
+    const { connection, sockets } = subject()
+    const seen: string[] = []
+    connection.subscribeThread('thread')
+    connection.onEvent((event) => seen.push(event.type))
+    const { started } = await begin(connection, sockets)
+    sockets[0]!.emit('open')
+    sockets[0]!.emit('error', new Error('transport hint'))
+    sockets[0]!.emit('message', { data: ready() })
+    await started
+    const base = {
+      api_version: 2, protocol_version: 1, occurred_at: 'now', conversation_id: 'conversation', thread_id: 'thread',
+    }
+    const events = [
+      { ...base, event_id: 'system', resume_cursor: 'c1', type: 'system_event.created', payload: { event: { id: 'system', thread_id: 'thread', sequence: 1, kind: 'thread.linked' } } },
+      { ...base, event_id: 'created', resume_cursor: 'c2', type: 'thread.created', payload: { thread: { id: 'thread', conversation_id: 'conversation', kind: 'general', unread_count: 0 } } },
+      { ...base, event_id: 'updated', resume_cursor: 'c3', type: 'thread.updated', payload: { thread: { id: 'thread', conversation_id: 'conversation', kind: 'listing', unread_count: 1 } } },
+      { ...base, event_id: 'read', resume_cursor: 'c4', type: 'read_cursor.updated', payload: { cursor: { thread_id: 'thread', last_read_item_id: 'item', last_read_sequence: 1 } } },
+      { ...base, event_id: 'upload', resume_cursor: 'c5', type: 'attachment.updated', payload: { upload: { id: 'upload', thread_id: 'thread', state: 'safe' } } },
+      { ...base, event_id: 'policy', resume_cursor: 'c6', type: 'message.policy_applied', payload: { message_id: 'message', notices: ['hidden'] } },
+      { ...base, type: 'typing.updated', author: { side: 'store', store: { id: 'store' } }, is_typing: true },
+    ]
+    for (const event of events) sockets[0]!.emit('message', { data: JSON.stringify(event) })
+    await flush()
+    expect(seen).toEqual([
+      'system_event.created', 'thread.created', 'thread.updated', 'read_cursor.updated',
+      'attachment.updated', 'message.policy_applied', 'typing.updated',
+    ])
+  })
+
+  it('uses the encoded store ticket path and treats malformed ticket URLs as terminal', async () => {
+    const sockets: FakeSocket[] = []
+    const post = vi.fn().mockResolvedValue(ticket())
+    const client = {
+      post,
+      createWebSocket: vi.fn(() => {
+        const socket = new FakeSocket()
+        sockets.push(socket)
+        return socket
+      }),
+    } as unknown as APIClient
+    const connection = new ManagedMessagesRealtimeConnection(client, {
+      perspective: { kind: 'store', store_id: 'store/a' },
+    })
+    const started = connection.start()
+    await flush()
+    expect(post.mock.calls[0]?.[0]).toBe('/notify/v2/inboxes/stores/store%2Fa/realtime/tickets')
+    sockets[0]!.emit('message', { data: ready(null) })
+    await started
+    await connection.start()
+    expect(post).toHaveBeenCalledOnce()
+
+    const malformed = subject({ post: vi.fn().mockResolvedValue({
+      ...ticket(), data: { ...ticket().data, websocket_url: 'not a url' },
+    }) })
+    await expect(malformed.connection.start()).rejects.toMatchObject({ name: 'RealtimeProtocolError' })
+    expect(malformed.connection.state).toBe('failed')
+  })
+
+  it('stops reconnecting when a refreshed ticket request returns terminal auth', async () => {
+    const post = vi.fn()
+      .mockResolvedValueOnce(ticket())
+      .mockRejectedValueOnce(new APIError(401, { error: 'session_expired' }))
+    const { connection, sockets } = subject({ post, random: () => 0 })
+    const { started } = await begin(connection, sockets)
+    sockets[0]!.emit('message', { data: ready() })
+    await started
+    sockets[0]!.emit('close', { code: 1011 })
+    await vi.runOnlyPendingTimersAsync()
+    await flush()
+    expect(connection.state).toBe('failed')
+    expect(post).toHaveBeenCalledTimes(2)
+  })
+
+  it('tolerates socket send/close failures and permanently bounds deduplication memory', async () => {
+    const { connection, sockets } = subject()
+    connection.subscribeThread('thread')
+    const { started } = await begin(connection, sockets)
+    sockets[0]!.emit('message', { data: ready() })
+    await started
+    sockets[0]!.failSend = true
+    connection.setTyping('thread', true)
+    sockets[0]!.failSend = false
+
+    const internal = connection as unknown as { remember(id: string): void }
+    for (let index = 0; index < 2_005; index += 1) internal.remember(`event-${index}`)
+    const ids = (connection as unknown as { seenEventIds: Set<string> }).seenEventIds
+    expect(ids.size).toBe(2_000)
+    expect(ids.has('event-0')).toBe(false)
+
+    const originalClose = sockets[0]!.close.bind(sockets[0])
+    sockets[0]!.close = () => { throw new Error('already closed') }
+    expect(() => connection.close()).not.toThrow()
+    sockets[0]!.close = originalClose
+  })
+})

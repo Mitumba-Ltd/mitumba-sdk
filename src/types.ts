@@ -1,4 +1,5 @@
 import type { TokenStore } from './token-store'
+import type { WebSocketFactory } from './types/messages-v2'
 
 export interface MitumbaClientConfig {
   baseUrl: string
@@ -27,6 +28,11 @@ export interface MitumbaClientConfig {
    * needs to re-authenticate. Only fires when session is truly dead.
    */
   onAuthExpired?: () => void
+
+  /**
+   * Optional isomorphic WebSocket factory. Defaults to globalThis.WebSocket when available.
+   */
+  webSocketFactory?: WebSocketFactory
 
   /**
    * Custom token store for persisting tokens. Defaults to IndexedDB in browsers,

@@ -410,3 +410,34 @@ describe('isomorphic WebSocket factory', () => {
       .toThrow('Messaging realtime is unavailable in this runtime.')
   })
 })
+
+
+describe('versioned API error envelopes', () => {
+  beforeEach(() => { globalThis.fetch = vi.fn() })
+  afterEach(() => vi.restoreAllMocks())
+
+  it('normalizes nested Messaging v2 errors into APIError', async () => {
+    const client = new APIClient({ baseUrl: BASE_URL, maxRetries: 0 })
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      statusText: 'Conflict',
+      json: async () => ({
+        api_version: 2,
+        error: { code: 'idempotency_conflict', message: 'Key reused', details: { field: 'body' } },
+      }),
+    } as Response)
+
+    await expect(client.post('/notify/v2/inboxes/buyer/threads/t/messages', {})).rejects.toMatchObject({
+      name: 'APIError', code: 'idempotency_conflict', status: 409, message: 'Key reused', details: { field: 'body' },
+    })
+  })
+
+  it('uses a stable unknown error when an error body is malformed', async () => {
+    const client = new APIClient({ baseUrl: BASE_URL, maxRetries: 0 })
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false, status: 418, statusText: 'Unexpected', json: async () => ({ error: { nope: true } }),
+    } as Response)
+    await expect(client.get('/test')).rejects.toMatchObject({ code: 'unknown_error', message: 'Unexpected' })
+  })
+})

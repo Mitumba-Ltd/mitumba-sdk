@@ -385,3 +385,28 @@ describe('token refresh failure classification', () => {
     expect(client.getToken()).toBe('new')
   })
 })
+
+
+describe('isomorphic WebSocket factory', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('uses an injected transport without requiring a browser global', () => {
+    const socket = { readyState: 0 } as unknown as import('./types').WebSocketLike
+    const webSocketFactory = vi.fn(() => socket)
+    const client = new APIClient({ baseUrl: BASE_URL, webSocketFactory })
+    expect(client.createWebSocket('wss://example.test/socket', 'protocol')).toBe(socket)
+    expect(webSocketFactory).toHaveBeenCalledWith('wss://example.test/socket', 'protocol')
+  })
+
+  it('uses globalThis.WebSocket when available and fails with a typed error otherwise', async () => {
+    const Constructor = vi.fn(function MockSocket() { return { readyState: 0 } })
+    vi.stubGlobal('WebSocket', Constructor)
+    const client = new APIClient({ baseUrl: BASE_URL })
+    client.createWebSocket('wss://example.test/socket', ['protocol'])
+    expect(Constructor).toHaveBeenCalledWith('wss://example.test/socket', ['protocol'])
+
+    vi.stubGlobal('WebSocket', undefined)
+    expect(() => client.createWebSocket('wss://example.test/socket', 'protocol'))
+      .toThrow('Messaging realtime is unavailable in this runtime.')
+  })
+})

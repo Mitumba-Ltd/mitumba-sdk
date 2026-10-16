@@ -441,3 +441,40 @@ describe('versioned API error envelopes', () => {
     await expect(client.get('/test')).rejects.toMatchObject({ code: 'unknown_error', message: 'Unexpected' })
   })
 })
+
+
+describe('core client lifecycle coverage', () => {
+  beforeEach(() => { globalThis.fetch = vi.fn() })
+  afterEach(() => vi.restoreAllMocks())
+
+  it('sets, hydrates, detects, and clears a complete persisted session', async () => {
+    const store = new MemoryTokenStore()
+    const first = new APIClient({ baseUrl: BASE_URL, tokenStore: store })
+    await first.setSession({ access_token: 'access', refresh_token: 'refresh' })
+    expect(await first.isAuthenticated()).toBe(true)
+    expect(first.getBaseUrl()).toBe(BASE_URL)
+
+    const hydrated = new APIClient({ baseUrl: BASE_URL, tokenStore: store })
+    await hydrated.hydrate()
+    expect(hydrated.getToken()).toBe('access')
+    await hydrated.clearToken()
+    expect(await hydrated.isAuthenticated()).toBe(false)
+  })
+
+  it('executes PUT and PATCH wrappers with JSON bodies', async () => {
+    const client = new APIClient({ baseUrl: BASE_URL, maxRetries: 0 })
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ put: true }) } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ patch: true }) } as Response)
+    await expect(client.put('/resource', { value: 1 })).resolves.toEqual({ put: true })
+    await expect(client.patch('/resource', { value: 2 })).resolves.toEqual({ patch: true })
+    expect(vi.mocked(globalThis.fetch).mock.calls.map((call) => (call[1] as RequestInit).method)).toEqual(['PUT', 'PATCH'])
+  })
+
+  it('recognizes a refresh-only stored session', async () => {
+    const store = new MemoryTokenStore()
+    await store.setTokens('', 'refresh-only')
+    const client = new APIClient({ baseUrl: BASE_URL, tokenStore: store })
+    expect(await client.isAuthenticated()).toBe(true)
+  })
+})

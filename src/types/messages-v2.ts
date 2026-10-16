@@ -574,6 +574,7 @@ const MESSAGING_ERROR_CODES = [
   'rate_limited',
   'temporarily_unavailable',
   'internal_error',
+  'invalid_response',
   'network_error',
 ] as const
 

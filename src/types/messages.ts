@@ -42,3 +42,53 @@ export interface InboxRealtimeEvent {
   created_at: string
   unread_count?: number
 }
+
+
+/** Recipient-safe reason for a message or conversation report. */
+export type MessageReportReason =
+  | 'off_platform_payment'
+  | 'contact_sharing'
+  | 'spam'
+  | 'scam'
+  | 'harassment'
+  | 'counterfeit'
+  | 'offensive'
+  | 'other'
+
+/** Typed report input for a message or buyer/store conversation. */
+export type CreateMessageReportInput =
+  | {
+      subject_kind: 'message'
+      message_id: string
+      reason: MessageReportReason
+      detail?: string
+    }
+  | {
+      subject_kind: 'conversation'
+      partner_id: string
+      store_id: string
+      reason: MessageReportReason
+      detail?: string
+    }
+
+/** Idempotent open-report result. */
+export interface CreateMessageReportResult {
+  id: string
+  status: 'open'
+  deduplicated: boolean
+}
+
+/** Context used to block one buyer/store relationship. */
+export interface CreateMessageBlockInput {
+  partner_id: string
+  store_id: string
+  from_store?: boolean
+  reason?: string
+}
+
+/** Idempotent active-block result. */
+export interface CreateMessageBlockResult {
+  id: string
+  active: true
+  deduplicated: boolean
+}

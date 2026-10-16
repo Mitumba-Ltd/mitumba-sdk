@@ -644,3 +644,240 @@ export class RealtimeUnavailableError extends Error {
     this.name = 'RealtimeUnavailableError'
   }
 }
+
+
+/** Cursor parameters for conversation collections. */
+export interface ListConversationsParams {
+  /** Opaque next-page cursor. */
+  cursor?: MessagingCursor
+  /** Page size from 1 through 100. */
+  limit?: number
+}
+
+/** Cursor and filter parameters for thread-card collections. */
+export interface ListThreadsParams extends ListConversationsParams {
+  /** Include threads archived by the selected perspective. */
+  include_archived?: boolean
+  /** Optional shared support-status filter. */
+  status?: 'open' | 'resolved'
+}
+
+/** Thread preference patch for one perspective. */
+export interface UpdateThreadPreferencesInput {
+  /** Archive or restore the thread for this perspective. */
+  archived?: boolean
+  /** Pin or unpin the thread for this perspective. */
+  pinned?: boolean
+  /** Mute or unmute the thread for this perspective. */
+  muted?: boolean
+}
+
+/** Conversation preference patch for one perspective. */
+export interface UpdateConversationPreferencesInput {
+  /** Archive or restore the conversation for this perspective. */
+  archived?: boolean
+  /** Mute or unmute the conversation for this perspective. */
+  muted?: boolean
+}
+
+/** Request options for an idempotent operation. */
+export interface MessagingIdempotentRequestOptions {
+  /** Stable key reused for an exact retry. */
+  idempotencyKey: string
+  /** Optional cancellation signal. */
+  signal?: AbortSignal
+  /** Additional non-authorization headers. */
+  headers?: Record<string, string>
+}
+
+/** Metadata used to authorize one private attachment upload. */
+export interface CreateAttachmentUploadInput {
+  /** Sanitized display file name. */
+  file_name: string
+  /** Lowercase allowlisted media type. */
+  content_type: string
+  /** Exact byte length. */
+  size_bytes: number
+  /** Lowercase hexadecimal SHA-256 digest. */
+  sha256: string
+}
+
+/** Portable in-memory body accepted by attachment upload. */
+export type AttachmentUploadBody = Blob | ArrayBuffer | ArrayBufferView
+
+/** Short-lived mediated attachment download. */
+export interface AttachmentDownloadAuthorization {
+  /** Absolute application download URL containing a short-lived ticket. */
+  url: string
+  /** UTC ISO 8601 ticket expiry. */
+  expires_at: string
+}
+
+/** Buyer and currently represented store inboxes. */
+export interface MessagingInboxes {
+  /** Personal buyer perspective. */
+  buyer: { kind: 'buyer'; buyer: BuyerSummary }
+  /** Authorized store perspectives. */
+  stores: Array<{ kind: 'store'; store: StoreSummary }>
+}
+
+/** One-use realtime bootstrap ticket. */
+export interface MessagesRealtimeTicket {
+  /** Opaque ticket; never persist or log it. */
+  ticket: string
+  /** UTC ISO 8601 ticket expiry. */
+  expires_at: string
+  /** Absolute ticket-only WebSocket URL. */
+  websocket_url: string
+  /** Required negotiated subprotocol. */
+  websocket_protocol: 'mitumba-messaging-v1'
+  /** Realtime protocol version. */
+  protocol_version: 1
+  /** Requested resume cursor, or null for a fresh connection. */
+  resume_cursor: MessagingCursor | null
+}
+
+/** Minimal event delivered by an isomorphic WebSocket transport. */
+export interface WebSocketMessageEventLike {
+  /** Untrusted frame data parsed by the SDK before exposure. */
+  data: unknown
+}
+
+/** Minimal close event delivered by an isomorphic WebSocket transport. */
+export interface WebSocketCloseEventLike {
+  /** WebSocket close code. */
+  code: number
+  /** Safe close reason. */
+  reason?: string
+  /** Whether the transport observed a clean close. */
+  wasClean?: boolean
+}
+
+/** Minimal WebSocket contract supported in Browser, Node, Edge, and Worker runtimes. */
+export interface WebSocketLike {
+  /** Connecting ready state. */
+  readonly CONNECTING?: number
+  /** Open ready state. */
+  readonly OPEN?: number
+  /** Current ready state. */
+  readonly readyState: number
+  /** Send one client frame. */
+  send(data: string): void
+  /** Close this transport. */
+  close(code?: number, reason?: string): void
+  /** Register a transport listener. */
+  addEventListener(type: 'open', listener: () => void): void
+  addEventListener(type: 'message', listener: (event: WebSocketMessageEventLike) => void): void
+  addEventListener(type: 'close', listener: (event: WebSocketCloseEventLike) => void): void
+  addEventListener(type: 'error', listener: (event: unknown) => void): void
+  /** Remove a transport listener. */
+  removeEventListener(type: 'open', listener: () => void): void
+  removeEventListener(type: 'message', listener: (event: WebSocketMessageEventLike) => void): void
+  removeEventListener(type: 'close', listener: (event: WebSocketCloseEventLike) => void): void
+  removeEventListener(type: 'error', listener: (event: unknown) => void): void
+}
+
+/** Injectable WebSocket constructor for isomorphic runtimes. */
+export type WebSocketFactory = (url: string, protocols: string | string[]) => WebSocketLike
+
+/** Managed realtime lifecycle state. */
+export type MessagesRealtimeState = 'connecting' | 'open' | 'reconnecting' | 'closed' | 'failed'
+
+/** Durable realtime envelope shared by all resumable events. */
+export interface MessagesRealtimeEnvelope<Type extends string, Payload> {
+  /** Public resource schema version. */
+  api_version: 2
+  /** Wire protocol version. */
+  protocol_version: 1
+  /** Stable event identifier used for deduplication. */
+  event_id: string
+  /** Opaque audience resume cursor. */
+  resume_cursor: MessagingCursor
+  /** Event discriminator. */
+  type: Type
+  /** UTC ISO 8601 occurrence timestamp. */
+  occurred_at: string
+  /** Related conversation when applicable. */
+  conversation_id?: ConversationId
+  /** Related thread when applicable. */
+  thread_id?: ThreadId
+  /** Event payload validated before exposure. */
+  payload: Payload
+}
+
+/** Validated managed Messaging realtime event. */
+export type MessagesRealtimeEvent =
+  | MessagesRealtimeEnvelope<'message.created', { message: ThreadMessage }>
+  | MessagesRealtimeEnvelope<'system_event.created', { event: ThreadSystemEvent }>
+  | MessagesRealtimeEnvelope<'conversation.updated', { conversation: ConversationSummary }>
+  | MessagesRealtimeEnvelope<'thread.created', { thread: ThreadCard }>
+  | MessagesRealtimeEnvelope<'thread.updated', { thread: ThreadCard }>
+  | MessagesRealtimeEnvelope<'read_cursor.updated', { cursor: ReadCursorResult }>
+  | MessagesRealtimeEnvelope<'attachment.updated', { upload: AttachmentUploadStatus }>
+  | MessagesRealtimeEnvelope<'message.policy_applied', { message_id: MessageId; notices: string[] }>
+  | {
+      /** Resource schema version. */
+      api_version: 2
+      /** Wire protocol version. */
+      protocol_version: 1
+      /** Ephemeral event discriminator. */
+      type: 'typing.updated'
+      /** Thread scoped by this typing state. */
+      thread_id: ThreadId
+      /** Validated public author. */
+      author: MessageAuthor
+      /** Current typing state. */
+      is_typing: boolean
+      /** UTC ISO 8601 occurrence timestamp. */
+      occurred_at: string
+    }
+  | {
+      /** Resource schema version. */
+      api_version: 2
+      /** Wire protocol version. */
+      protocol_version: 1
+      /** Authoritative rebuild signal. */
+      type: 'resync.required'
+      /** Safe reason for rebuilding HTTP state. */
+      reason: 'cursor_expired' | 'gap_detected' | 'authorization_changed'
+      /** Resume cursor after the authoritative rebuild. */
+      resume_cursor: MessagingCursor
+    }
+
+/** Options for an inert or immediately started managed realtime connection. */
+export interface MessagesRealtimeOptions {
+  /** Buyer or authorized-store audience. */
+  perspective: MessagingPerspective
+  /** Last acknowledged cursor, or null for a fresh connection. */
+  resumeCursor?: MessagingCursor | null
+  /** Optional cancellation signal for ticket requests. */
+  signal?: AbortSignal
+  /** Initial reconnect delay in milliseconds. */
+  reconnectBaseDelayMs?: number
+  /** Maximum reconnect delay in milliseconds. */
+  reconnectMaxDelayMs?: number
+  /** Injected randomness for deterministic tests. */
+  random?: () => number
+}
+
+/** Managed, resumable messaging connection. */
+export interface MessagesRealtimeConnection {
+  /** Current connection lifecycle state. */
+  readonly state: MessagesRealtimeState
+  /** Last acknowledged durable cursor. */
+  readonly resumeCursor: MessagingCursor | null
+  /** Start the inert connection. Repeated calls are safe. */
+  start(): Promise<void>
+  /** Permanently close and release sockets, timers, and listeners. */
+  close(): void
+  /** Subscribe to validated messaging events. */
+  onEvent(listener: (event: MessagesRealtimeEvent) => void | Promise<void>): () => void
+  /** Subscribe to lifecycle changes. */
+  onStateChange(listener: (state: MessagesRealtimeState) => void): () => void
+  /** Select a thread for message and typing delivery. */
+  subscribeThread(threadId: ThreadId): void
+  /** Stop local delivery for one selected thread. */
+  unsubscribeThread(threadId: ThreadId): void
+  /** Publish thread-scoped ephemeral typing state. */
+  setTyping(threadId: ThreadId, isTyping: boolean): void
+}

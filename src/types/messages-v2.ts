@@ -882,3 +882,14 @@ export interface MessagesRealtimeConnection {
   /** Publish thread-scoped ephemeral typing state. */
   setTyping(threadId: ThreadId, isTyping: boolean): void
 }
+
+
+/** Older-history page for one read-only legacy archive. */
+export interface LegacyMessagePage {
+  /** Historic messages in ascending display order. */
+  items: LegacyMessageRecord[]
+  /** Cursor for older history, or null at the beginning. */
+  older_cursor: MessagingCursor | null
+  /** Whether older history remains. */
+  has_older: boolean
+}

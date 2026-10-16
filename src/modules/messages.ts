@@ -1,7 +1,5 @@
 import { APIClient, APIError } from '../client'
-import { RealtimeProtocolError } from '../types/messages-v2'
 import type {
-  ApiResponse,
   AttachmentDownloadAuthorization,
   AttachmentUploadAuthorization,
   AttachmentUploadBody,
@@ -17,7 +15,7 @@ import type {
   CursorPage,
   LegacyLinkResolution,
   LegacyMessageArchiveSummary,
-  LegacyMessageRecord,
+  LegacyMessagePage,
   ListConversationsParams,
   ListThreadMessagesParams,
   ListThreadsParams,
@@ -365,10 +363,10 @@ export class MessagesModule {
   }
 
   /** List messages in one read-only legacy archive. */
-  async listLegacyMessages(legacyThreadId: string, params: ListThreadMessagesParams = {}, options?: RequestOptions): Promise<MessagePage | { items: LegacyMessageRecord[]; older_cursor: string | null; has_older: boolean }> {
+  async listLegacyMessages(legacyThreadId: string, params: ListThreadMessagesParams = {}, options?: RequestOptions): Promise<LegacyMessagePage> {
     validateLimit(params)
     const value = await this.client.get<unknown>(`/notify/v2/legacy-messages/${encode(legacyThreadId)}`, query(params), options)
-    return unwrap(value, isPage)
+    return unwrap<LegacyMessagePage>(value, isPage)
   }
 
   /** Resolve a temporary partner/order link without guessing between stores. */

@@ -276,3 +276,112 @@ describe('custom request headers', () => {
     expect((init.headers as Headers).get('Authorization')).toBe('Bearer real-session')
   })
 })
+
+
+describe('token refresh failure classification', () => {
+  const expiringToken = (): string => {
+    const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 10 }))
+    return `header.${payload}.signature`
+  }
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each([
+    ['AbortError', Object.assign(new Error('aborted replay'), { name: 'AbortError' })],
+    ['network error', new TypeError('offline replay')],
+  ])('propagates a replay %s without expiring a successfully refreshed session', async (_label, replayError) => {
+    const onAuthExpired = vi.fn()
+    const store = new MemoryTokenStore()
+    const client = new APIClient({
+      baseUrl: BASE_URL,
+      token: 'old-access',
+      refreshToken: 'valid-refresh',
+      onAuthExpired,
+      tokenStore: store,
+      maxRetries: 0,
+    })
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce({ ok: false, status: 401 } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ access_token: 'fresh-access', refresh_token: 'fresh-refresh' }),
+      } as Response)
+      .mockRejectedValueOnce(replayError)
+
+    await expect(client.get('/protected')).rejects.toBe(replayError)
+    expect(onAuthExpired).not.toHaveBeenCalled()
+    expect(client.getToken()).toBe('fresh-access')
+    expect(await store.getRefreshToken()).toBe('fresh-refresh')
+  })
+
+  it.each([
+    ['offline', new TypeError('offline')],
+    ['abort', Object.assign(new Error('aborted'), { name: 'AbortError' })],
+  ])('preserves tokens when proactive refresh fails from %s', async (_label, refreshError) => {
+    const store = new MemoryTokenStore()
+    const token = expiringToken()
+    const client = new APIClient({ baseUrl: BASE_URL, token, refreshToken: 'valid-refresh', tokenStore: store })
+    const controller = new AbortController()
+    vi.mocked(globalThis.fetch).mockRejectedValueOnce(refreshError)
+
+    await expect(client.ensureFreshToken({ signal: controller.signal })).rejects.toBe(refreshError)
+    expect(client.getToken()).toBe(token)
+    expect(await store.getRefreshToken()).toBe('valid-refresh')
+    expect((vi.mocked(globalThis.fetch).mock.calls[0]![1] as RequestInit).signal).toBe(controller.signal)
+  })
+
+  it('preserves tokens for refresh 5xx and malformed transient responses', async () => {
+    const store = new MemoryTokenStore()
+    const token = expiringToken()
+    const client = new APIClient({ baseUrl: BASE_URL, token, refreshToken: 'valid-refresh', tokenStore: store })
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false, status: 503, statusText: 'Unavailable', json: async () => ({ error: 'temporarily_unavailable' }),
+    } as Response)
+    await expect(client.ensureFreshToken()).rejects.toMatchObject({ status: 503, code: 'temporarily_unavailable' })
+    expect(client.getToken()).toBe(token)
+    expect(await store.getRefreshToken()).toBe('valid-refresh')
+
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ nope: true }) } as Response)
+    await expect(client.ensureFreshToken()).rejects.toMatchObject({ code: 'refresh_response_invalid' })
+    expect(client.getToken()).toBe(token)
+  })
+
+  it.each([400, 401])('clears tokens only for definitive refresh credential status %i', async (status) => {
+    const onAuthExpired = vi.fn()
+    const store = new MemoryTokenStore()
+    const client = new APIClient({
+      baseUrl: BASE_URL, token: 'old', refreshToken: 'invalid', tokenStore: store, onAuthExpired, maxRetries: 0,
+    })
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce({ ok: false, status: 401 } as Response)
+      .mockResolvedValueOnce({ ok: false, status } as Response)
+
+    await expect(client.get('/protected')).rejects.toMatchObject({ code: 'session_expired' })
+    expect(onAuthExpired).toHaveBeenCalledOnce()
+    expect(client.getToken()).toBeUndefined()
+    expect(await store.getRefreshToken()).toBeNull()
+  })
+
+  it('shares one in-flight proactive refresh across concurrent callers', async () => {
+    const token = expiringToken()
+    const client = new APIClient({ baseUrl: BASE_URL, token, refreshToken: 'refresh', tokenStore: new MemoryTokenStore() })
+    let resolveRefresh!: (response: Response) => void
+    vi.mocked(globalThis.fetch).mockReturnValueOnce(new Promise<Response>((resolve) => { resolveRefresh = resolve }))
+
+    const first = client.ensureFreshToken()
+    const second = client.ensureFreshToken()
+    expect(globalThis.fetch).toHaveBeenCalledOnce()
+    resolveRefresh({
+      ok: true, status: 200, json: async () => ({ access_token: 'new', refresh_token: 'new-refresh' }),
+    } as Response)
+    await Promise.all([first, second])
+    expect(client.getToken()).toBe('new')
+  })
+})

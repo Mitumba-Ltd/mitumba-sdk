@@ -21,6 +21,7 @@
 - [ ] `Orders`
 - [ ] `Pay`
 - [ ] `Vazi`
+- [ ] `Messages`
 
 ## Checklist
 

@@ -187,6 +187,7 @@ export type MessagingV2ErrorAssertions = [
     | 'rate_limited'
     | 'temporarily_unavailable'
     | 'internal_error'
+    | 'invalid_response'
     | 'network_error'
   >>,
 ]

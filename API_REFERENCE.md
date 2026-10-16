@@ -953,39 +953,38 @@ Checkout state is derived from the authoritative order lifecycle. A funded attem
 
 ---
 
-## Messages Module (`/notify/messages`)
+## Messages Module (`/notify`)
 
-### `GET /notify/messages` — List conversations
+### Legacy 1.x compatibility
 
-**Auth:** Protected  
-**Query:** `store_id?` (filter by store inbox)  
-**Response:** `{ data: Conversation[] }`
+The partner-based methods remain source- and runtime-compatible until 2.0.0, but are deprecated:
+
+```typescript
+messages.list(storeId?, options?)
+messages.getThread(partnerId, storeId?, options?)
+messages.send(input, options?)
+messages.markRead(partnerId, storeId?, options?)
+messages.connectTyping(partnerId)
+messages.connectInbox()
+```
+
+`receiver_id`, `store_id`, `listing_id`, `order_id`, and `from_store` are context hints, not authority. The server derives actor side and recipient and rejects mismatches. Use `connectInboxFresh()` when a legacy socket must hydrate or refresh its access token first.
+
+Legacy declarations match the published 1.x runtime:
 
 ```typescript
 interface Conversation {
-  id: string
-  sender_id: string
-  receiver_id: string
   partner_id: string
-  partner_name: string | null
+  partner_name: string
+  store_name?: string | null
   body: string
-  listing_id: string | null
-  listing_title: string | null
-  store_id: string | null
-  read_at: string | null
   created_at: string
+  store_id?: string | null
+  listing_id?: string | null
+  listing_title?: string | null
+  unread_count: number
 }
-```
 
----
-
-### `GET /notify/messages/:partnerId` — Get message thread
-
-**Auth:** Protected  
-**Query:** `store_id?`  
-**Response:** `{ data: Message[] }`
-
-```typescript
 interface Message {
   id: string
   sender_id: string
@@ -993,18 +992,109 @@ interface Message {
   body: string
   listing_id: string | null
   store_id: string | null
+  order_id?: string | null
+  from_store?: number
   read_at: string | null
   created_at: string
 }
 ```
 
----
+### Moderation methods
 
-### `POST /notify/messages` — Send a message
+```typescript
+messages.createReport(input, options?)
+messages.createBlock(input, options?)
+messages.removeBlock(blockId, options?)
+```
 
-**Auth:** Protected  
-**Body:** `{ receiver_id, body, listing_id?, store_id? }`  
-**Response:** `201 { id: string }`
+Reports target a message or conversation and use typed reasons including `off_platform_payment`. Blocks are buyer/store relationship scoped and idempotent. Existing Order support behavior is server policy.
+
+### Messaging v2 hierarchy
+
+Every v2 success response has `{ api_version: 2, data }`. Public methods unwrap `data` after validating the version and top-level resource shape.
+
+```text
+MessagingPerspective → ConversationSummary → ThreadCard → ThreadTimelineItem
+```
+
+Buyer and store paths are explicit:
+
+```typescript
+messages.listMessagingInboxes(options?)
+messages.listConversations(params?, options?)
+messages.listStoreConversations(storeId, params?, options?)
+messages.getConversation(perspective, conversationId, options?)
+messages.resolveThread(perspective, input, { idempotencyKey, ...options })
+messages.listThreads(perspective, conversationId, params?, options?)
+messages.getConversationThread(perspective, threadId, options?)
+messages.updateThreadStatus(perspective, threadId, status, options?)
+messages.updateThreadPreferences(perspective, threadId, preferences, options?)
+messages.updateConversationPreferences(perspective, conversationId, preferences, options?)
+```
+
+Thread resolution accepts exhaustive General, Listing, and Order inputs. The stable idempotency key is sent as `Idempotency-Key` and must be reused for an exact retry.
+
+### Thread messages and read cursors
+
+```typescript
+messages.listThreadMessages(perspective, threadId, params?, options?)
+messages.sendThreadMessage(perspective, threadId, input, options?)
+messages.advanceThreadReadCursor(perspective, threadId, timelineItemId, options?)
+```
+
+The initial message request returns the newest window, with items ordered by ascending server sequence for rendering. `before` requests older history and `after` catches up; they are mutually exclusive. Limits are integers from 1 through 100.
+
+`client_message_id` is caller-owned and becomes the idempotency header. The SDK never replaces it during retry. A timed-out send is recovered by repeating the identical input and ID. Read cursors advance monotonically; equal or older retries return `changed: false`. Unread totals remain server-authoritative.
+
+### Capabilities and private attachments
+
+```typescript
+messages.getMessagingCapabilities(options?)
+messages.createThreadAttachmentUpload(perspective, threadId, input, options?)
+messages.uploadThreadAttachment(authorization, body, options?)
+messages.getThreadAttachmentUpload(perspective, threadId, uploadId, options?)
+messages.createThreadAttachmentDownload(perspective, threadId, attachmentId, options?)
+```
+
+Hide attachment controls unless capabilities report `attachments.enabled`. Upload accepts `Blob`, `ArrayBuffer`, or an `ArrayBufferView` whose exact byte length matches the authorization. Upload/download URLs contain short-lived application tickets, never access/refresh tokens or permanent storage credentials. Do not persist or log tickets.
+
+### Managed realtime
+
+```typescript
+const connection = messages.createMessagesRealtimeConnection({
+  perspective: { kind: 'buyer' },
+  resumeCursor,
+})
+
+const off = connection.onEvent(async (event) => {
+  // Reconcile validated typed events only.
+})
+connection.subscribeThread(threadId)
+await connection.start()
+
+// Later
+connection.setTyping(threadId, true)
+off()
+connection.close()
+```
+
+`connectMessagesRealtime(options)` is the create-and-start convenience method. The managed state machine is `connecting | open | reconnecting | closed | failed`. It obtains a fresh one-use ticket on every reconnect, applies bounded exponential backoff with full jitter, resumes from the last acknowledged cursor, deduplicates stable event IDs, rejects malformed/unsupported frames, and ACKs only after listeners finish. `resync.required` tells the application to rebuild authoritative HTTP state. Close codes for invalid session, removed perspective authorization, and protocol mismatch are terminal.
+
+A custom `webSocketFactory` may be supplied in `MitumbaClientConfig`; otherwise `globalThis.WebSocket` is used. No mandatory runtime dependency is added.
+
+### Legacy link/archive compatibility
+
+```typescript
+messages.resolveLegacyLink(input, options?)
+messages.listLegacyMessageArchives(params?, options?)
+messages.listLegacyMessages(legacyThreadId, params?, options?)
+```
+
+Legacy archives are read-only. The resolver returns a canonical conversation/thread, an explicit store choice, an archive ID, or unavailable; it never guesses between stores.
+
+### Messaging errors
+
+Use `isMessagingAPIError(error, code?)` for documented codes. Retry network errors, `temporarily_unavailable`, and rate limits according to policy. Do not retry `session_expired`, removed perspective authorization, protocol mismatch, or an idempotency key reused with changed content. Native `AbortError` is preserved.
 
 ---
 

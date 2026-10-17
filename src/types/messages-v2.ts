@@ -449,8 +449,27 @@ export type AttachmentUploadState =
   | 'expired'
   | 'claimed'
 
-/** Server capability declaration for optional messaging features. */
+/** Server capability declaration for the staged Messaging v2 rollout. */
 export interface MessagingCapabilities {
+  /** Public resource schema version. */
+  api_version: 2
+  /** Realtime protocol versions understood by this deployment. */
+  protocol_versions: number[]
+  /** Whether the Messaging v2 HTTP resource surface is enabled. */
+  http: { enabled: boolean }
+  /** Whether legacy writes are mirrored into Messaging v2. */
+  dual_write: { enabled: boolean }
+  /** Whether migration shadow reads are enabled. */
+  shadow_read: { enabled: boolean }
+  /** Whether clients must address a stable Messaging v2 thread. */
+  require_thread: { enabled: boolean }
+  /** Managed realtime capability and supported wire versions. */
+  realtime: {
+    /** Whether clients may establish managed realtime connections. */
+    enabled: boolean
+    /** Realtime protocol versions currently available. */
+    protocol_versions: number[]
+  }
   /** Optional attachment capability. */
   attachments: {
     /** Whether clients may expose attachment controls. */

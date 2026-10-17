@@ -1056,7 +1056,7 @@ messages.getThreadAttachmentUpload(perspective, threadId, uploadId, options?)
 messages.createThreadAttachmentDownload(perspective, threadId, attachmentId, options?)
 ```
 
-Hide attachment controls unless capabilities report `attachments.enabled`. Upload accepts `Blob`, `ArrayBuffer`, or an `ArrayBufferView` whose exact byte length matches the authorization. Upload/download URLs contain short-lived application tickets, never access/refresh tokens or permanent storage credentials. Do not persist or log tickets.
+Hide Messaging v2 surfaces unless capabilities report `http.enabled`, and only start managed realtime when `realtime.enabled` is true and a supported `realtime.protocol_versions` value is present. Hide attachment controls unless capabilities report `attachments.enabled`. The full capability response also exposes `api_version`, rollout-state declarations (`dual_write`, `shadow_read`, and `require_thread`), and top-level `protocol_versions`. Upload accepts `Blob`, `ArrayBuffer`, or an `ArrayBufferView` whose exact byte length matches the authorization. Upload/download URLs contain short-lived application tickets, never access/refresh tokens or permanent storage credentials. Do not persist or log tickets.
 
 ### Managed realtime
 

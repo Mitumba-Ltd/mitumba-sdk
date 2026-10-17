@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 1.32.1
+
+### Patch Changes
+
+- a0159b4: Expose the complete Messaging v2 capability response so clients can gate HTTP, realtime, migration, and attachment behavior safely.
+
 ## 1.32.0
 
 ### Minor Changes

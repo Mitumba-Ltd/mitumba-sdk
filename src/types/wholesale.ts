@@ -133,3 +133,28 @@ export interface CreateBaleOrderInput {
   qty?: number
   fulfillment: BaleFulfillment
 }
+
+// ── Bale Images ──
+
+/**
+ * Result of uploading a bale image directly via multipart/form-data. Mirrors the listing image
+ * upload result; the presign step reuses `PresignImageResponse` from the listings types.
+ */
+export interface BaleImageUploadResult {
+  r2_key: string
+  image_id: string
+  url: string
+}
+
+// ── Wholesale Analytics ──
+
+/**
+ * Performance analytics for a wholesale store. Mirrors the retail `StoreAnalytics` shape where it
+ * applies (revenue series, order breakdown) and adapts the rest to bales (top bales, bale totals).
+ */
+export interface WholesaleAnalytics {
+  revenue: { date: string; revenue: number; orders: number }[]
+  orders_breakdown: { date: string; completed: number; pending: number; cancelled: number }[]
+  top_bales: { bale_id: string; title: string; orders: number; revenue: number }[]
+  totals: { bales: number; orders: number; revenue: number }
+}

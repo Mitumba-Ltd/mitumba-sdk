@@ -487,6 +487,24 @@ interface PaymentMethod {
 
 ---
 
+### `POST /listings/bales/:baleId/images/presign` — Get bale image upload slot
+
+**Auth:** Protected (owning wholesale store only)  
+**Body:** `{ index: number }` _(slot 0 is the cover)_  
+**Response:** `201 { r2_key: string, image_id: string }`  
+**SDK:** `sdk.wholesale.presignBaleImage(baleId, index)`
+
+---
+
+### `POST /listings/bales/:baleId/images/upload` — Upload a bale image
+
+**Auth:** Protected (owning wholesale store only)  
+**Body:** `multipart/form-data` with `file` and `index` fields _(slot 0 is the cover)_  
+**Response:** `201 { r2_key: string, image_id: string, url: string }`  
+**SDK:** `sdk.wholesale.uploadBaleImage(baleId, file, index)`
+
+---
+
 ### `GET /listings/:id/similar` — Get similar listings
 
 **Auth:** Public  
@@ -603,6 +621,23 @@ interface PaymentMethod {
   totals: { views, orders, revenue, followers }
 }
 ```
+
+---
+
+### `GET /listings/wholesale/analytics` — Get wholesale (bale-seller) analytics
+
+**Auth:** Protected (bale_seller only; store resolved from the session, no id in the path)  
+**Query:** `period?` (`daily` | `weekly` | `monthly`)  
+**Response:**
+```typescript
+{
+  revenue: Array<{ date, revenue, orders }>
+  orders_breakdown: Array<{ date, completed, pending, cancelled }>
+  top_bales: Array<{ bale_id, title, orders, revenue }>
+  totals: { bales, orders, revenue }
+}
+```
+**SDK:** `sdk.wholesale.getAnalytics(period?)`
 
 ---
 

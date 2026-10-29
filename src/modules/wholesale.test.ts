@@ -132,4 +132,47 @@ describe('WholesaleModule', () => {
       expect(apiClient.post).toHaveBeenCalledWith('/listings/bale-orders/bo_1/transition', { action: 'confirm' }, undefined)
     })
   })
+
+  describe('presignBaleImage', () => {
+    it('calls POST /listings/bales/:id/images/presign with the slot index', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ r2_key: 'key', image_id: 'img_1' })
+      const result = await wholesale.presignBaleImage('b_1', 2)
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/bales/b_1/images/presign', { index: 2 }, undefined)
+      expect(result).toEqual({ r2_key: 'key', image_id: 'img_1' })
+    })
+
+    it('propagates server errors', async () => {
+      vi.spyOn(apiClient, 'post').mockRejectedValue(new Error('not_found'))
+      await expect(wholesale.presignBaleImage('missing', 0)).rejects.toThrow('not_found')
+    })
+  })
+
+  describe('uploadBaleImage', () => {
+    it('calls POST /listings/bales/:id/images/upload with FormData', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ r2_key: 'key', image_id: 'img_1', url: 'https://cdn.mitumba.stanl.ink/key' })
+      const file = new Blob(['test'], { type: 'image/png' })
+      const result = await wholesale.uploadBaleImage('b_1', file, 0)
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/bales/b_1/images/upload', expect.any(FormData), undefined)
+      expect(result).toEqual({ r2_key: 'key', image_id: 'img_1', url: 'https://cdn.mitumba.stanl.ink/key' })
+    })
+  })
+
+  describe('getAnalytics', () => {
+    it('calls GET /listings/wholesale/analytics with the period', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ revenue: [], orders_breakdown: [], top_bales: [], totals: { bales: 0, orders: 0, revenue: 0 } })
+      await wholesale.getAnalytics('weekly')
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/wholesale/analytics', { period: 'weekly' }, undefined)
+    })
+
+    it('omits the period when not given', async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ revenue: [], orders_breakdown: [], top_bales: [], totals: { bales: 0, orders: 0, revenue: 0 } })
+      await wholesale.getAnalytics()
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/wholesale/analytics', undefined, undefined)
+    })
+
+    it('propagates server errors', async () => {
+      vi.spyOn(apiClient, 'get').mockRejectedValue(new Error('forbidden'))
+      await expect(wholesale.getAnalytics()).rejects.toThrow('forbidden')
+    })
+  })
 })

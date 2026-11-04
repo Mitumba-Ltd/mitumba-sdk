@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { CreateReviewInput, Review, ReviewableOrder, RequestOptions } from '../types'
+import type { CreateReviewInput, ReviewableOrder, StoreReviewsPage, RequestOptions } from '../types'
 
 export class ReviewsModule {
   constructor(private readonly client: APIClient) {}
@@ -7,8 +7,8 @@ export class ReviewsModule {
   /**
    * List reviews for a store (public).
    */
-  async list(storeId: string, page?: number, options?: RequestOptions): Promise<{ data: Review[]; total: number; avg_rating: number; page: number }> {
-    return this.client.get<{ data: Review[]; total: number; avg_rating: number; page: number }>(
+  async list(storeId: string, page?: number, options?: RequestOptions): Promise<StoreReviewsPage> {
+    return this.client.get<StoreReviewsPage>(
       `/listings/stores/${storeId}/reviews`,
       page !== undefined ? { page } : undefined,
       options

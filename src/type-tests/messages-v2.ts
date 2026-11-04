@@ -19,13 +19,11 @@ import type {
   MessageAuthor,
   MessageId,
   MessagePage,
-  MessagesModule,
   MessagingCapabilities,
   MessagingCursor,
   MessagingErrorCode,
   MessagingPerspective,
   ReadCursorResult,
-  RequestOptions,
   ResolveThreadResult,
   SendMessageInput,
   SendThreadMessageInput,
@@ -240,27 +238,6 @@ export type LegacyMessageDeclarationAssertions = [
   }>>,
 ]
 
-export type LegacyMessagesMethodAssertions = [
-  Assert<Equal<
-    MessagesModule['list'],
-    (storeId?: string, options?: RequestOptions) => Promise<{ data: Conversation[] }>
-  >>,
-  Assert<Equal<
-    MessagesModule['getThread'],
-    (partnerId: string, storeId?: string, options?: RequestOptions) => Promise<{ data: Message[] }>
-  >>,
-  Assert<Equal<
-    MessagesModule['send'],
-    (input: SendMessageInput, options?: RequestOptions) => Promise<{ id: string }>
-  >>,
-  Assert<Equal<
-    MessagesModule['markRead'],
-    (partnerId: string, storeId?: string, options?: RequestOptions) => Promise<{ ok: true }>
-  >>,
-  Assert<Equal<MessagesModule['connectTyping'], (partnerId: string) => WebSocket>>,
-  Assert<Equal<MessagesModule['connectInbox'], () => WebSocket>>,
-  Assert<Equal<InboxRealtimeEvent['type'], 'message'>>,
-]
 
 export function assertMessagingPerspectiveNarrowing(perspective: MessagingPerspective): void {
   if (perspective.kind === 'buyer') {

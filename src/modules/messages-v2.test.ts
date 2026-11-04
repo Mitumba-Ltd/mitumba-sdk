@@ -116,19 +116,6 @@ describe('MessagesModule v2 HTTP surface', () => {
     )
   })
 
-  it('implements derived-context reports and bilateral blocks', async () => {
-    const post = vi.spyOn(client, 'post')
-      .mockResolvedValueOnce({ id: 'report', status: 'open', deduplicated: false })
-      .mockResolvedValueOnce({ id: 'block', active: true, deduplicated: false })
-    const remove = vi.spyOn(client, 'delete').mockResolvedValueOnce({ ok: true, active: false })
-    await messages.createReport({ subject_kind: 'message', message_id: 'message', reason: 'off_platform_payment' })
-    await messages.createBlock({ partner_id: 'partner', store_id: 'store', reason: 'spam' })
-    await messages.removeBlock('block/a')
-    expect(post.mock.calls[0]).toEqual(['/notify/messages/reports', expect.any(Object), undefined])
-    expect(post.mock.calls[1]).toEqual(['/notify/messages/blocks', expect.any(Object), undefined])
-    expect(remove).toHaveBeenCalledWith('/notify/messages/blocks/block%2Fa', undefined, undefined)
-  })
-
   it('authorizes, uploads, checks, and downloads private attachments without SDK credentials', async () => {
     const authorization = {
       id: 'upload', thread_id: 'thread', state: 'authorized' as const,
@@ -216,26 +203,6 @@ describe('MessagesModule v2 HTTP surface', () => {
     await expect(messages.updateThreadStatus(buyer, 'thread', 'open')).rejects.toBe(error)
     await expect(messages.advanceThreadReadCursor(buyer, 'thread', 'item')).rejects.toBe(error)
     vi.restoreAllMocks()
-  })
-})
-
-
-describe('fresh legacy inbox compatibility', () => {
-  it('hydrates or refreshes before creating the unchanged legacy inbox socket', async () => {
-    const client = new APIClient({ baseUrl: 'https://api.mitumba.test' })
-    const messages = new MessagesModule(client)
-    vi.spyOn(client, 'ensureFreshToken').mockResolvedValue()
-    vi.spyOn(client, 'getToken').mockReturnValue('fresh token')
-    const socket = { readyState: 0 } as unknown as import('../types').WebSocketLike
-    const create = vi.spyOn(client, 'createWebSocket').mockReturnValue(socket)
-    const signal = new AbortController().signal
-
-    await expect(messages.connectInboxFresh({ signal })).resolves.toBe(socket)
-    expect(client.ensureFreshToken).toHaveBeenCalledWith({ signal })
-    expect(create).toHaveBeenCalledWith(
-      'wss://api.mitumba.test/notify/messages/inbox?token=fresh%20token',
-      [],
-    )
   })
 })
 

@@ -5,11 +5,8 @@ import type {
   AttachmentUploadBody,
   AttachmentUploadStatus,
   BuyerResolveThreadInput,
-  Conversation,
   ConversationSummary,
   CreateAttachmentUploadInput,
-  CreateMessageBlockInput,
-  CreateMessageBlockResult,
   CreateMessageReportInput,
   CreateMessageReportResult,
   CursorPage,
@@ -19,7 +16,6 @@ import type {
   ListConversationsParams,
   ListThreadMessagesParams,
   ListThreadsParams,
-  Message,
   MessagePage,
   MessagingCapabilities,
   MessagingIdempotentRequestOptions,
@@ -33,7 +29,6 @@ import type {
   ReadCursorResult,
   RequestOptions,
   ResolveThreadResult,
-  SendMessageInput,
   SendThreadMessageInput,
   SendThreadMessageResult,
   StoreResolveThreadInput,
@@ -41,7 +36,6 @@ import type {
   ThreadId,
   UpdateConversationPreferencesInput,
   UpdateThreadPreferencesInput,
-  WebSocketLike,
 } from '../types'
 import { ManagedMessagesRealtimeConnection } from '../realtime/messages-realtime'
 
@@ -136,83 +130,6 @@ async function parseDirectResponse<T>(response: Response): Promise<T> {
 
 export class MessagesModule {
   constructor(private readonly client: APIClient) {}
-
-  /** @deprecated Use listConversations or listStoreConversations. Context fields are non-authoritative server-validated hints. */
-  async list(storeId?: string, options?: RequestOptions): Promise<{ data: Conversation[] }> {
-    return this.client.get<{ data: Conversation[] }>(
-      '/notify/messages',
-      storeId ? { store_id: storeId } : undefined,
-      options,
-    )
-  }
-
-  /** @deprecated Resolve a v2 thread and call listThreadMessages. */
-  async getThread(partnerId: string, storeId?: string, options?: RequestOptions): Promise<{ data: Message[] }> {
-    return this.client.get<{ data: Message[] }>(
-      `/notify/messages/${partnerId}`,
-      storeId ? { store_id: storeId } : undefined,
-      options,
-    )
-  }
-
-  /** @deprecated Use sendThreadMessage. Receiver and context fields are hints validated by the server. */
-  async send(input: SendMessageInput, options?: RequestOptions): Promise<{ id: string }> {
-    return this.client.post<{ id: string }>('/notify/messages', input, options)
-  }
-
-  /** @deprecated Use advanceThreadReadCursor for precise monotonic state. */
-  async markRead(partnerId: string, storeId?: string, options?: RequestOptions): Promise<{ ok: true }> {
-    const path = storeId
-      ? `/notify/messages/${partnerId}/read?store_id=${storeId}`
-      : `/notify/messages/${partnerId}/read`
-    return this.client.post<{ ok: true }>(path, undefined, options)
-  }
-
-  /** @deprecated Use managed messaging realtime. */
-  connectTyping(partnerId: string): WebSocket {
-    const token = this.client.getToken()
-    const wsUrl = this.client.getBaseUrl().replace(/^http/, 'ws') + `/notify/messages/${partnerId}/ws?token=${token}`
-    return new WebSocket(wsUrl)
-  }
-
-  /** @deprecated Use managed messaging realtime. */
-  connectInbox(): WebSocket {
-    const token = this.client.getToken()
-    const wsUrl = this.client.getBaseUrl().replace(/^http/, 'ws') + `/notify/messages/inbox?token=${token}`
-    return new WebSocket(wsUrl)
-  }
-
-  /** Create a legacy inbox socket only after hydrating/refreshing the access token. */
-  async connectInboxFresh(options?: RequestOptions): Promise<WebSocketLike> {
-    await this.client.ensureFreshToken(options)
-    const token = this.client.getToken() ?? ''
-    const wsUrl = this.client.getBaseUrl().replace(/^http/, 'ws') + `/notify/messages/inbox?token=${encode(token)}`
-    return this.client.createWebSocket(wsUrl, [])
-  }
-
-  /**
-   * Create a report for a message or conversation.
-   * @deprecated Legacy v1. Use {@link MessagesModule.createMessagingReport} (v2).
-   */
-  async createReport(input: CreateMessageReportInput, options?: RequestOptions): Promise<CreateMessageReportResult> {
-    return this.client.post<CreateMessageReportResult>('/notify/messages/reports', input, options)
-  }
-
-  /**
-   * Create an idempotent bilateral buyer/store relationship block.
-   * @deprecated Legacy v1. Use {@link MessagesModule.createMessagingBlock} (v2).
-   */
-  async createBlock(input: CreateMessageBlockInput, options?: RequestOptions): Promise<CreateMessageBlockResult> {
-    return this.client.post<CreateMessageBlockResult>('/notify/messages/blocks', input, options)
-  }
-
-  /**
-   * Remove a block created by the current perspective.
-   * @deprecated Legacy v1. Use {@link MessagesModule.removeMessagingBlock} (v2).
-   */
-  async removeBlock(blockId: string, options?: RequestOptions): Promise<{ ok: true; active: false }> {
-    return this.client.delete<{ ok: true; active: false }>(`/notify/messages/blocks/${encode(blockId)}`, undefined, options)
-  }
 
   /**
    * Create a bilateral block from a v2 inbox perspective. A buyer blocks a store (`{ store_id }`);

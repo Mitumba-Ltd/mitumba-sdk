@@ -157,6 +157,20 @@ describe('WholesaleModule', () => {
     })
   })
 
+  describe('removeBaleImage', () => {
+    it('calls DELETE /listings/bales/:id/images/:index', async () => {
+      vi.spyOn(apiClient, 'delete').mockResolvedValue({ ok: true })
+      const result = await wholesale.removeBaleImage('b_1', 2)
+      expect(apiClient.delete).toHaveBeenCalledWith('/listings/bales/b_1/images/2', undefined, undefined)
+      expect(result).toEqual({ ok: true })
+    })
+
+    it('propagates server errors', async () => {
+      vi.spyOn(apiClient, 'delete').mockRejectedValue(new Error('not_found'))
+      await expect(wholesale.removeBaleImage('missing', 0)).rejects.toThrow('not_found')
+    })
+  })
+
   describe('getAnalytics', () => {
     it('calls GET /listings/wholesale/analytics with the period', async () => {
       vi.spyOn(apiClient, 'get').mockResolvedValue({ revenue: [], orders_breakdown: [], top_bales: [], totals: { bales: 0, orders: 0, revenue: 0 } })

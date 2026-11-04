@@ -23,6 +23,9 @@ import type {
   MessagePage,
   MessagingCapabilities,
   MessagingIdempotentRequestOptions,
+  MessagingBlockInput,
+  MessagingBlockRemovedResult,
+  MessagingBlockResult,
   MessagingInboxes,
   MessagingPerspective,
   MessagesRealtimeConnection,
@@ -187,19 +190,61 @@ export class MessagesModule {
     return this.client.createWebSocket(wsUrl, [])
   }
 
-  /** Create a report for a message or conversation. */
+  /**
+   * Create a report for a message or conversation.
+   * @deprecated Legacy v1. Use {@link MessagesModule.createMessagingReport} (v2).
+   */
   async createReport(input: CreateMessageReportInput, options?: RequestOptions): Promise<CreateMessageReportResult> {
     return this.client.post<CreateMessageReportResult>('/notify/messages/reports', input, options)
   }
 
-  /** Create an idempotent bilateral buyer/store relationship block. */
+  /**
+   * Create an idempotent bilateral buyer/store relationship block.
+   * @deprecated Legacy v1. Use {@link MessagesModule.createMessagingBlock} (v2).
+   */
   async createBlock(input: CreateMessageBlockInput, options?: RequestOptions): Promise<CreateMessageBlockResult> {
     return this.client.post<CreateMessageBlockResult>('/notify/messages/blocks', input, options)
   }
 
-  /** Remove a block created by the current perspective. */
+  /**
+   * Remove a block created by the current perspective.
+   * @deprecated Legacy v1. Use {@link MessagesModule.removeMessagingBlock} (v2).
+   */
   async removeBlock(blockId: string, options?: RequestOptions): Promise<{ ok: true; active: false }> {
     return this.client.delete<{ ok: true; active: false }>(`/notify/messages/blocks/${encode(blockId)}`, undefined, options)
+  }
+
+  /**
+   * Create a bilateral block from a v2 inbox perspective. A buyer blocks a store (`{ store_id }`);
+   * a store blocks a buyer (`{ buyer_id }`). Idempotent.
+   */
+  async createMessagingBlock(
+    perspective: MessagingPerspective,
+    input: MessagingBlockInput,
+    options?: RequestOptions,
+  ): Promise<MessagingBlockResult> {
+    const value = await this.client.post<unknown>(`${perspectiveBase(perspective)}/blocks`, input, options)
+    return unwrap<MessagingBlockResult>(value, isIdentified)
+  }
+
+  /** Remove a block the current perspective created. */
+  async removeMessagingBlock(
+    perspective: MessagingPerspective,
+    blockId: string,
+    options?: RequestOptions,
+  ): Promise<MessagingBlockRemovedResult> {
+    const value = await this.client.delete<unknown>(`${perspectiveBase(perspective)}/blocks/${encode(blockId)}`, undefined, options)
+    return unwrap<MessagingBlockRemovedResult>(value, isRecord)
+  }
+
+  /** File a message or conversation report from a v2 inbox perspective. Idempotent on open reports. */
+  async createMessagingReport(
+    perspective: MessagingPerspective,
+    input: CreateMessageReportInput,
+    options?: RequestOptions,
+  ): Promise<CreateMessageReportResult> {
+    const value = await this.client.post<unknown>(`${perspectiveBase(perspective)}/reports`, input, options)
+    return unwrap<CreateMessageReportResult>(value, isIdentified)
   }
 
   /** Discover server messaging capabilities. */

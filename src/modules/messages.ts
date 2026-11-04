@@ -5,7 +5,6 @@ import type {
   AttachmentUploadBody,
   AttachmentUploadStatus,
   BuyerResolveThreadInput,
-  Conversation,
   ConversationSummary,
   CreateAttachmentUploadInput,
   CreateMessageBlockInput,
@@ -19,7 +18,6 @@ import type {
   ListConversationsParams,
   ListThreadMessagesParams,
   ListThreadsParams,
-  Message,
   MessagePage,
   MessagingCapabilities,
   MessagingIdempotentRequestOptions,
@@ -33,7 +31,6 @@ import type {
   ReadCursorResult,
   RequestOptions,
   ResolveThreadResult,
-  SendMessageInput,
   SendThreadMessageInput,
   SendThreadMessageResult,
   StoreResolveThreadInput,
@@ -136,37 +133,6 @@ async function parseDirectResponse<T>(response: Response): Promise<T> {
 
 export class MessagesModule {
   constructor(private readonly client: APIClient) {}
-
-  /** @deprecated Use listConversations or listStoreConversations. Context fields are non-authoritative server-validated hints. */
-  async list(storeId?: string, options?: RequestOptions): Promise<{ data: Conversation[] }> {
-    return this.client.get<{ data: Conversation[] }>(
-      '/notify/messages',
-      storeId ? { store_id: storeId } : undefined,
-      options,
-    )
-  }
-
-  /** @deprecated Resolve a v2 thread and call listThreadMessages. */
-  async getThread(partnerId: string, storeId?: string, options?: RequestOptions): Promise<{ data: Message[] }> {
-    return this.client.get<{ data: Message[] }>(
-      `/notify/messages/${partnerId}`,
-      storeId ? { store_id: storeId } : undefined,
-      options,
-    )
-  }
-
-  /** @deprecated Use sendThreadMessage. Receiver and context fields are hints validated by the server. */
-  async send(input: SendMessageInput, options?: RequestOptions): Promise<{ id: string }> {
-    return this.client.post<{ id: string }>('/notify/messages', input, options)
-  }
-
-  /** @deprecated Use advanceThreadReadCursor for precise monotonic state. */
-  async markRead(partnerId: string, storeId?: string, options?: RequestOptions): Promise<{ ok: true }> {
-    const path = storeId
-      ? `/notify/messages/${partnerId}/read?store_id=${storeId}`
-      : `/notify/messages/${partnerId}/read`
-    return this.client.post<{ ok: true }>(path, undefined, options)
-  }
 
   /** @deprecated Use managed messaging realtime. */
   connectTyping(partnerId: string): WebSocket {

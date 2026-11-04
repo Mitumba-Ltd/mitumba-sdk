@@ -7,8 +7,6 @@ import type {
   BuyerResolveThreadInput,
   ConversationSummary,
   CreateAttachmentUploadInput,
-  CreateMessageBlockInput,
-  CreateMessageBlockResult,
   CreateMessageReportInput,
   CreateMessageReportResult,
   CursorPage,
@@ -132,30 +130,6 @@ async function parseDirectResponse<T>(response: Response): Promise<T> {
 
 export class MessagesModule {
   constructor(private readonly client: APIClient) {}
-
-  /**
-   * Create a report for a message or conversation.
-   * @deprecated Legacy v1. Use {@link MessagesModule.createMessagingReport} (v2).
-   */
-  async createReport(input: CreateMessageReportInput, options?: RequestOptions): Promise<CreateMessageReportResult> {
-    return this.client.post<CreateMessageReportResult>('/notify/messages/reports', input, options)
-  }
-
-  /**
-   * Create an idempotent bilateral buyer/store relationship block.
-   * @deprecated Legacy v1. Use {@link MessagesModule.createMessagingBlock} (v2).
-   */
-  async createBlock(input: CreateMessageBlockInput, options?: RequestOptions): Promise<CreateMessageBlockResult> {
-    return this.client.post<CreateMessageBlockResult>('/notify/messages/blocks', input, options)
-  }
-
-  /**
-   * Remove a block created by the current perspective.
-   * @deprecated Legacy v1. Use {@link MessagesModule.removeMessagingBlock} (v2).
-   */
-  async removeBlock(blockId: string, options?: RequestOptions): Promise<{ ok: true; active: false }> {
-    return this.client.delete<{ ok: true; active: false }>(`/notify/messages/blocks/${encode(blockId)}`, undefined, options)
-  }
 
   /**
    * Create a bilateral block from a v2 inbox perspective. A buyer blocks a store (`{ store_id }`);

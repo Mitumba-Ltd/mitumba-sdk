@@ -13,13 +13,13 @@ describe('ReviewsModule', () => {
 
   describe('list', () => {
     it('calls GET /listings/stores/:storeId/reviews without page', async () => {
-      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], total: 0, avg_rating: 0, page: 1 })
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], total: 0, avg_rating: 0, rating_counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, page: 1, page_size: 20, has_more: false })
       await reviewsModule.list('store_1')
       expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/reviews', undefined, undefined)
     })
 
     it('calls GET /listings/stores/:storeId/reviews with page', async () => {
-      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], total: 0, avg_rating: 0, page: 2 })
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], total: 0, avg_rating: 0, rating_counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, page: 2, page_size: 20, has_more: true })
       await reviewsModule.list('store_1', 2)
       expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/reviews', { page: 2 }, undefined)
     })

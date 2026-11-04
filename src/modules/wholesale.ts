@@ -89,6 +89,18 @@ export class WholesaleModule {
     return this.client.post<BaleImageUploadResult>(`/listings/bales/${baleId}/images/upload`, formData, options)
   }
 
+  /**
+   * Remove a bale image from its slot (requires the owning wholesale store).
+   *
+   * @param baleId - The bale whose image is being removed
+   * @param index - The slot index; slot 0 is the cover
+   * @returns `{ ok: true }` on success
+   * @throws {APIError} On network or server errors
+   */
+  async removeBaleImage(baleId: string, index: number, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.delete<{ ok: true }>(`/listings/bales/${baleId}/images/${index}`, undefined, options)
+  }
+
   // ── Feed ──
 
   /** Browse the wholesale bale feed (public). */

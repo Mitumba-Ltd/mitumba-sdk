@@ -220,26 +220,6 @@ describe('MessagesModule v2 HTTP surface', () => {
 })
 
 
-describe('fresh legacy inbox compatibility', () => {
-  it('hydrates or refreshes before creating the unchanged legacy inbox socket', async () => {
-    const client = new APIClient({ baseUrl: 'https://api.mitumba.test' })
-    const messages = new MessagesModule(client)
-    vi.spyOn(client, 'ensureFreshToken').mockResolvedValue()
-    vi.spyOn(client, 'getToken').mockReturnValue('fresh token')
-    const socket = { readyState: 0 } as unknown as import('../types').WebSocketLike
-    const create = vi.spyOn(client, 'createWebSocket').mockReturnValue(socket)
-    const signal = new AbortController().signal
-
-    await expect(messages.connectInboxFresh({ signal })).resolves.toBe(socket)
-    expect(client.ensureFreshToken).toHaveBeenCalledWith({ signal })
-    expect(create).toHaveBeenCalledWith(
-      'wss://api.mitumba.test/notify/messages/inbox?token=fresh%20token',
-      [],
-    )
-  })
-})
-
-
 describe('MessagesModule managed realtime factories', () => {
   it('creates an inert connection and starts the convenience variant', async () => {
     const client = new APIClient({

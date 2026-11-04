@@ -38,7 +38,6 @@ import type {
   ThreadId,
   UpdateConversationPreferencesInput,
   UpdateThreadPreferencesInput,
-  WebSocketLike,
 } from '../types'
 import { ManagedMessagesRealtimeConnection } from '../realtime/messages-realtime'
 
@@ -133,28 +132,6 @@ async function parseDirectResponse<T>(response: Response): Promise<T> {
 
 export class MessagesModule {
   constructor(private readonly client: APIClient) {}
-
-  /** @deprecated Use managed messaging realtime. */
-  connectTyping(partnerId: string): WebSocket {
-    const token = this.client.getToken()
-    const wsUrl = this.client.getBaseUrl().replace(/^http/, 'ws') + `/notify/messages/${partnerId}/ws?token=${token}`
-    return new WebSocket(wsUrl)
-  }
-
-  /** @deprecated Use managed messaging realtime. */
-  connectInbox(): WebSocket {
-    const token = this.client.getToken()
-    const wsUrl = this.client.getBaseUrl().replace(/^http/, 'ws') + `/notify/messages/inbox?token=${token}`
-    return new WebSocket(wsUrl)
-  }
-
-  /** Create a legacy inbox socket only after hydrating/refreshing the access token. */
-  async connectInboxFresh(options?: RequestOptions): Promise<WebSocketLike> {
-    await this.client.ensureFreshToken(options)
-    const token = this.client.getToken() ?? ''
-    const wsUrl = this.client.getBaseUrl().replace(/^http/, 'ws') + `/notify/messages/inbox?token=${encode(token)}`
-    return this.client.createWebSocket(wsUrl, [])
-  }
 
   /**
    * Create a report for a message or conversation.

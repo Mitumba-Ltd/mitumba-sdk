@@ -2,44 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { APIClient, APIError } from '../client'
 import { MessagesModule } from './messages'
 
-describe('MessagesModule', () => {
-  let apiClient: APIClient
-  let messagesModule: MessagesModule
-
-  beforeEach(() => {
-    apiClient = new APIClient({ baseUrl: 'https://api.mitumba.test' })
-    messagesModule = new MessagesModule(apiClient)
-  })
-
-  describe('connectTyping', () => {
-    it('constructs WebSocket URL with token', () => {
-      vi.spyOn(apiClient, 'getToken').mockReturnValue('my-token')
-      vi.spyOn(apiClient, 'getBaseUrl').mockReturnValue('https://api.mitumba.test')
-      const MockWebSocket = vi.fn()
-      vi.stubGlobal('WebSocket', MockWebSocket)
-
-      messagesModule.connectTyping('partner_1')
-
-      expect(MockWebSocket).toHaveBeenCalledWith('wss://api.mitumba.test/notify/messages/partner_1/ws?token=my-token')
-      vi.unstubAllGlobals()
-    })
-  })
-
-  describe('connectInbox', () => {
-    it('constructs inbox WebSocket URL with token', () => {
-      vi.spyOn(apiClient, 'getToken').mockReturnValue('my-token')
-      vi.spyOn(apiClient, 'getBaseUrl').mockReturnValue('https://api.mitumba.test')
-      const MockWebSocket = vi.fn()
-      vi.stubGlobal('WebSocket', MockWebSocket)
-
-      messagesModule.connectInbox()
-
-      expect(MockWebSocket).toHaveBeenCalledWith('wss://api.mitumba.test/notify/messages/inbox?token=my-token')
-      vi.unstubAllGlobals()
-    })
-  })
-})
-
 describe('MessagesModule v2 abuse control', () => {
   let apiClient: APIClient
   let messagesModule: MessagesModule

@@ -12,7 +12,9 @@ export interface Review {
 export interface CreateReviewInput {
   rating: number
   comment?: string
-  order_id?: string
+  /** The delivered/completed order being reviewed. Required: the server rejects a review without it,
+   * and each order may be reviewed at most once. */
+  order_id: string
 }
 
 export interface ReviewableOrder {

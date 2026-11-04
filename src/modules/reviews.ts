@@ -16,7 +16,11 @@ export class ReviewsModule {
   }
 
   /**
-   * Create a review for a store (authenticated).
+   * Create a review for a store (authenticated). `input.order_id` is required.
+   *
+   * @throws {APIError} `review_not_allowed` when the order is not the caller's delivered/completed
+   *   purchase from this store, and `already_reviewed` when the order already has a review (one
+   *   review per order, enforced atomically server-side).
    */
   async create(storeId: string, input: CreateReviewInput, options?: RequestOptions): Promise<{ id: string }> {
     return this.client.post<{ id: string }>(`/listings/stores/${storeId}/reviews`, input, options)

@@ -28,7 +28,7 @@ describe('ReviewsModule', () => {
   describe('create', () => {
     it('calls POST /listings/stores/:storeId/reviews', async () => {
       vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'rev_1' })
-      const input = { rating: 5, comment: 'Great store!' }
+      const input = { rating: 5, comment: 'Great store!', order_id: 'order_1' }
       const result = await reviewsModule.create('store_1', input)
       expect(apiClient.post).toHaveBeenCalledWith('/listings/stores/store_1/reviews', input, undefined)
       expect(result).toEqual({ id: 'rev_1' })

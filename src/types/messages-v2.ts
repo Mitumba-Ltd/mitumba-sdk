@@ -912,3 +912,24 @@ export interface LegacyMessagePage {
   /** Whether older history remains. */
   has_older: boolean
 }
+
+/**
+ * Create a bilateral block from a v2 inbox perspective. A buyer blocks a store by `store_id`;
+ * a store blocks a buyer by `buyer_id`.
+ */
+export type MessagingBlockInput =
+  | { store_id: string; reason?: string }
+  | { buyer_id: string; reason?: string }
+
+/** Idempotent block result. */
+export interface MessagingBlockResult {
+  id: string
+  active: boolean
+  deduplicated: boolean
+}
+
+/** Result of removing a block. */
+export interface MessagingBlockRemovedResult {
+  ok: true
+  active: false
+}

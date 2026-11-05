@@ -1,3 +1,16 @@
+/**
+ * Fields a user may change on their own profile via `PUT /auth/me`. Every field is optional;
+ * only the ones provided are updated. The server enforces the profile contract:
+ *
+ * - `display_name`: non-empty, at most 80 characters.
+ * - `phone`: canonical Kenyan E.164, `+254` followed by 9 digits. Must be unique — a number
+ *   already used by another account is rejected with `phone_taken` (409).
+ * - `county`: one of Kenya's 47 canonical county names.
+ * - `bio`: at most 500 characters.
+ * - `avatar_url`: an absolute URL on a trusted Mitumba CDN origin (no arbitrary remote hosts).
+ *
+ * Invalid input is rejected with `invalid_input` (400). The updated `UserProfile` is returned.
+ */
 export interface UpdateProfileInput {
   display_name?: string
   phone?: string

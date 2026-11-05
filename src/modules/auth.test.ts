@@ -102,15 +102,36 @@ describe('AuthModule', () => {
   })
 
   describe('logout', () => {
-    it('calls POST /auth/logout', async () => {
-      const input = { refresh_token: 'my-refresh-token' }
-      const mockResponse = { ok: true }
-      vi.mocked(apiClient.post).mockResolvedValueOnce(mockResponse)
+    it('revokes the stored refresh token and clears local tokens', async () => {
+      vi.spyOn(apiClient, 'getStoredRefreshToken').mockResolvedValue('my-refresh-token')
+      vi.spyOn(apiClient, 'clearToken').mockResolvedValue(undefined)
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ ok: true })
 
-      const result = await authModule.logout(input)
+      const result = await authModule.logout()
 
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/logout', input, undefined)
-      expect(result).toEqual(mockResponse)
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/logout', { refresh_token: 'my-refresh-token' }, undefined)
+      expect(apiClient.clearToken).toHaveBeenCalled()
+      expect(result).toEqual({ ok: true, revoked: true })
+    })
+
+    it('still clears local tokens when the server call fails (offline)', async () => {
+      vi.spyOn(apiClient, 'getStoredRefreshToken').mockResolvedValue('my-refresh-token')
+      const clear = vi.spyOn(apiClient, 'clearToken').mockResolvedValue(undefined)
+      vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('network down'))
+
+      await expect(authModule.logout()).rejects.toThrow('network down')
+      expect(clear).toHaveBeenCalled() // cleared in finally despite the failure
+    })
+
+    it('is a no-op revoke when there is no stored token, but still clears and resolves', async () => {
+      vi.spyOn(apiClient, 'getStoredRefreshToken').mockResolvedValue(null)
+      const clear = vi.spyOn(apiClient, 'clearToken').mockResolvedValue(undefined)
+
+      const result = await authModule.logout()
+
+      expect(apiClient.post).not.toHaveBeenCalled()
+      expect(clear).toHaveBeenCalled()
+      expect(result).toEqual({ ok: true, revoked: false })
     })
   })
 

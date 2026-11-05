@@ -126,6 +126,14 @@ export class APIClient {
   }
 
   /**
+   * The current stored refresh token, or null if none. Exposed so logout can revoke the exact
+   * token the SDK holds rather than relying on the caller to supply (or guess) it.
+   */
+  public async getStoredRefreshToken(): Promise<string | null> {
+    return this.config.refreshToken ?? await this.tokenStore.getRefreshToken()
+  }
+
+  /**
    * Check if user has a stored session (access or refresh token available).
    */
   public async isAuthenticated(): Promise<boolean> {

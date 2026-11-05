@@ -88,12 +88,28 @@ export class AuthModule {
   }
 
   /**
-   * Revoke the refresh token and log out. Clears stored session.
+   * Log out: revoke the current server session and clear the stored tokens.
+   *
+   * Reads the refresh token the SDK holds and revokes exactly that session server-side, then
+   * always clears local tokens — even if the network call fails or there was no token — so the
+   * device is signed out regardless. Idempotent: a second call is a no-op that still resolves.
+   *
+   * @returns `{ ok, revoked }` where `revoked` is true only when the server confirmed revocation.
+   *   `revoked: false` means local credentials were cleared but the server session may persist
+   *   until expiry (offline, or already revoked) — callers should not claim remote sign-out then.
    */
-  async logout(input: { refresh_token: string }, options?: RequestOptions): Promise<{ ok: boolean }> {
-    const result = await this.client.post<{ ok: boolean }>('/auth/logout', input, options)
-    await this.client.clearToken()
-    return result
+  async logout(options?: RequestOptions): Promise<{ ok: boolean; revoked: boolean }> {
+    const refreshToken = await this.client.getStoredRefreshToken()
+    let revoked = false
+    try {
+      if (refreshToken) {
+        await this.client.post<{ ok: boolean }>('/auth/logout', { refresh_token: refreshToken }, options)
+        revoked = true
+      }
+    } finally {
+      await this.client.clearToken()
+    }
+    return { ok: true, revoked }
   }
 
   /**

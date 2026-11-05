@@ -1,6 +1,7 @@
 import { APIClient } from './client'
 import { MitumbaClientConfig } from './types'
 import { AuthModule } from './modules/auth'
+import { OAuthModule } from './modules/oauth'
 import { ListingsModule } from './modules/listings'
 import { SearchModule } from './modules/search'
 import { OrdersModule } from './modules/orders'
@@ -24,6 +25,7 @@ import { WholesaleModule } from './modules/wholesale'
 export class MitumbaClient {
   public readonly api: APIClient
   public readonly auth: AuthModule
+  public readonly oauth: OAuthModule
   public readonly listings: ListingsModule
   public readonly search: SearchModule
   public readonly orders: OrdersModule
@@ -47,6 +49,7 @@ export class MitumbaClient {
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
     this.auth = new AuthModule(this.api)
+    this.oauth = new OAuthModule(this.api)
     this.listings = new ListingsModule(this.api)
     this.search = new SearchModule(this.api)
     this.orders = new OrdersModule(this.api)
@@ -117,6 +120,7 @@ export { APIClient, APIError } from './client'
 export { MemoryTokenStore, IDBTokenStore, createTokenStore } from './token-store'
 export type { TokenStore } from './token-store'
 export { AuthModule } from './modules/auth'
+export { OAuthModule } from './modules/oauth'
 export { ListingsModule } from './modules/listings'
 export { SearchModule } from './modules/search'
 export { OrdersModule } from './modules/orders'

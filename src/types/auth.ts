@@ -280,3 +280,70 @@ export interface RootSetupResult {
   permissions: import('./admin').AdminPermission[]
   next_step: string
 }
+
+
+// ── OAuth session hand-off (relying-party authorization code + PKCE) ──────────
+
+/**
+ * Request body for the authorize (mint) step. The accounts app calls this once the user is
+ * authenticated to mint a one-time authorization code for the relying party.
+ *
+ * The SDK always sets `code_challenge_method: 'S256'` internally, so callers never supply it.
+ */
+export interface OAuthAuthorizeInput {
+  /** The relying party's registered client identifier. */
+  client_id: string
+  /** The registered redirect URI the one-time code is returned to. */
+  redirect_uri: string
+  /** Optional space-delimited list of requested scopes. */
+  scope?: string
+  /** Opaque value echoed back unchanged, used by the relying party for CSRF protection. */
+  state: string
+  /** The PKCE code challenge (base64url SHA-256 of the verifier). */
+  code_challenge: string
+}
+
+/**
+ * Result of the authorize (mint) step: a one-time authorization code plus the echoed state.
+ */
+export interface OAuthAuthorizeResult {
+  /** One-time authorization code to redirect back to the relying party. */
+  code: string
+  /** The `state` value supplied in the request, echoed back unchanged. */
+  state: string
+}
+
+/**
+ * Request body for the token exchange step. The relying party exchanges the one-time code for a
+ * token pair. `grant_type` is set to `'authorization_code'` by the SDK, so callers need not pass it.
+ */
+export interface OAuthTokenExchangeInput {
+  /** Always `'authorization_code'`. Defaulted by the SDK; callers may omit it. */
+  grant_type?: 'authorization_code'
+  /** The one-time authorization code returned by the authorize step. */
+  code: string
+  /** The redirect URI used in the authorize step; must match exactly. */
+  redirect_uri: string
+  /** The relying party's registered client identifier. */
+  client_id: string
+  /** The PKCE code verifier that matches the earlier code challenge. */
+  code_verifier: string
+  /** The client secret for confidential clients. Omit for public clients. */
+  client_secret?: string
+}
+
+/**
+ * Result of a successful token exchange: the access/refresh token pair and its metadata.
+ */
+export interface OAuthTokenResult {
+  /** The access token (JWT) for authenticated requests. */
+  access_token: string
+  /** The refresh token used to rotate the access token. */
+  refresh_token: string
+  /** Lifetime of the access token in seconds. */
+  expires_in: number
+  /** Always `'Bearer'`. */
+  token_type: 'Bearer'
+  /** Space-delimited list of scopes actually granted. */
+  scope: string
+}

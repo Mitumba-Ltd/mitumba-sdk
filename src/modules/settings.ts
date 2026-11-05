@@ -28,8 +28,15 @@ export class SettingsModule {
     return this.client.get<UserProfile>('/auth/me', undefined, options)
   }
 
-  async updateProfile(input: UpdateProfileInput, options?: RequestOptions): Promise<{ ok: true }> {
-    return this.client.put<{ ok: true }>('/auth/me', input, options)
+  /**
+   * Update the current user's profile. Only the provided fields change. Returns the updated
+   * {@link UserProfile}. See {@link UpdateProfileInput} for the server-enforced contract.
+   *
+   * @throws {APIError} `invalid_input` (400) when a field violates the contract, and
+   *   `phone_taken` (409) when the phone number already belongs to another account.
+   */
+  async updateProfile(input: UpdateProfileInput, options?: RequestOptions): Promise<UserProfile> {
+    return this.client.put<UserProfile>('/auth/me', input, options)
   }
 
   // ── Security ──

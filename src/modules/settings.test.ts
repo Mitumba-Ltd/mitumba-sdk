@@ -18,10 +18,33 @@ describe('SettingsModule', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/auth/me', undefined, undefined)
     })
 
-    it('updateProfile calls PUT /auth/me', async () => {
-      vi.spyOn(apiClient, 'put').mockResolvedValue({ ok: true })
-      await settings.updateProfile({ display_name: 'Jane' })
+    it('updateProfile calls PUT /auth/me and returns the updated profile', async () => {
+      const profile = {
+        id: 'user_1',
+        email: 'jane@example.com',
+        phone: '+254712345678',
+        display_name: 'Jane',
+        city_id: null,
+        county: 'Nairobi',
+        bio: null,
+        avatar_url: null,
+        onboarding_completed: true,
+        email_verified: true,
+        totp_enabled: false,
+        totp_configured: false,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        roles: ['buyer'],
+      }
+      vi.spyOn(apiClient, 'put').mockResolvedValue(profile)
+      const result = await settings.updateProfile({ display_name: 'Jane' })
       expect(apiClient.put).toHaveBeenCalledWith('/auth/me', { display_name: 'Jane' }, undefined)
+      expect(result).toEqual(profile)
+    })
+
+    it('updateProfile propagates a rejected request (e.g. phone_taken 409)', async () => {
+      vi.spyOn(apiClient, 'put').mockRejectedValue(new Error('phone_taken'))
+      await expect(settings.updateProfile({ phone: '+254712345678' })).rejects.toThrow('phone_taken')
     })
   })
 

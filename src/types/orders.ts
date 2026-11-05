@@ -49,8 +49,19 @@ export interface Order {
   listing_size: string | null
   // Joined buyer details
   buyer_name: string | null
+  /**
+   * The buyer's phone. Visible to the buyer at any status. Visible to the seller **only** while
+   * they are handing the parcel over — statuses `paid`, `seller_confirmed`, `shipped`,
+   * `delivered` — and `null` for the seller otherwise (before payment, and on `completed`,
+   * `cancelled`, or `disputed`). Before payment a seller sees only `buyer_name` and the delivery
+   * `county`. (Mitumba-Ltd/mitumba#321)
+   */
   buyer_phone: string | null
-  // Buyer's default delivery address
+  /**
+   * The buyer's delivery address. Same visibility rule as `buyer_phone`: always visible to the
+   * buyer; visible to the seller only during the `paid`→`delivered` handover window, `null`
+   * otherwise. (Mitumba-Ltd/mitumba#321)
+   */
   delivery_address: DeliveryAddress | null
   events?: OrderEvent[]
 }

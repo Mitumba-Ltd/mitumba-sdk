@@ -50,6 +50,12 @@ export interface Order {
   // Joined buyer details
   buyer_name: string | null
   /**
+   * The buyer's county. Not sensitive — always returned to both parties, including to the seller
+   * before payment (with `buyer_name`) while `buyer_phone`/`delivery_address` are withheld.
+   * (Mitumba-Ltd/mitumba#321)
+   */
+  buyer_county: string | null
+  /**
    * The buyer's phone. Visible to the buyer at any status. Visible to the seller **only** while
    * they are handing the parcel over — statuses `paid`, `seller_confirmed`, `shipped`,
    * `delivered` — and `null` for the seller otherwise (before payment, and on `completed`,

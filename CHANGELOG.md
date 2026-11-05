@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 5.1.0
+
+### Minor Changes
+
+- 98ad1a4: Add `sdk.oauth` session hand-off (authorize + exchangeCode) for the relying-party OAuth authorization-code + PKCE flow.
+
 ## 5.0.0
 
 ### Major Changes

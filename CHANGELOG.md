@@ -1,5 +1,19 @@
 # @mitumba/sdk
 
+## 4.0.0
+
+### Major Changes
+
+- 37f3a23: `SettingsModule.updateProfile` now resolves to the updated `UserProfile` instead of `{ ok: true }`, so a profile edit no longer needs a follow-up `getProfile()` to read back the server-normalized result (Mitumba-Ltd/mitumba#330).
+
+  `UpdateProfileInput` is now documented with the server-enforced contract: a non-empty display name (max 80), canonical Kenyan `+254` phone (unique — `phone_taken` 409), one of Kenya's 47 county names, a bounded bio (max 500), and a trusted-CDN avatar URL. Invalid input is rejected with `invalid_input` (400).
+
+  Migration: if you read the old `{ ok: true }` result, drop that check — a resolved promise already means success, and the resolved value is now the profile.
+
+### Patch Changes
+
+- b541bc4: Document the visibility rules for `Order.buyer_phone` and `Order.delivery_address`: both are always visible to the buyer, but visible to the seller only during the `paid`→`delivered` handover window and `null` otherwise (Mitumba-Ltd/mitumba#321). The fields were already nullable, so this is a documentation-only change — no type or runtime behavior changes.
+
 ## 3.1.0
 
 ### Minor Changes

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { APIClient, APIError } from '../client'
-import { OAuthModule } from './oauth'
+import { OAuthModule, isConsentRequired } from './oauth'
 
 import type { OAuthAuthorizeInput, OAuthTokenExchangeInput } from '../types'
 
@@ -203,6 +203,76 @@ describe('OAuthModule', () => {
       )
 
       await expect(oauth.userinfo()).rejects.toMatchObject({ status: 401, code: 'unauthorized' })
+    })
+  })
+
+  describe('authorize consent-required branch', () => {
+    const input = {
+      client_id: 'vuma',
+      redirect_uri: 'https://vuma.africa/callback',
+      scope: 'openid profile',
+      state: 's',
+      code_challenge: 'c',
+    }
+
+    it('returns the consent_required signal (no code) for a consent-requiring client', async () => {
+      const signal = { consent_required: true, client_id: 'vuma', client_name: 'Vuma', scopes: ['openid', 'profile'] }
+      vi.spyOn(apiClient, 'post').mockResolvedValueOnce(signal)
+
+      const result = await oauth.authorize(input)
+
+      expect(isConsentRequired(result)).toBe(true)
+      expect(result).toEqual(signal)
+    })
+
+    it('narrows to the code result when a code is minted', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ code: 'the-code', state: 's' })
+
+      const result = await oauth.authorize(input)
+
+      expect(isConsentRequired(result)).toBe(false)
+      if (!isConsentRequired(result)) expect(result.code).toBe('the-code')
+    })
+  })
+
+  describe('grantConsent', () => {
+    it('POSTs the client + scope to /auth/oauth/consent', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ ok: true })
+
+      const result = await oauth.grantConsent({ client_id: 'vuma', scope: 'openid profile' })
+
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/oauth/consent', { client_id: 'vuma', scope: 'openid profile' }, undefined)
+      expect(result).toEqual({ ok: true })
+    })
+
+    it('surfaces an APIError on 401 without a session', async () => {
+      vi.spyOn(apiClient, 'post').mockRejectedValueOnce(
+        new APIError(401, { error: 'unauthorized', message: 'Missing user context.' }),
+      )
+      await expect(oauth.grantConsent({ client_id: 'vuma', scope: 'openid' })).rejects.toMatchObject({ status: 401 })
+    })
+  })
+
+  describe('revokeConsent', () => {
+    it('DELETEs /auth/oauth/consent/:clientId (url-encoded) and returns the revoked flag', async () => {
+      vi.spyOn(apiClient, 'delete').mockResolvedValueOnce({ ok: true, revoked: true })
+
+      const result = await oauth.revokeConsent('vuma')
+
+      expect(apiClient.delete).toHaveBeenCalledWith('/auth/oauth/consent/vuma', undefined, undefined)
+      expect(result).toEqual({ ok: true, revoked: true })
+    })
+  })
+
+  describe('listConsents', () => {
+    it('GETs /auth/oauth/consents and returns the live consents', async () => {
+      const payload = { consents: [{ client_id: 'vuma', client_name: 'Vuma', scopes: ['openid'], granted_at: '2026-11-06T00:00:00.000Z' }] }
+      vi.spyOn(apiClient, 'get').mockResolvedValueOnce(payload)
+
+      const result = await oauth.listConsents()
+
+      expect(apiClient.get).toHaveBeenCalledWith('/auth/oauth/consents', undefined, undefined)
+      expect(result).toEqual(payload)
     })
   })
 })

@@ -148,4 +148,61 @@ describe('OAuthModule', () => {
       expect(setSession).not.toHaveBeenCalled()
     })
   })
+
+  describe('discover', () => {
+    it('GETs the discovery document', async () => {
+      const doc = {
+        issuer: 'https://api.mitumba.test',
+        authorization_endpoint: 'https://api.mitumba.test/auth/oauth/authorize',
+        token_endpoint: 'https://api.mitumba.test/auth/oauth/token',
+        userinfo_endpoint: 'https://api.mitumba.test/auth/oauth/userinfo',
+        jwks_uri: 'https://api.mitumba.test/auth/oauth/jwks.json',
+        response_types_supported: ['code'],
+        grant_types_supported: ['authorization_code'],
+        code_challenge_methods_supported: ['S256'],
+        id_token_signing_alg_values_supported: ['ES256'],
+        scopes_supported: ['openid', 'profile', 'email', 'phone'],
+        subject_types_supported: ['public'],
+        token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
+      }
+      vi.spyOn(apiClient, 'get').mockResolvedValueOnce(doc)
+
+      const result = await oauth.discover()
+
+      expect(apiClient.get).toHaveBeenCalledWith('/auth/oauth/openid-configuration', undefined, undefined)
+      expect(result).toEqual(doc)
+    })
+  })
+
+  describe('getJwks', () => {
+    it('GETs the JWKS document', async () => {
+      const jwks = { keys: [{ kty: 'EC', use: 'sig', alg: 'ES256', kid: 'k1', crv: 'P-256', x: 'X', y: 'Y' }] }
+      vi.spyOn(apiClient, 'get').mockResolvedValueOnce(jwks)
+
+      const result = await oauth.getJwks()
+
+      expect(apiClient.get).toHaveBeenCalledWith('/auth/oauth/jwks.json', undefined, undefined)
+      expect(result).toEqual(jwks)
+    })
+  })
+
+  describe('userinfo', () => {
+    it('GETs the userinfo claim set for the current session', async () => {
+      const claims = { sub: 'user_1', email: 'a@example.com', email_verified: true, name: 'A' }
+      vi.spyOn(apiClient, 'get').mockResolvedValueOnce(claims)
+
+      const result = await oauth.userinfo()
+
+      expect(apiClient.get).toHaveBeenCalledWith('/auth/oauth/userinfo', undefined, undefined)
+      expect(result).toEqual(claims)
+    })
+
+    it('surfaces an APIError on 401 when there is no session', async () => {
+      vi.spyOn(apiClient, 'get').mockRejectedValueOnce(
+        new APIError(401, { error: 'unauthorized', message: 'Missing user context.' }),
+      )
+
+      await expect(oauth.userinfo()).rejects.toMatchObject({ status: 401, code: 'unauthorized' })
+    })
+  })
 })

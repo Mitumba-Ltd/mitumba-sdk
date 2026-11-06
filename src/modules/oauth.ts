@@ -2,6 +2,10 @@ import { APIClient } from '../client'
 import type {
   OAuthAuthorizeInput,
   OAuthAuthorizeResult,
+  OAuthConsentRequired,
+  OAuthConsentInput,
+  OAuthConsent,
+  OAuthConsentRevokeResult,
   OAuthTokenExchangeInput,
   OAuthTokenResult,
   OpenIdConfiguration,
@@ -9,6 +13,13 @@ import type {
   UserInfo,
   RequestOptions,
 } from '../types'
+
+/** Narrows an {@link OAuthModule.authorize} result to the consent-required branch. */
+export function isConsentRequired(
+  result: OAuthAuthorizeResult | OAuthConsentRequired,
+): result is OAuthConsentRequired {
+  return (result as OAuthConsentRequired).consent_required === true
+}
 
 /**
  * Relying-party OAuth session hand-off.
@@ -45,8 +56,14 @@ export class OAuthModule {
    * })
    * ```
    */
-  async authorize(input: OAuthAuthorizeInput, options?: RequestOptions): Promise<OAuthAuthorizeResult> {
-    return this.client.post<OAuthAuthorizeResult>(
+  async authorize(
+    input: OAuthAuthorizeInput,
+    options?: RequestOptions,
+  ): Promise<OAuthAuthorizeResult | OAuthConsentRequired> {
+    // A first_party_consent client lacking covering consent gets a discriminated
+    // OAuthConsentRequired (HTTP 200, no code) instead of a code — narrow with isConsentRequired(),
+    // render a consent screen, call grantConsent(), then retry. See the grantConsent() docs.
+    return this.client.post<OAuthAuthorizeResult | OAuthConsentRequired>(
       '/auth/oauth/authorize',
       { ...input, code_challenge_method: 'S256' },
       options,
@@ -129,5 +146,48 @@ export class OAuthModule {
    */
   async userinfo(options?: RequestOptions): Promise<UserInfo> {
     return this.client.get<UserInfo>('/auth/oauth/userinfo', undefined, options)
+  }
+
+  /**
+   * Record the current user's consent to a client's scopes.
+   *
+   * The accounts consent screen calls this (after the user approves) before retrying
+   * {@link OAuthModule.authorize}, which then finds covering consent and mints a code. Requires an
+   * authenticated session. Re-granting with a wider scope set supersedes the prior consent.
+   *
+   * @param input - The client and the space-delimited scopes being granted
+   * @param options - Optional per-request options
+   * @returns `{ ok: true }` on success
+   * @throws {APIError} On `400 invalid_client` / `invalid_scope`, or `401` without a session
+   */
+  async grantConsent(input: OAuthConsentInput, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>('/auth/oauth/consent', input, options)
+  }
+
+  /**
+   * Withdraw the current user's consent for a client (account-console self-service).
+   *
+   * @param clientId - The client to revoke consent for
+   * @param options - Optional per-request options
+   * @returns `{ ok: true, revoked }` — `revoked` is false when there was nothing live to revoke
+   * @throws {APIError} On `401` without a session
+   */
+  async revokeConsent(clientId: string, options?: RequestOptions): Promise<OAuthConsentRevokeResult> {
+    return this.client.delete<OAuthConsentRevokeResult>(
+      `/auth/oauth/consent/${encodeURIComponent(clientId)}`,
+      undefined,
+      options,
+    )
+  }
+
+  /**
+   * List the current user's live consents, for a "connected apps" account-management view.
+   *
+   * @param options - Optional per-request options
+   * @returns The live consents (client id + name, granted scopes, grant time)
+   * @throws {APIError} On `401` without a session
+   */
+  async listConsents(options?: RequestOptions): Promise<{ consents: OAuthConsent[] }> {
+    return this.client.get<{ consents: OAuthConsent[] }>('/auth/oauth/consents', undefined, options)
   }
 }

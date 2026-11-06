@@ -477,3 +477,23 @@ export interface OAuthConsentRequired {
   /** The scopes the user is being asked to grant. */
   scopes: string[]
 }
+
+/**
+ * The result of a silent (`prompt=none`) authorization attempt.
+ *
+ * Discriminated on `ok` so a client can branch without try/catch for the expected outcomes: a
+ * success carries the one-time `code` (+ echoed `state`) to redirect back to the relying party; a
+ * failure carries a `reason` the client uses to decide its fallback (typically: do nothing and stay
+ * logged out, or start a visible interactive sign-in). Only genuinely unexpected errors (network,
+ * 5xx) throw from {@link OAuthModule.silentAuthorize}; the reasons below are returned, not thrown.
+ *
+ * - `login_required` — no usable session for a silent mint, or this client is not authorized for
+ *   silent authentication. The client should fall back to a visible sign-in (or stay logged out).
+ * - `interaction_required` — consent is needed and cannot be collected silently; fall back to a
+ *   visible flow where the user can consent.
+ * - `unauthenticated` — the request reached the gateway with no session at all (HTTP 401). Treated
+ *   as a distinct, still-non-throwing reason so "not signed in yet" is a normal silent outcome.
+ */
+export type SilentAuthorizeResult =
+  | { ok: true; code: string; state: string }
+  | { ok: false; reason: 'login_required' | 'interaction_required' | 'unauthenticated' }

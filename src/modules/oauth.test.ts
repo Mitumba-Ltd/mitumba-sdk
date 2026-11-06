@@ -275,4 +275,62 @@ describe('OAuthModule', () => {
       expect(result).toEqual(payload)
     })
   })
+
+  describe('silentAuthorize', () => {
+    const input = {
+      client_id: 'marketplace',
+      redirect_uri: 'https://app.mitumba.africa/callback',
+      scope: 'openid profile',
+      state: 's',
+      code_challenge: 'c',
+    }
+
+    it('posts prompt=none + S256 and returns the code on a silent success', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ code: 'silent-code', state: 's' })
+
+      const result = await oauth.silentAuthorize(input)
+
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/auth/oauth/authorize',
+        { ...input, code_challenge_method: 'S256', prompt: 'none' },
+        undefined,
+      )
+      expect(result).toEqual({ ok: true, code: 'silent-code', state: 's' })
+    })
+
+    it('returns login_required (not throw) when the client is not authorized for silent auth', async () => {
+      vi.spyOn(apiClient, 'post').mockRejectedValueOnce(
+        new APIError(403, { error: 'login_required', message: 'Not authorized for silent authentication.' }),
+      )
+      await expect(oauth.silentAuthorize(input)).resolves.toEqual({ ok: false, reason: 'login_required' })
+    })
+
+    it('returns interaction_required (not throw) when consent cannot be collected silently', async () => {
+      vi.spyOn(apiClient, 'post').mockRejectedValueOnce(
+        new APIError(403, { error: 'interaction_required', message: 'Consent required.' }),
+      )
+      await expect(oauth.silentAuthorize(input)).resolves.toEqual({ ok: false, reason: 'interaction_required' })
+    })
+
+    it('returns unauthenticated (not throw) on a 401 (no session)', async () => {
+      vi.spyOn(apiClient, 'post').mockRejectedValueOnce(
+        new APIError(401, { error: 'unauthorized', message: 'Missing user context.' }),
+      )
+      await expect(oauth.silentAuthorize(input)).resolves.toEqual({ ok: false, reason: 'unauthenticated' })
+    })
+
+    it('maps an unexpected consent_required 200 to interaction_required', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValueOnce({
+        consent_required: true, client_id: 'marketplace', client_name: 'M', scopes: ['openid'],
+      })
+      await expect(oauth.silentAuthorize(input)).resolves.toEqual({ ok: false, reason: 'interaction_required' })
+    })
+
+    it('rethrows genuinely unexpected errors (5xx)', async () => {
+      vi.spyOn(apiClient, 'post').mockRejectedValueOnce(
+        new APIError(503, { error: 'service_unavailable', message: 'down' }),
+      )
+      await expect(oauth.silentAuthorize(input)).rejects.toMatchObject({ status: 503 })
+    })
+  })
 })

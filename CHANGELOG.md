@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 5.2.0
+
+### Minor Changes
+
+- 238c5d7: Add OIDC provider-client helpers to `sdk.oauth`: `discover()` (OpenID discovery document), `getJwks()` (public signing keys), and `userinfo()` (the current session's claim set). Wraps the provider's `/auth/oauth/openid-configuration`, `/auth/oauth/jwks.json`, and `/auth/oauth/userinfo` endpoints, with `OpenIdConfiguration`, `Jwks`/`Jwk`, and `UserInfo` types.
+
 ## 5.1.0
 
 ### Minor Changes

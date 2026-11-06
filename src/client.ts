@@ -26,6 +26,38 @@ function isExpiringSoon(token: string, thresholdSeconds: number): boolean {
   }
 }
 
+/**
+ * IAM and consumer refresh tokens are intentionally accepted by different endpoints. The access
+ * token itself is the durable discriminator, including after IndexedDB hydration: IAM tokens carry
+ * `ptype: 'iam'`; consumer and root tokens omit it.
+ */
+function refreshPathForToken(token: string | undefined): '/auth/refresh' | '/auth/iam/refresh' {
+  if (!token) return '/auth/refresh'
+  try {
+    const encoded = token.split('.')[1]
+    if (!encoded) return '/auth/refresh'
+    const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(normalized)) as { ptype?: unknown }
+    return payload.ptype === 'iam' ? '/auth/iam/refresh' : '/auth/refresh'
+  } catch {
+    return '/auth/refresh'
+  }
+}
+
+/** Public session-establishment/lifecycle paths must never trigger a preflight refresh of another identity. */
+function isSessionEndpoint(path: string): boolean {
+  return path === '/auth/login'
+    || path === '/auth/register'
+    || path === '/auth/refresh'
+    || path === '/auth/iam/login'
+    || path === '/auth/iam/login/2fa'
+    || path === '/auth/iam/login/passkey/start'
+    || path === '/auth/iam/login/passkey/finish'
+    || path === '/auth/iam/activate'
+    || path === '/auth/iam/refresh'
+    || path === '/auth/iam/logout'
+}
+
 function isErrorRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
@@ -175,8 +207,9 @@ export class APIClient {
     params?: Record<string, string | number | boolean | undefined>,
     options?: RequestOptions
   ): Promise<T> {
-    // Proactive refresh before request (skip for auth endpoints)
-    if (!path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+    // Proactive refresh before ordinary requests. Session establishment/lifecycle endpoints are
+    // self-authenticating and must never refresh whichever identity happened to be loaded before.
+    if (!isSessionEndpoint(path)) {
       await this.ensureFreshToken(options)
     }
 
@@ -251,8 +284,9 @@ export class APIClient {
       break
     }
 
-    // Handle 401 — attempt refresh and retry
-    if (response.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+    // Handle 401 — attempt refresh and retry. Session endpoints report their own credential errors;
+    // refreshing there could silently swap a root and IAM identity.
+    if (response.status === 401 && !isSessionEndpoint(path)) {
       const hasRefreshToken = this.config.refreshToken && this.config.refreshToken.length > 0
 
       if (hasRefreshToken) {
@@ -301,7 +335,7 @@ export class APIClient {
     this.isRefreshing = true
     this.refreshPromise = (async () => {
       try {
-        const url = new URL('/auth/refresh', this.config.baseUrl)
+        const url = new URL(refreshPathForToken(this.config.token), this.config.baseUrl)
         const response = await fetch(url.toString(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -1,4 +1,4 @@
-import { APIClient } from '../client'
+import { APIClient, APIError } from '../client'
 import type {
   OAuthAuthorizeInput,
   OAuthAuthorizeResult,
@@ -11,6 +11,7 @@ import type {
   OpenIdConfiguration,
   Jwks,
   UserInfo,
+  SilentAuthorizeResult,
   RequestOptions,
 } from '../types'
 
@@ -189,5 +190,53 @@ export class OAuthModule {
    */
   async listConsents(options?: RequestOptions): Promise<{ consents: OAuthConsent[] }> {
     return this.client.get<{ consents: OAuthConsent[] }>('/auth/oauth/consents', undefined, options)
+  }
+
+  /**
+   * Attempt a silent (`prompt=none`) authorization — the "sign in once, every app knows you" path.
+   *
+   * Sends the authorize request with `prompt=none`, meaning: mint a code only if it can be done with
+   * no interaction, otherwise tell me why so I can fall back. Unlike {@link OAuthModule.authorize},
+   * the expected non-success outcomes are RETURNED (discriminated on `ok`), not thrown, so a caller
+   * can branch cleanly without a try/catch:
+   *
+   * - `{ ok: true, code, state }` — redirect to `redirect_uri?code=..&state=..` as usual.
+   * - `{ ok: false, reason: 'login_required' }` — no usable session, or this client is not
+   *   authorized for silent auth. Fall back to a visible sign-in (or stay logged out).
+   * - `{ ok: false, reason: 'interaction_required' }` — consent needed; fall back to a visible flow.
+   * - `{ ok: false, reason: 'unauthenticated' }` — no session reached the server (HTTP 401).
+   *
+   * Only genuinely unexpected errors (network failure, 5xx, an unrecognised error code) throw.
+   * `code_challenge_method` is fixed to `'S256'` and `prompt` to `'none'` by the SDK. This is a
+   * top-level/first-party call carrying the session the SDK holds; the server never mints for a
+   * client that lacks the silent-auth privilege (it returns `login_required`).
+   *
+   * @param input - The authorize request (client, redirect URI, state, PKCE challenge, scope)
+   * @param options - Optional per-request options (abort signal, extra headers)
+   * @returns A discriminated success-or-fallback result
+   * @throws {APIError} Only on unexpected failures (network, 5xx, unknown error code)
+   */
+  async silentAuthorize(input: OAuthAuthorizeInput, options?: RequestOptions): Promise<SilentAuthorizeResult> {
+    try {
+      const result = await this.client.post<OAuthAuthorizeResult | OAuthConsentRequired>(
+        '/auth/oauth/authorize',
+        { ...input, code_challenge_method: 'S256', prompt: 'none' },
+        options,
+      )
+      // A silent request should never get the interactive consent_required 200 (the server returns
+      // interaction_required instead), but guard for it so a code is only ever reported on a real code.
+      if (isConsentRequired(result)) return { ok: false, reason: 'interaction_required' }
+      return { ok: true, code: result.code, state: result.state }
+    } catch (err) {
+      if (err instanceof APIError) {
+        if (err.status === 401) return { ok: false, reason: 'unauthenticated' }
+        if (err.code === 'login_required') return { ok: false, reason: 'login_required' }
+        if (err.code === 'interaction_required' || err.code === 'consent_required') {
+          return { ok: false, reason: 'interaction_required' }
+        }
+      }
+      // Network errors, 5xx, or any unrecognised failure are not a silent "no" — rethrow.
+      throw err
+    }
   }
 }

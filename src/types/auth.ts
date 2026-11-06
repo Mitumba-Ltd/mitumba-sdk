@@ -347,3 +347,82 @@ export interface OAuthTokenResult {
   /** Space-delimited list of scopes actually granted. */
   scope: string
 }
+
+/**
+ * The OpenID Connect discovery document, as served by `GET /auth/oauth/openid-configuration`.
+ *
+ * A relying party reads this once to learn the provider's endpoints and capabilities instead of
+ * hard-coding them. The fields mirror the standard OIDC discovery metadata the backend advertises.
+ */
+export interface OpenIdConfiguration {
+  /** The issuer identifier that appears in id_token `iss`. */
+  issuer: string
+  /** Where the authorization code is minted. */
+  authorization_endpoint: string
+  /** Where a code is exchanged for tokens. */
+  token_endpoint: string
+  /** Where the consented claims for an access token are read. */
+  userinfo_endpoint: string
+  /** The JWKS URL whose public keys verify id_token signatures. */
+  jwks_uri: string
+  /** Supported OAuth response types (e.g. `['code']`). */
+  response_types_supported: string[]
+  /** Supported grant types (e.g. `['authorization_code']`). */
+  grant_types_supported: string[]
+  /** Supported PKCE challenge methods (e.g. `['S256']`). */
+  code_challenge_methods_supported: string[]
+  /** id_token signing algorithms (e.g. `['ES256']`). */
+  id_token_signing_alg_values_supported: string[]
+  /** Requestable scopes (e.g. `['openid','profile','email','phone']`). */
+  scopes_supported: string[]
+  /** Subject identifier types (e.g. `['public']`). */
+  subject_types_supported: string[]
+  /** Supported client authentication methods at the token endpoint. */
+  token_endpoint_auth_methods_supported: string[]
+}
+
+/** A single JSON Web Key, public parameters only (as served by the JWKS endpoint). */
+export interface Jwk {
+  /** Key type, e.g. `'EC'`. */
+  kty: string
+  /** Intended use, e.g. `'sig'`. */
+  use?: string
+  /** Algorithm, e.g. `'ES256'`. */
+  alg?: string
+  /** Key id; matches the id_token header `kid`. */
+  kid?: string
+  /** Curve for EC keys, e.g. `'P-256'`. */
+  crv?: string
+  /** EC public x coordinate (base64url). */
+  x?: string
+  /** EC public y coordinate (base64url). */
+  y?: string
+}
+
+/** The JWKS document: the set of public keys that verify provider-issued id_tokens. */
+export interface Jwks {
+  keys: Jwk[]
+}
+
+/**
+ * The OIDC userinfo claim set, from `GET /auth/oauth/userinfo`.
+ *
+ * `sub` is always present; the identity claims appear per the access token's granted scopes. Extra
+ * claims the provider adds later are tolerated via the index signature rather than dropped.
+ */
+export interface UserInfo {
+  /** The stable subject identifier (the user id). Always present. */
+  sub: string
+  /** Primary email, when the `email` scope was granted. */
+  email?: string
+  /** Whether the email is verified, when present. */
+  email_verified?: boolean
+  /** Display name, when the `profile` scope was granted. */
+  name?: string
+  /** Avatar URL, when the `profile` scope was granted. */
+  picture?: string
+  /** Phone number, when the `phone` scope was granted. */
+  phone_number?: string
+  /** Additional provider claims are preserved rather than discarded. */
+  [claim: string]: unknown
+}

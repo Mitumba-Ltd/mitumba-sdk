@@ -4,6 +4,9 @@ import type {
   OAuthAuthorizeResult,
   OAuthTokenExchangeInput,
   OAuthTokenResult,
+  OpenIdConfiguration,
+  Jwks,
+  UserInfo,
   RequestOptions,
 } from '../types'
 
@@ -86,5 +89,45 @@ export class OAuthModule {
       refresh_token: result.refresh_token,
     })
     return result
+  }
+
+  /**
+   * Fetch the OpenID Connect discovery document.
+   *
+   * A relying party reads this to learn the provider's endpoints and capabilities (issuer, the
+   * authorize/token/userinfo/jwks URLs, supported scopes, signing algorithms) rather than hard-
+   * coding them. Public — no session required.
+   *
+   * @param options - Optional per-request options (abort signal, extra headers)
+   * @returns The discovery metadata
+   */
+  async discover(options?: RequestOptions): Promise<OpenIdConfiguration> {
+    return this.client.get<OpenIdConfiguration>('/auth/oauth/openid-configuration', undefined, options)
+  }
+
+  /**
+   * Fetch the JWKS — the public keys that verify provider-issued id_token signatures.
+   *
+   * A relying party uses these (matched by the id_token header `kid`) to verify an id_token without
+   * a shared secret. Public — no session required. Serves public key parameters only.
+   *
+   * @param options - Optional per-request options (abort signal, extra headers)
+   * @returns The JWKS document
+   */
+  async getJwks(options?: RequestOptions): Promise<Jwks> {
+    return this.client.get<Jwks>('/auth/oauth/jwks.json', undefined, options)
+  }
+
+  /**
+   * Fetch the userinfo claim set for the current session.
+   *
+   * Returns `sub` plus the identity claims the session's granted scopes allow. Requires an
+   * authenticated session — the SDK attaches the bearer token automatically.
+   *
+   * @param options - Optional per-request options (abort signal, extra headers)
+   * @returns The userinfo claims
+   */
+  async userinfo(options?: RequestOptions): Promise<UserInfo> {
+    return this.client.get<UserInfo>('/auth/oauth/userinfo', undefined, options)
   }
 }

@@ -426,3 +426,54 @@ export interface UserInfo {
   /** Additional provider claims are preserved rather than discarded. */
   [claim: string]: unknown
 }
+
+/**
+ * Input for recording a user's consent to a client's scopes (`POST /auth/oauth/consent`).
+ *
+ * Posted by the accounts consent screen before it retries the authorize call. `scope` is the OIDC
+ * space-delimited scope string the user is granting this client.
+ */
+export interface OAuthConsentInput {
+  /** The relying party's registered client identifier. */
+  client_id: string
+  /** Space-delimited scopes the user is granting this client. */
+  scope: string
+}
+
+/** A single live consent, as listed for an account-management view (`GET /auth/oauth/consents`). */
+export interface OAuthConsent {
+  /** The client the consent is for. */
+  client_id: string
+  /** The client's display name, for showing in a "connected apps" list. */
+  client_name: string
+  /** The scopes the user has granted this client. */
+  scopes: string[]
+  /** When the consent was granted (ISO 8601). */
+  granted_at: string
+}
+
+/** Result of revoking a consent (`DELETE /auth/oauth/consent/:clientId`). */
+export interface OAuthConsentRevokeResult {
+  ok: true
+  /** True when a live consent was actually revoked; false when there was nothing to revoke. */
+  revoked: boolean
+}
+
+/**
+ * The authorize response when a `first_party_consent` client needs consent before a code is minted.
+ *
+ * A discriminated shape returned (with HTTP 200) by {@link OAuthModule.authorize} instead of
+ * {@link OAuthAuthorizeResult}: no code was minted, and the accounts app should render a consent
+ * screen for `scopes`, POST the consent, then retry authorize. Mirrors the `{ requires_2fa: true }`
+ * convention on login.
+ */
+export interface OAuthConsentRequired {
+  /** Discriminant: consent is required before a code can be issued. */
+  consent_required: true
+  /** The client requesting consent. */
+  client_id: string
+  /** The client's display name, for the consent screen. */
+  client_name: string
+  /** The scopes the user is being asked to grant. */
+  scopes: string[]
+}

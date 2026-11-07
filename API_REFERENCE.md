@@ -695,6 +695,41 @@ interface Review {
 
 ---
 
+## Markets Module (`/markets`)
+
+### `GET /markets` — List the platform's markets
+
+The countries Mitumba operates in or plans to. Read it at runtime; do not hardcode a country, currency, calling code or region name.
+
+**Auth:** Public  
+**Cache:** Safe to cache for a few minutes (`Cache-Control: public, max-age=300`)  
+**Response:** `MarketsResponse`
+
+```typescript
+interface MarketsResponse {
+  version: 1
+  markets: Market[]
+  updated_at: string // ISO 8601
+}
+
+interface Market {
+  code: string // UPPERCASE ISO 3166-1 alpha-2, e.g. "KE"
+  slug: string // lowercase URL form, e.g. "ke"
+  name: string
+  status: 'active' | 'coming_soon' // only "active" markets can transact
+  currency: { code: string; minor_unit: number; symbol: string; locale: string }
+  locale: { default: string; timezone: string } // e.g. "en-KE", "Africa/Nairobi"
+  phone: { calling_code: string; national_length: number[]; example: string }
+  regions: { label: string; plural: string } // e.g. County / Counties
+  payments: { method_types: string[] } // buyer-visible rails, never a provider name
+  fulfilment_methods: string[]
+}
+```
+
+Amounts across the API are whole major units (1850 is KES 1,850). Use the helpers exported from the package root with a `Market`: `formatMoney`, `formatAmount`, `formatMoneyCompact`, `normalizePhone`, `isValidPhone`, `formatPhone`, `maskPhone`, `findMarket`, `activeMarkets`.
+
+---
+
 ## Cart Module (`/listings/cart`)
 
 ### `GET /listings/cart` — List cart items

@@ -22,6 +22,7 @@ import { UploadsModule } from './modules/uploads'
 import { ReportsModule } from './modules/reports'
 import { WholesaleModule } from './modules/wholesale'
 import { IamModule } from './modules/iam'
+import { MarketsModule } from './modules/markets'
 
 export class MitumbaClient {
   public readonly api: APIClient
@@ -47,6 +48,7 @@ export class MitumbaClient {
   public readonly reports: ReportsModule
   public readonly wholesale: WholesaleModule
   public readonly iam: IamModule
+  public readonly markets: MarketsModule
 
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
@@ -72,6 +74,7 @@ export class MitumbaClient {
     this.reports = new ReportsModule(this.api)
     this.wholesale = new WholesaleModule(this.api)
     this.iam = new IamModule(this.api)
+    this.markets = new MarketsModule(this.api)
   }
 
   /**
@@ -144,6 +147,18 @@ export { UploadsModule } from './modules/uploads'
 export { ReportsModule } from './modules/reports'
 export { WholesaleModule } from './modules/wholesale'
 export { IamModule } from './modules/iam'
+export { MarketsModule } from './modules/markets'
+export {
+  activeMarkets,
+  findMarket,
+  formatAmount,
+  formatMoney,
+  formatMoneyCompact,
+  formatPhone,
+  isValidPhone,
+  maskPhone,
+  normalizePhone,
+} from './markets'
 
 export { DEFAULT_SHARE_ORIGIN, listingShareUrl, storeShareUrl, baleShareUrl } from './share'
 export type { ShareUrlOptions } from './share'

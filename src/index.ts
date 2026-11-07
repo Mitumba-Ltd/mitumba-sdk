@@ -21,6 +21,7 @@ import { DisputesModule } from './modules/disputes'
 import { UploadsModule } from './modules/uploads'
 import { ReportsModule } from './modules/reports'
 import { WholesaleModule } from './modules/wholesale'
+import { IamModule } from './modules/iam'
 
 export class MitumbaClient {
   public readonly api: APIClient
@@ -45,6 +46,7 @@ export class MitumbaClient {
   public readonly uploads: UploadsModule
   public readonly reports: ReportsModule
   public readonly wholesale: WholesaleModule
+  public readonly iam: IamModule
 
   constructor(config: MitumbaClientConfig) {
     this.api = new APIClient(config)
@@ -69,6 +71,7 @@ export class MitumbaClient {
     this.uploads = new UploadsModule(this.api)
     this.reports = new ReportsModule(this.api)
     this.wholesale = new WholesaleModule(this.api)
+    this.iam = new IamModule(this.api)
   }
 
   /**
@@ -140,6 +143,7 @@ export { DisputesModule } from './modules/disputes'
 export { UploadsModule } from './modules/uploads'
 export { ReportsModule } from './modules/reports'
 export { WholesaleModule } from './modules/wholesale'
+export { IamModule } from './modules/iam'
 
 export { DEFAULT_SHARE_ORIGIN, listingShareUrl, storeShareUrl, baleShareUrl } from './share'
 export type { ShareUrlOptions } from './share'

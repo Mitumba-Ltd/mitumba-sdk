@@ -1325,3 +1325,146 @@ type NotificationType = 'order' | 'message' | 'price_drop' | 'offer' | 'payout' 
 type PaymentMethodType = 'mpesa' | 'mpesa_till' | 'airtel' | 'telkom' | 'card'
 type LinkedAccountProvider = 'google' | 'apple'
 ```
+
+---
+
+## IAM Module (`/auth/iam`, `/auth/orgs`)
+
+IAM users are operator principals scoped to one organization. They are separate from consumer accounts. Root continues to use the ordinary Auth module.
+
+### `POST /auth/iam/login` — Start IAM sign-in
+
+**Auth:** Public  
+**Body:** `{ org: string, email: string, password: string }` where `org` is a 12-digit organization ID (plain, spaced, or hyphenated) or an organization alias.  
+**Response:** either:
+
+```typescript
+{ access_token, refresh_token, expires_in: 900, principal_type: 'iam', org_id, second_factor_enrolled: false }
+```
+
+or:
+
+```typescript
+{ requires_2fa: true, temp_token, methods: { id, type: 'totp' | 'passkey', label }[] }
+```
+
+**Errors:** `invalid_input` (400), `invalid_credentials` (401), `organization_suspended` (403), `principal_disabled` (403), `too_many_attempts` (429)
+
+### `POST /auth/iam/login/2fa` — Finish IAM sign-in with TOTP or backup code
+
+**Auth:** Public; temporary sign-in token  
+**Body:** `{ temp_token: string, code: string, method_id?: string }`  
+**Response:** IAM token response  
+**Errors:** `invalid_input` (400), `invalid_code` (400), `expired` (401), `too_many_attempts` (429)
+
+### `POST /auth/iam/login/passkey/start` — Start IAM passkey verification
+
+**Auth:** Public; temporary sign-in token  
+**Body:** `{ temp_token: string }`  
+**Response:** `{ options: PublicKeyCredentialRequestOptionsJSON }`  
+**Errors:** `invalid_input` (400), `not_found` (400), `expired` (401), `too_many_attempts` (429)
+
+### `POST /auth/iam/login/passkey/finish` — Finish IAM passkey verification
+
+**Auth:** Public; temporary sign-in token  
+**Body:** `{ temp_token: string, credential: AuthenticationResponseJSON }`  
+**Response:** IAM token response  
+**Errors:** `invalid_input` (400), `invalid_code` (400), `expired` (400/401), `too_many_attempts` (429)
+
+### `POST /auth/iam/activate` — Activate an invited IAM user
+
+**Auth:** Public; one-time activation code  
+**Body:** `{ org: string, email: string, code: string, password: string }`  
+**Response:** `{ ok: true, next_step: string }`  
+**Errors:** `invalid_input` (400), `invalid_activation` (400), `too_many_attempts` (429)
+
+### `POST /auth/iam/refresh` — Rotate an IAM session
+
+**Auth:** Public; refresh token  
+**Body:** `{ refresh_token: string }`  
+**Response:** IAM token response  
+**Errors:** `invalid_input` (400), `invalid_token` (401), `token_expired` (401), `session_revoked` (401)
+
+### `POST /auth/iam/logout` — End an IAM session
+
+**Auth:** Public; refresh token  
+**Body:** `{ refresh_token: string }`  
+**Response:** `{ ok: true }`
+
+### `GET /auth/iam/me` — Get the current IAM principal
+
+**Auth:** IAM session  
+**Response:**
+
+```typescript
+{
+  id, email, display_name, status,
+  organization: { id, display_id, alias, name, kind, status, parent_id, created_at, updated_at },
+  permissions: AdminPermission[],
+  two_factor_methods_count: number,
+  backup_codes_remaining: number,
+  admin_enrolment_required: boolean
+}
+```
+
+### IAM second-factor management
+
+- `GET /auth/iam/2fa/methods` → `{ methods: TwoFactorMethod[] }`
+- `POST /auth/iam/2fa/methods` body `{ type: 'totp' | 'passkey', label?: string }`
+  - TOTP response: `{ id, otpauth_uri, secret }`
+  - Passkey response: `{ method_id, options }`
+- `POST /auth/iam/2fa/methods/:id/verify` body `{ code }` → `{ ok: true, backup_codes? }`
+- `POST /auth/iam/2fa/methods/:id/passkey/finish` body `RegistrationResponseJSON` → `{ ok: true, backup_codes? }`
+
+**Auth:** IAM session. SMS and email are not supported as IAM factors.
+
+### `GET /auth/orgs` — List organizations
+
+**Auth:** Root/global operator with organization-management permission  
+**Response:** `{ organizations: OrganizationSummary[], kinds: ('product' | 'department' | 'team')[] }`
+
+### `POST /auth/orgs` — Create an organization
+
+**Auth:** Root/global operator with organization-management permission  
+**Body:** `{ alias, name, kind, parent_id? }`  
+**Response:** `201 { organization }`  
+**Errors:** `invalid_input` (400), `invalid_alias` (400), `invalid_kind` (400), `parent_not_found` (400), `alias_taken` (409)
+
+### `PATCH /auth/orgs/:orgId` — Update an organization
+
+**Auth:** Root/global operator with organization-management permission  
+**Body:** `{ name?: string, status?: 'active' | 'suspended' }`  
+**Response:** `{ organization }`  
+**Errors:** `invalid_input` (400), `not_found` (404)
+
+Suspending an organization immediately ends its IAM sessions.
+
+### `GET /auth/orgs/:orgId/iam-users` — List IAM users
+
+**Auth:** Root/global operator with organization-management permission  
+**Response:** `{ organization, iam_users: IamUser[], grantable_permissions: AdminPermission[] }`
+
+### `POST /auth/orgs/:orgId/iam-users` — Create an IAM user
+
+**Auth:** Root/global operator with organization-management permission  
+**Body:** `{ email, display_name?, permissions?: AdminPermission[] }`  
+**Response:**
+
+```typescript
+{
+  iam_user: IamUser,
+  activation: { code, expires_at, org_id, org_alias, org_display_id }
+}
+```
+
+The activation code is returned once.  
+**Errors:** `invalid_input` (400), `permission_not_grantable` (400), `domain_not_permitted` (403), `not_found` (404), `email_taken` (409), `organization_suspended` (409)
+
+### IAM-user administration
+
+- `POST /auth/orgs/:orgId/iam-users/:id/permissions` body `{ permission }` → `{ ok, permissions }`
+- `DELETE /auth/orgs/:orgId/iam-users/:id/permissions/:permission` → `{ ok, revoked, permissions }`
+- `POST /auth/orgs/:orgId/iam-users/:id/status` body `{ status: 'active' | 'disabled' }` → `{ ok, status }`
+- `POST /auth/orgs/:orgId/iam-users/:id/activation` → `{ activation }`
+
+**Auth:** Root/global operator with organization-management permission. Disabling a user or revoking a permission immediately ends that principal's sessions.

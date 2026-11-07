@@ -478,3 +478,80 @@ describe('core client lifecycle coverage', () => {
     expect(await client.isAuthenticated()).toBe(true)
   })
 })
+
+
+describe('APIClient IAM-aware token lifecycle', () => {
+  const token = (payload: Record<string, unknown>): string => {
+    const encode = (value: Record<string, unknown>) => btoa(JSON.stringify(value)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+    return `${encode({ alg: 'none' })}.${encode(payload)}.signature`
+  }
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('refreshes an IAM token through /auth/iam/refresh and retries the request', async () => {
+    const access = token({ ptype: 'iam', exp: Math.floor(Date.now() / 1000) + 600 })
+    const store = new MemoryTokenStore()
+    const client = new APIClient({ baseUrl: BASE_URL, token: access, refreshToken: 'iam-refresh', tokenStore: store })
+
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: 'unauthorized' }) } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ access_token: 'new-iam-access', refresh_token: 'new-iam-refresh' }) } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response)
+
+    await expect(client.get('/admin/stats')).resolves.toEqual({ ok: true })
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(2, `${BASE_URL}/auth/iam/refresh`, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: 'iam-refresh' }),
+    }))
+  })
+
+  it('derives IAM refresh after hydrating the access token from persistent storage', async () => {
+    const access = token({ ptype: 'iam', exp: Math.floor(Date.now() / 1000) + 600 })
+    const store = new MemoryTokenStore()
+    await store.setTokens(access, 'stored-iam-refresh')
+    const client = new APIClient({ baseUrl: BASE_URL, tokenStore: store })
+    await client.hydrate()
+
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: 'unauthorized' }) } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ access_token: 'new', refresh_token: 'new-refresh' }) } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response)
+
+    await client.get('/auth/iam/me')
+    expect(vi.mocked(globalThis.fetch).mock.calls[1]?.[0]).toBe(`${BASE_URL}/auth/iam/refresh`)
+  })
+
+  it('keeps consumer and malformed tokens on the ordinary refresh endpoint', async () => {
+    for (const access of [token({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 }), 'malformed']) {
+      vi.mocked(globalThis.fetch).mockReset()
+      const client = new APIClient({ baseUrl: BASE_URL, token: access, refreshToken: 'consumer-refresh', tokenStore: new MemoryTokenStore() })
+      vi.mocked(globalThis.fetch)
+        .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: 'unauthorized' }) } as Response)
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ access_token: 'new', refresh_token: 'new-refresh' }) } as Response)
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response)
+      await client.get('/protected')
+      expect(vi.mocked(globalThis.fetch).mock.calls[1]?.[0]).toBe(`${BASE_URL}/auth/refresh`)
+    }
+  })
+
+  it('does not refresh or retry an IAM login failure even if another session is loaded', async () => {
+    const existing = token({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) - 10 })
+    const client = new APIClient({ baseUrl: BASE_URL, token: existing, refreshToken: 'old-refresh', tokenStore: new MemoryTokenStore() })
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: async () => ({ error: 'invalid_credentials', message: 'Invalid organization, email, or password.' }),
+    } as Response)
+
+    await expect(client.post('/auth/iam/login', { org: 'marketplace', email: 'ops@example.com', password: 'wrong' }))
+      .rejects.toMatchObject({ code: 'invalid_credentials', status: 401 })
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+  })
+})

@@ -23,6 +23,7 @@ import type {
   Organization,
   OrganizationKind,
   OrganizationSummary,
+  RegenerateIamBackupCodesResult,
   RequestOptions,
   UpdateOrganizationInput,
   VerifyIamMethodResult,
@@ -116,6 +117,22 @@ export class IamModule {
   /** Finish and enable a pending IAM passkey method. */
   async finishPasskeyEnrollment(methodId: string, credential: FinishIamPasskeyEnrollmentInput, options?: RequestOptions): Promise<VerifyIamMethodResult> {
     return this.client.post<VerifyIamMethodResult>(`/auth/iam/2fa/methods/${encodeURIComponent(methodId)}/passkey/finish`, credential, options)
+  }
+
+  /**
+   * Replace this IAM principal's recovery codes after re-proving the password. The previous set
+   * stops working immediately; the returned codes are shown once and never retrievable again.
+   */
+  async regenerateBackupCodes(password: string, options?: RequestOptions): Promise<RegenerateIamBackupCodesResult> {
+    return this.client.post<RegenerateIamBackupCodesResult>('/auth/iam/2fa/backup-codes/regenerate', { password }, options)
+  }
+
+  /**
+   * Remove one of this principal's own second-factor methods after re-proving the password.
+   * Refused with `last_factor` (409) when it is the only verified factor left.
+   */
+  async deleteMethod(methodId: string, password: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.delete<{ ok: true }>(`/auth/iam/2fa/methods/${encodeURIComponent(methodId)}`, { password }, options)
   }
 
   /** List organizations the current root/global operator may administer. */

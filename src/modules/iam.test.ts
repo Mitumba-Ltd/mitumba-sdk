@@ -115,6 +115,20 @@ describe('IamModule self-service', () => {
     await iam.finishPasskeyEnrollment('method/1', credential)
     expect(client.post).toHaveBeenCalledWith('/auth/iam/2fa/methods/method%2F1/passkey/finish', credential, undefined)
   })
+
+  it('regenerates recovery codes with the password', async () => {
+    const { client, iam } = clientAndModule()
+    vi.spyOn(client, 'post').mockResolvedValue({ backup_codes: ['a', 'b'] })
+    await expect(iam.regenerateBackupCodes('pw')).resolves.toEqual({ backup_codes: ['a', 'b'] })
+    expect(client.post).toHaveBeenCalledWith('/auth/iam/2fa/backup-codes/regenerate', { password: 'pw' }, undefined)
+  })
+
+  it('removes a method with the password, encoding the id', async () => {
+    const { client, iam } = clientAndModule()
+    vi.spyOn(client, 'delete').mockResolvedValue({ ok: true })
+    await expect(iam.deleteMethod('method/1', 'pw')).resolves.toEqual({ ok: true })
+    expect(client.delete).toHaveBeenCalledWith('/auth/iam/2fa/methods/method%2F1', { password: 'pw' }, undefined)
+  })
 })
 
 describe('IamModule organization administration', () => {

@@ -124,6 +124,11 @@ export interface VerifyIamMethodResult {
   backup_codes?: string[]
 }
 
+/** A fresh set of IAM recovery codes, shown once. */
+export interface RegenerateIamBackupCodesResult {
+  backup_codes: string[]
+}
+
 /** Create an organization. */
 export interface CreateOrganizationInput {
   alias: string

@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 5.7.0
+
+### Minor Changes
+
+- 2bea4d1: Add IAM self-service: `sdk.iam.regenerateBackupCodes(password)` replaces an IAM user's recovery codes, and `sdk.iam.deleteMethod(methodId, password)` removes one of their own second factors (refused with `last_factor` when it is the only verified one).
+
 ## 5.6.0
 
 ### Minor Changes

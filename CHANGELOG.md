@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 5.5.0
+
+### Minor Changes
+
+- cf7890a: Add the typed `sdk.iam` module for organization-scoped operator sign-in, activation, passkey/TOTP verification, session lifecycle, organization administration, and IAM-user provisioning. IAM access tokens now refresh through the IAM refresh endpoint automatically.
+
 ## 5.4.0
 
 ### Minor Changes

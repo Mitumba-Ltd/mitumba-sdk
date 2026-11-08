@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   activeMarkets,
   findMarket,
+  findRegion,
   formatAmount,
   formatMoney,
   formatMoneyCompact,
@@ -9,8 +10,9 @@ import {
   isValidPhone,
   maskPhone,
   normalizePhone,
+  regionById,
 } from './markets'
-import type { Market } from './types/markets'
+import type { Market, MarketRegion } from './types/markets'
 
 const KENYA: Market = {
   code: 'KE',
@@ -180,5 +182,29 @@ describe('market lookups', () => {
 
   it('keeps only markets that can transact', () => {
     expect(activeMarkets(all)).toEqual([KENYA])
+  })
+})
+
+describe('region lookups', () => {
+  const regions: MarketRegion[] = [
+    { id: 'nairobi', name: 'Nairobi' },
+    { id: 'trans-nzoia', name: 'Trans-Nzoia' },
+  ]
+
+  it('finds a region by its canonical name, ignoring surrounding whitespace', () => {
+    expect(findRegion(regions, 'Trans-Nzoia')).toBe(regions[1])
+    expect(findRegion(regions, '  Nairobi ')).toBe(regions[0])
+  })
+
+  it('does not guess: case, separators and blanks must match the canonical name', () => {
+    expect(findRegion(regions, 'nairobi')).toBeUndefined()
+    expect(findRegion(regions, 'Trans Nzoia')).toBeUndefined()
+    expect(findRegion(regions, '   ')).toBeUndefined()
+    expect(findRegion([], 'Nairobi')).toBeUndefined()
+  })
+
+  it('finds a region by its id slug', () => {
+    expect(regionById(regions, 'trans-nzoia')).toBe(regions[1])
+    expect(regionById(regions, 'Trans-Nzoia')).toBeUndefined()
   })
 })

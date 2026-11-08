@@ -728,6 +728,34 @@ interface Market {
 
 Amounts across the API are whole major units (1850 is KES 1,850). Use the helpers exported from the package root with a `Market`: `formatMoney`, `formatAmount`, `formatMoneyCompact`, `normalizePhone`, `isValidPhone`, `formatPhone`, `maskPhone`, `findMarket`, `activeMarkets`.
 
+### `GET /markets/:code/regions` — List a market's regions
+
+The first-level administrative regions of one market, e.g. Kenya's 47 counties. Use it for every county or region picker and send the returned `name` back to the API (profile and onboarding `county`): it is the canonical spelling the platform stores, e.g. `"Trans-Nzoia"`.
+
+**SDK:** `sdk.markets.regions(code)` — the code is trimmed and uppercased before sending  
+**Auth:** Public  
+**Cache:** Safe to cache for a few minutes (`Cache-Control: public, max-age=300`)  
+**Response:** `MarketRegionsResponse`  
+**Errors:** `404 { "error": "market_not_found" }` for a code that is not in the registry. A known market with no regions yet returns an empty `regions` list.
+
+```typescript
+interface MarketRegionsResponse {
+  version: 1
+  market_code: string // UPPERCASE ISO 3166-1 alpha-2, e.g. "KE"
+  label: string // e.g. "County"
+  plural: string // e.g. "Counties"
+  regions: MarketRegion[] // display (alphabetical) order
+  updated_at: string // ISO 8601
+}
+
+interface MarketRegion {
+  id: string // stable lowercase slug, e.g. "trans-nzoia"
+  name: string // canonical name, e.g. "Trans-Nzoia"
+}
+```
+
+Helpers from the package root: `findRegion(regions, name)` matches the canonical name after trimming (otherwise exact, so nothing is guessed) and `regionById(regions, id)` matches the slug.
+
 ---
 
 ## Cart Module (`/listings/cart`)

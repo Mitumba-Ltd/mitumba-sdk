@@ -1,4 +1,4 @@
-import type { Market } from './types/markets'
+import type { Market, MarketRegion } from './types/markets'
 
 /**
  * Market-aware formatting and validation. Everything here is driven by a `Market` read from
@@ -157,4 +157,20 @@ export function findMarket(markets: readonly Market[], code: string): Market | u
 /** Markets that can transact. A `coming_soon` market is for discovery only. */
 export function activeMarkets(markets: readonly Market[]): Market[] {
   return markets.filter((market) => market.status === 'active')
+}
+
+/**
+ * Find a region by its canonical name in a list read from `sdk.markets.regions(code)`. Surrounding
+ * whitespace is ignored; everything else must match exactly, so a stored value is always one the
+ * platform accepts. Use it to preselect a saved region in a picker.
+ */
+export function findRegion(regions: readonly MarketRegion[], name: string): MarketRegion | undefined {
+  const input = name.trim()
+  if (!input) return undefined
+  return regions.find((region) => region.name === input)
+}
+
+/** Find a region by its stable id slug, e.g. `"trans-nzoia"`. */
+export function regionById(regions: readonly MarketRegion[], id: string): MarketRegion | undefined {
+  return regions.find((region) => region.id === id)
 }

@@ -114,6 +114,24 @@ describe('OAuthModule', () => {
       })
     })
 
+    it('returns a relying-party result untouched and does not persist a session', async () => {
+      const rpResult = {
+        access_token: 'rp-access-token',
+        id_token: 'rp-id-token',
+        expires_in: 900,
+        token_type: 'Bearer' as const,
+        scope: 'openid email',
+      }
+      vi.spyOn(apiClient, 'post').mockResolvedValueOnce(rpResult)
+      const setSession = vi.spyOn(apiClient, 'setSession')
+
+      const result = await oauth.exchangeCode(input)
+
+      expect(result).toEqual(rpResult)
+      expect(result.refresh_token).toBeUndefined()
+      expect(setSession).not.toHaveBeenCalled()
+    })
+
     it('forwards a confidential client_secret when provided', async () => {
       vi.spyOn(apiClient, 'post').mockResolvedValueOnce(tokenResult)
       vi.spyOn(apiClient, 'setSession').mockResolvedValueOnce(undefined)
@@ -187,6 +205,19 @@ describe('OAuthModule', () => {
   })
 
   describe('userinfo', () => {
+    it('sends a relying party\'s own access token when the client holds no session', async () => {
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(JSON.stringify({ sub: 'user_1', email: 'buyer@example.com' }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+      )
+
+      const claims = await oauth.userinfo({ headers: { Authorization: 'Bearer rp-access-token' } })
+
+      expect(claims).toEqual({ sub: 'user_1', email: 'buyer@example.com' })
+      const init = fetchMock.mock.calls.at(-1)?.[1] as RequestInit
+      expect((init.headers as Headers).get('Authorization')).toBe('Bearer rp-access-token')
+      fetchMock.mockRestore()
+    })
+
     it('GETs the userinfo claim set for the current session', async () => {
       const claims = { sub: 'user_1', email: 'a@example.com', email_verified: true, name: 'A' }
       vi.spyOn(apiClient, 'get').mockResolvedValueOnce(claims)

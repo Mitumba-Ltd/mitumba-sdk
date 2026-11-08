@@ -151,6 +151,7 @@ export { MarketsModule } from './modules/markets'
 export {
   activeMarkets,
   findMarket,
+  findRegion,
   formatAmount,
   formatMoney,
   formatMoneyCompact,
@@ -158,6 +159,7 @@ export {
   isValidPhone,
   maskPhone,
   normalizePhone,
+  regionById,
 } from './markets'
 
 export { DEFAULT_SHARE_ORIGIN, listingShareUrl, storeShareUrl, baleShareUrl } from './share'

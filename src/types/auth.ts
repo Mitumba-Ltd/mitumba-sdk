@@ -150,7 +150,9 @@ export interface BecomeSellerInput {
   business_name?: string
   id_number?: string
   kra_pin?: string
+  /** Contact / payout phone in any common local form; stored on the business in E.164. Invalid is a 400. */
   phone?: string
+  /** A region name from `sdk.markets.regions()`; stored canonically. Invalid is a 400. */
   county?: string
   town?: string
   categories?: string[]
@@ -165,7 +167,9 @@ export interface BecomeBaleSellerInput {
   business_name?: string
   kra_pin?: string
   id_number?: string
+  /** Contact / payout phone in any common local form; stored on the business in E.164. Invalid is a 400. */
   phone?: string
+  /** A region name from `sdk.markets.regions()`; stored canonically. Invalid is a 400. */
   county?: string
 }
 

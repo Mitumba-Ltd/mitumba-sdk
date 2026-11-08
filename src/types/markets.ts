@@ -55,3 +55,23 @@ export interface MarketsResponse {
   markets: Market[]
   updated_at: string
 }
+
+/** A first-level administrative region of a market, e.g. a county in Kenya. */
+export interface MarketRegion {
+  /** Stable lowercase slug, e.g. `"trans-nzoia"`. */
+  id: string
+  /** The canonical name the platform stores, e.g. `"Trans-Nzoia"`. Send this, not free text. */
+  name: string
+}
+
+export interface MarketRegionsResponse {
+  version: 1
+  /** UPPERCASE ISO 3166-1 alpha-2, e.g. `"KE"`. */
+  market_code: string
+  /** Singular and plural labels for the region field, e.g. County / Counties. */
+  label: string
+  plural: string
+  /** Regions in display (alphabetical) order. */
+  regions: MarketRegion[]
+  updated_at: string
+}

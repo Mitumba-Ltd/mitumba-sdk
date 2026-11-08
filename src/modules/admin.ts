@@ -4,7 +4,7 @@ import type {
   AdminStoreDetail, AdminVerificationItem, StiEvent, AdminListingItem,
   AdminOrderListItem, AdminOrderDetail, AdminPayoutItem, AdminReport,
   AdminVaziOutfit, RequestOptions, AdminPermission, AdminRolePreset,
-  AdminPermissionDescription, AdminOperator, AdminAuditEntry, PendingPayoutApproval,
+  AdminPermissionDescription, AdminOperator, AdminAuditEntry, AdminAuditQuery, PendingPayoutApproval,
   AdminWholesalePendingStore,
 } from '../types'
 
@@ -232,6 +232,14 @@ export class AdminModule {
 
   async getAuditLog(limit = 100, options?: RequestOptions): Promise<{ entries: AdminAuditEntry[] }> {
     return this.client.get<{ entries: AdminAuditEntry[] }>('/admin/audit', { limit }, options)
+  }
+
+  /**
+   * The attributed, filterable audit trail, newest first. Pass `next_cursor` back as `before` for
+   * the next page; it is null on the last page.
+   */
+  async listAuditLog(query: AdminAuditQuery = {}, options?: RequestOptions): Promise<{ entries: AdminAuditEntry[]; next_cursor: string | null }> {
+    return this.client.get<{ entries: AdminAuditEntry[]; next_cursor: string | null }>('/admin/audit', query as Record<string, string | number | boolean | undefined>, options)
   }
 
   // ── Payout approval ──

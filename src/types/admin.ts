@@ -230,14 +230,40 @@ export interface AdminOperator {
   permissions: OperatorPermissionGrant[]
 }
 
+/** Who performed an audited action, resolved from its operator subject. */
+export interface AdminAuditActor {
+  /** `user`: root / platform operator (users.id). `iam`: an IAM principal. `unknown`: not resolvable. */
+  type: 'user' | 'iam' | 'unknown'
+  email: string | null
+  display_name: string | null
+  /** The IAM principal's organization; null for platform operators. */
+  organization: { id: string; alias: string | null; name: string | null } | null
+}
+
 export interface AdminAuditEntry {
   id: string
+  /** Operator subject: users.id or iam:<iam_users.id>. */
   actor_id: string
   action: string
   target_type: string
-  target_id: string
+  target_id: string | null
   detail: string | null
   created_at: string
+  /** Present from the attributed audit trail onward. */
+  actor?: AdminAuditActor
+}
+
+/** Filters for {@link AdminModule.listAuditLog}. All exact matches; `since`/`until` are ISO timestamps. */
+export interface AdminAuditQuery {
+  limit?: number
+  actor?: string
+  action?: string
+  target_type?: string
+  target_id?: string
+  since?: string
+  until?: string
+  /** `next_cursor` from the previous page. */
+  before?: string
 }
 
 export interface PendingPayoutApproval {

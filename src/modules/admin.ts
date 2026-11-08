@@ -91,7 +91,8 @@ export class AdminModule {
 
   // ── Stores ──
 
-  async listStores(params?: { q?: string; verified?: 0 | 1; tier?: 'free' | 'pro'; page?: number }, options?: RequestOptions): Promise<{ data: AdminStoreListItem[]; page: number; page_size: number }> {
+  /** Stores, newest first. `seller_id` lists one seller's stores (exact match). */
+  async listStores(params?: { q?: string; seller_id?: string; verified?: 0 | 1; tier?: 'free' | 'pro'; page?: number }, options?: RequestOptions): Promise<{ data: AdminStoreListItem[]; page: number; page_size: number }> {
     return this.client.get<{ data: AdminStoreListItem[]; page: number; page_size: number }>('/admin/stores', params as Record<string, string | number | boolean | undefined>, options)
   }
 
@@ -264,6 +265,19 @@ export class AdminModule {
 
   async unverifyWholesaleStore(storeId: string, options?: RequestOptions): Promise<{ ok: true }> {
     return this.client.post<{ ok: true }>(`/admin/wholesale/stores/${storeId}/unverify`, undefined, options)
+  }
+
+  /**
+   * Wholesale applications by review state: `pending` (the queue, default) or `rejected` (refused,
+   * with `review_note`). Supersedes {@link listPendingWholesaleStores}, which lists pending only.
+   */
+  async listWholesaleApplications(params?: { status?: 'pending' | 'rejected' }, options?: RequestOptions): Promise<{ data: AdminWholesalePendingStore[] }> {
+    return this.client.get<{ data: AdminWholesalePendingStore[] }>('/admin/wholesale/pending', params as Record<string, string | number | boolean | undefined>, options)
+  }
+
+  /** Refuse a wholesale application. The reason is recorded and shown to the seller, who can resubmit. */
+  async rejectWholesaleStore(storeId: string, reason: string, options?: RequestOptions): Promise<{ ok: true; review_status: 'rejected' }> {
+    return this.client.post<{ ok: true; review_status: 'rejected' }>(`/admin/wholesale/stores/${encodeURIComponent(storeId)}/reject`, { reason }, options)
   }
 
   // ── Broadcast ──

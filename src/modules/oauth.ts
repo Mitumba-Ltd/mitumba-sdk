@@ -72,18 +72,23 @@ export class OAuthModule {
   }
 
   /**
-   * Exchange a one-time authorization code for a token pair.
+   * Exchange a one-time authorization code for tokens.
    *
    * The relying party calls this server-to-server (or from its own origin) with the PKCE verifier
    * that matches the earlier challenge. The authorization code is single-use — a reused, expired,
-   * or tampered code is rejected with `400 invalid_grant`. On success the returned tokens are
-   * persisted into the client session via `setSession`, so the relying party is logged in
-   * immediately after the exchange. `grant_type` is set to `'authorization_code'` by the SDK.
+   * or tampered code is rejected with `400 invalid_grant`. `grant_type` is set to
+   * `'authorization_code'` by the SDK.
+   *
+   * When the result is a Mitumba session (it carries a `refresh_token`, as for the Mitumba
+   * marketplace), the tokens are persisted into the client session via `setSession`, so the caller
+   * is signed in immediately. Any other relying party receives an access token addressed only to
+   * itself and no refresh token; that result is returned untouched and the client session is left
+   * as it was, because such a token cannot call Mitumba's APIs or be refreshed.
    *
    * @param input - The token exchange request (code, redirect URI, client, PKCE verifier, optional secret)
    * @param options - Optional per-request options (abort signal, extra headers)
-   * @returns The access/refresh token pair and granted scope
-   * @throws {APIError} On `400 invalid_grant` (bad/expired/replayed code) or `401 invalid_client` (wrong secret)
+   * @returns The access token, granted scope, and either a refresh token (Mitumba session) or an id_token (relying party)
+   * @throws {APIError} On `400 invalid_grant` (bad/expired/replayed code or withdrawn consent), `401 invalid_client` (wrong secret), or `503 temporarily_unavailable` (token signing unavailable)
    *
    * @example
    * ```typescript
@@ -102,10 +107,12 @@ export class OAuthModule {
       { ...input, grant_type: 'authorization_code' },
       options,
     )
-    await this.client.setSession({
-      access_token: result.access_token,
-      refresh_token: result.refresh_token,
-    })
+    if (result.refresh_token) {
+      await this.client.setSession({
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
+      })
+    }
     return result
   }
 
@@ -137,13 +144,17 @@ export class OAuthModule {
   }
 
   /**
-   * Fetch the userinfo claim set for the current session.
+   * Fetch the userinfo claim set.
    *
-   * Returns `sub` plus the identity claims the session's granted scopes allow. Requires an
-   * authenticated session — the SDK attaches the bearer token automatically.
+   * Returns `sub` plus the identity claims the token's granted scopes allow. With a Mitumba session
+   * the SDK attaches the session's bearer token automatically. A relying party, whose client holds no
+   * Mitumba session (`exchangeCode()` does not set one for it), passes its own access token explicitly:
+   * `sdk.oauth.userinfo({ headers: { Authorization: `Bearer ${tokens.access_token}` } })`. A custom
+   * `Authorization` header never replaces an active session's token.
    *
    * @param options - Optional per-request options (abort signal, extra headers)
    * @returns The userinfo claims
+   * @throws {APIError} On `401` with no token, or `401 invalid_token` for a token that is expired, revoked, or no longer consented
    */
   async userinfo(options?: RequestOptions): Promise<UserInfo> {
     return this.client.get<UserInfo>('/auth/oauth/userinfo', undefined, options)

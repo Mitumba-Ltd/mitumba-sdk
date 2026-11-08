@@ -337,13 +337,24 @@ export interface OAuthTokenExchangeInput {
 }
 
 /**
- * Result of a successful token exchange: the access/refresh token pair and its metadata.
+ * Result of a successful token exchange.
+ *
+ * What a client receives depends on its registration:
+ *
+ * - **The Mitumba marketplace** receives a Mitumba session: `access_token` plus `refresh_token`.
+ * - **Every other relying party** receives an access token addressed only to itself (its `aud` is the
+ *   client's `client_id`), limited to the consented `scope`, plus an `id_token`. There is **no**
+ *   `refresh_token`: renew by repeating the authorization flow (silently with `prompt=none` where the
+ *   client is permitted). Verify both tokens against the published JWKS (`getJwks()`). The access
+ *   token is not accepted by Mitumba's APIs, only by `userinfo()` and the relying party's own API.
  */
 export interface OAuthTokenResult {
   /** The access token (JWT) for authenticated requests. */
   access_token: string
-  /** The refresh token used to rotate the access token. */
-  refresh_token: string
+  /** The refresh token used to rotate the access token. Present only for a Mitumba session. */
+  refresh_token?: string
+  /** The OpenID Connect ID token (ES256). Always present for a relying party. */
+  id_token?: string
   /** Lifetime of the access token in seconds. */
   expires_in: number
   /** Always `'Bearer'`. */

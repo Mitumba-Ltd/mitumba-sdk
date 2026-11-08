@@ -261,9 +261,18 @@ export interface PendingPayoutApproval {
   held_at: string | null
 }
 
+/** A wholesale application's review outcome. `verified` stays the trading gate. */
+export type WholesaleReviewStatus = 'pending' | 'approved' | 'rejected'
+
 export interface AdminWholesalePendingStore {
   id: string
   name: string
   seller_id: string
+  review_status?: WholesaleReviewStatus
+  /** Operator subject (users.id or iam:<id>) who last reviewed it. */
+  reviewed_by?: string | null
+  reviewed_at?: string | null
+  /** Rejection reason, also shown to the seller. */
+  review_note?: string | null
   [key: string]: unknown
 }

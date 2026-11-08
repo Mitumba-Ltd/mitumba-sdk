@@ -67,6 +67,9 @@ export interface ResolveDisputeInput {
 }
 
 export interface DisputeListParams {
-  status?: DisputeStatus
+  /** Defaults to `under_review` (the decision queue). `all` lists every status, newest first. */
+  status?: DisputeStatus | 'all'
+  /** Exact dispute, order, buyer or seller ID. */
+  q?: string
   page?: number
 }

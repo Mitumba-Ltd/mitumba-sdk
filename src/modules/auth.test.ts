@@ -76,7 +76,11 @@ describe('AuthModule', () => {
   })
 
   describe('verifyOtp', () => {
-    it('calls POST /auth/otp/verify', async () => {
+    beforeEach(() => {
+      vi.spyOn(apiClient, 'setSession').mockResolvedValue(undefined)
+    })
+
+    it('calls POST /auth/otp/verify and persists the session', async () => {
       const input: VerifyOtpInput = { phone: '+254700000000', code: '123456' }
       const mockResponse = { access_token: 'access', refresh_token: 'refresh', expires_in: 900 }
       vi.mocked(apiClient.post).mockResolvedValueOnce(mockResponse)
@@ -85,6 +89,17 @@ describe('AuthModule', () => {
 
       expect(apiClient.post).toHaveBeenCalledWith('/auth/otp/verify', input, undefined)
       expect(result).toEqual(mockResponse)
+      expect(apiClient.setSession).toHaveBeenCalledWith(mockResponse)
+    })
+
+    it('returns the second-factor challenge for a 2FA account without persisting anything', async () => {
+      const challenge = { requires_2fa: true as const, temp_token: 'tmp', methods: [{ id: 'm1', type: 'totp' as const, label: null }] }
+      vi.mocked(apiClient.post).mockResolvedValueOnce(challenge)
+
+      const result = await authModule.verifyOtp({ phone: '+254700000000', code: '123456' })
+
+      expect(result).toEqual(challenge)
+      expect(apiClient.setSession).not.toHaveBeenCalled()
     })
   })
 

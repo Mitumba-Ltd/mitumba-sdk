@@ -199,6 +199,8 @@ export type AdminPermission =
   | 'sellers:verify'
   | 'recovery:review'
   | 'broadcast:send'
+  | 'clients:manage'
+  | 'oidc:rotate_keys'
   | 'roles:grant'
   | 'audit:read'
 
@@ -301,4 +303,57 @@ export interface AdminWholesalePendingStore {
   /** Rejection reason, also shown to the seller. */
   review_note?: string | null
   [key: string]: unknown
+}
+
+// ── Identity provider: sign-in clients and signing keys ──
+
+/** `public` clients (browser SPAs, mobile) use PKCE and have no secret; `confidential` clients have a server-side secret. */
+export type OAuthClientType = 'public' | 'confidential'
+
+/** `first_party_implicit` skips the consent screen; `first_party_consent` shows it. */
+export type OAuthClientTrustLevel = 'first_party_implicit' | 'first_party_consent'
+
+/** A registered sign-in (relying-party) client as listed by `admin.listOAuthClients()`. Never carries a secret. */
+export interface OAuthClientSummary {
+  client_id: string
+  name: string
+  client_type: OAuthClientType
+  trust_level: OAuthClientTrustLevel
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+/** A client with its exact-match redirect-URI allow-list and permitted scopes. */
+export interface OAuthClient extends OAuthClientSummary {
+  redirect_uris: string[]
+  scopes: string[]
+}
+
+export interface RegisterOAuthClientInput {
+  name: string
+  client_type: OAuthClientType
+  trust_level: OAuthClientTrustLevel
+  /** Exact-match allow-list. Can be set later with `setOAuthClientRedirectUris()`. */
+  redirect_uris?: string[]
+  /** Scopes the client may request. Can be set later with `setOAuthClientScopes()`. */
+  scopes?: string[]
+}
+
+/**
+ * A newly registered client. `client_secret` is present only for a confidential client and is
+ * returned exactly once — it is stored hashed and can never be read back.
+ */
+export interface RegisteredOAuthClient extends OAuthClient {
+  client_secret?: string
+}
+
+/** One OIDC signing key's metadata. Key material is never exposed. */
+export interface OidcSigningKey {
+  kid: string
+  alg: string
+  /** `current` signs; `previous` still verifies (published in JWKS); `retired` is neither. */
+  status: 'current' | 'previous' | 'retired'
+  created_at: string
+  rotated_at: string | null
 }

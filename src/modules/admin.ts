@@ -5,7 +5,8 @@ import type {
   AdminOrderListItem, AdminOrderDetail, AdminPayoutItem, AdminReport,
   AdminVaziOutfit, RequestOptions, AdminPermission, AdminRolePreset,
   AdminPermissionDescription, AdminOperator, AdminAuditEntry, AdminAuditQuery, PendingPayoutApproval,
-  AdminWholesalePendingStore,
+  AdminWholesalePendingStore, OAuthClientSummary, OAuthClient, RegisterOAuthClientInput,
+  RegisteredOAuthClient, OidcSigningKey,
 } from '../types'
 
 export class AdminModule {
@@ -240,6 +241,57 @@ export class AdminModule {
    */
   async listAuditLog(query: AdminAuditQuery = {}, options?: RequestOptions): Promise<{ entries: AdminAuditEntry[]; next_cursor: string | null }> {
     return this.client.get<{ entries: AdminAuditEntry[]; next_cursor: string | null }>('/admin/audit', query as Record<string, string | number | boolean | undefined>, options)
+  }
+
+  // ── Identity provider: sign-in clients (requires clients:manage) ──
+
+  /** Every registered sign-in client, oldest first. Secrets are never included. */
+  async listOAuthClients(options?: RequestOptions): Promise<{ clients: OAuthClientSummary[] }> {
+    return this.client.get<{ clients: OAuthClientSummary[] }>('/admin/clients', undefined, options)
+  }
+
+  /** One client with its redirect-URI allow-list and permitted scopes. */
+  async getOAuthClient(clientId: string, options?: RequestOptions): Promise<OAuthClient> {
+    return this.client.get<OAuthClient>(`/admin/clients/${encodeURIComponent(clientId)}`, undefined, options)
+  }
+
+  /**
+   * Register a client. A confidential client's `client_secret` is in this response only — it is
+   * stored hashed and cannot be retrieved again, so hand it to the client's owner immediately.
+   */
+  async registerOAuthClient(input: RegisterOAuthClientInput, options?: RequestOptions): Promise<RegisteredOAuthClient> {
+    return this.client.post<RegisteredOAuthClient>('/admin/clients', input, options)
+  }
+
+  /** Stop a client authorising. Clients are deactivated, never deleted, so their history stays auditable. */
+  async deactivateOAuthClient(clientId: string, options?: RequestOptions): Promise<{ ok: true; is_active: false }> {
+    return this.client.post<{ ok: true; is_active: false }>(`/admin/clients/${encodeURIComponent(clientId)}/deactivate`, undefined, options)
+  }
+
+  /** Replace a client's whole redirect-URI allow-list. URIs match exactly: no wildcards or prefixes. */
+  async setOAuthClientRedirectUris(clientId: string, redirectUris: string[], options?: RequestOptions): Promise<{ ok: true; redirect_uris: string[] }> {
+    return this.client.put<{ ok: true; redirect_uris: string[] }>(`/admin/clients/${encodeURIComponent(clientId)}/redirect-uris`, { redirect_uris: redirectUris }, options)
+  }
+
+  /** Replace the set of scopes a client may request. */
+  async setOAuthClientScopes(clientId: string, scopes: string[], options?: RequestOptions): Promise<{ ok: true; scopes: string[] }> {
+    return this.client.put<{ ok: true; scopes: string[] }>(`/admin/clients/${encodeURIComponent(clientId)}/scopes`, { scopes }, options)
+  }
+
+  // ── Identity provider: signing keys (requires oidc:rotate_keys) ──
+
+  /** The signing-key window — current, previous, retired — as metadata only. */
+  async listOidcSigningKeys(options?: RequestOptions): Promise<{ keys: OidcSigningKey[] }> {
+    return this.client.get<{ keys: OidcSigningKey[] }>('/auth/oidc/keys', undefined, options)
+  }
+
+  /**
+   * Run the rotation ceremony: a new key becomes current, the current key becomes previous (still
+   * verifying), and the old previous is retired. Do not rotate twice within an id_token lifetime
+   * (one hour), or tokens signed by the retired key stop verifying.
+   */
+  async rotateOidcSigningKey(options?: RequestOptions): Promise<{ ok: true; kid: string }> {
+    return this.client.post<{ ok: true; kid: string }>('/auth/oidc/keys/rotate', undefined, options)
   }
 
   // ── Payout approval ──

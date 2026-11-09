@@ -20,7 +20,7 @@ Always call `getMessagingCapabilities()` before enabling optional UI. A missing/
 ```typescript
 import { MitumbaClient } from '@mitumba/sdk'
 
-const sdk = new MitumbaClient({ baseUrl: 'https://api.mitumba.stanl.ink' })
+const sdk = new MitumbaClient({ baseUrl: 'https://api.mitumba.africa' })
 const buyer = { kind: 'buyer' } as const
 const store = { kind: 'store', store_id: 'store_123' } as const
 

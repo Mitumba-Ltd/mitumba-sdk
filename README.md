@@ -30,7 +30,7 @@ Initialize the client with the environment's base URL:
 import { MitumbaClient } from '@mitumba/sdk'
 
 const mitumba = new MitumbaClient({
-  baseUrl: 'https://api.mitumba.stanl.ink'
+  baseUrl: 'https://api.mitumba.africa'
 })
 ```
 

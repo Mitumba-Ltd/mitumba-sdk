@@ -3,7 +3,7 @@ import { MitumbaClient } from '../src'
 async function runPlayground() {
   // 1. Initialize client with debug and retries enabled
   const client = new MitumbaClient({
-    baseUrl: 'https://api.mitumba.stanl.ink',
+    baseUrl: 'https://api.mitumba.africa',
     debug: true,       // Logs all HTTP requests and latency
     maxRetries: 3      // Retries 5xx errors up to 3 times with exponential backoff
   })

@@ -2,7 +2,7 @@
 
 Complete reference for every endpoint the SDK wraps. All paths are relative to the base URL.
 
-**Base URL:** `https://api.mitumba.stanl.ink`
+**Base URL:** `https://api.mitumba.africa`
 
 ---
 
@@ -1531,3 +1531,41 @@ The activation code is returned once.
 - `POST /auth/orgs/:orgId/iam-users/:id/activation` → `{ activation }`
 
 **Auth:** Root/global operator with organization-management permission. Disabling a user or revoking a permission immediately ends that principal's sessions.
+
+## Identity provider (`/admin/clients`, `/auth/oidc/keys`)
+
+These are operator endpoints for the OIDC provider. Relying parties discover the endpoints at `GET /auth/oauth/openid-configuration` and verify tokens against `GET /auth/oauth/jwks.json`. The issuer is `https://api.mitumba.africa`.
+
+### Sign-in clients — `sdk.admin.*OAuthClient*`
+
+**Auth:** an operator holding `clients:manage`
+
+| Method | Endpoint | Response |
+|---|---|---|
+| `listOAuthClients()` | `GET /admin/clients` | `{ clients: OAuthClientSummary[] }` |
+| `getOAuthClient(id)` | `GET /admin/clients/:clientId` | `OAuthClient` (adds `redirect_uris`, `scopes`) |
+| `registerOAuthClient(input)` | `POST /admin/clients` | `201 RegisteredOAuthClient` |
+| `deactivateOAuthClient(id)` | `POST /admin/clients/:clientId/deactivate` | `{ ok: true, is_active: false }` |
+| `setOAuthClientRedirectUris(id, uris)` | `PUT /admin/clients/:clientId/redirect-uris` | `{ ok: true, redirect_uris }` |
+| `setOAuthClientScopes(id, scopes)` | `PUT /admin/clients/:clientId/scopes` | `{ ok: true, scopes }` |
+
+- **Registering:** a `confidential` client gets a `client_secret`. It appears **only** in the registration response, because only its hash is stored. A `public` client (SPA or mobile) has no secret and must use PKCE.
+- **Redirect URIs** match exactly, with no wildcards or prefixes. Each `PUT` replaces the whole set atomically.
+- **Deactivating:** clients are deactivated, never deleted.
+
+**Errors:** `invalid_input` (400), `not_found` (404), `forbidden` (403)
+
+### Signing keys — `sdk.admin.listOidcSigningKeys()`, `sdk.admin.rotateOidcSigningKey()`
+
+**Auth:** an operator holding `oidc:rotate_keys`
+
+- `GET /auth/oidc/keys` → `{ keys: OidcSigningKey[] }`
+  - Ordered current, then previous, then retired.
+  - Each entry has `kid`, `alg`, `status`, `created_at` and `rotated_at`. Key material is never returned.
+- `POST /auth/oidc/keys/rotate` → `201 { ok: true, kid }`
+  - The new key becomes `current`, the old current becomes `previous` (still published in JWKS), and the old previous is `retired`.
+  - Every rotation is recorded on the admin audit trail.
+
+Do not rotate twice within one id_token lifetime (1 hour). Doing so retires a key that signed tokens still in use.
+
+**Errors:** `forbidden` (403), `not_configured` (503, the key-encryption secret is missing and nothing was written)

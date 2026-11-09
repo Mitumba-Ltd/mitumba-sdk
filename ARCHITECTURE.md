@@ -33,7 +33,7 @@ graph LR
         S["MailerModule"]
     end
 
-    T["API Gateway<br/>api.mitumba.stanl.ink"]
+    T["API Gateway<br/>api.mitumba.africa"]
 
     A --> D
     B --> D
@@ -56,7 +56,7 @@ graph LR
     E --> T
 ```
 
-All client applications interact with a **single API gateway** at `https://api.mitumba.stanl.ink`. The SDK wraps every public endpoint behind typed, ergonomic methods.
+All client applications interact with a **single API gateway** at `https://api.mitumba.africa`. The SDK wraps every public endpoint behind typed, ergonomic methods.
 
 ---
 
@@ -96,7 +96,7 @@ The public-facing class that consumers instantiate. It:
 
 ```typescript
 const sdk = new MitumbaClient({
-  baseUrl: 'https://api.mitumba.stanl.ink',
+  baseUrl: 'https://api.mitumba.africa',
   debug: true,       // Logs all HTTP requests and latency
   maxRetries: 3,     // Retries 5xx errors with exponential backoff
 })

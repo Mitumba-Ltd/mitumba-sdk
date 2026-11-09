@@ -70,11 +70,15 @@ export class AuthModule {
   }
 
   /**
-   * Verify an OTP code. Tokens are auto-persisted.
+   * Verify a phone OTP code.
+   *
+   * Returns the session tokens (auto-persisted) for an account without a second factor. An account
+   * with 2FA gets a `TwoFactorRequired` challenge instead, exactly like `login()`: complete it with
+   * `verify2FA()` or the passkey ceremony. Narrow with `'requires_2fa' in result`.
    */
-  async verifyOtp(input: VerifyOtpInput, options?: RequestOptions): Promise<AuthTokens> {
-    const result = await this.client.post<AuthTokens>('/auth/otp/verify', input, options)
-    await this.client.setSession(result)
+  async verifyOtp(input: VerifyOtpInput, options?: RequestOptions): Promise<AuthTokens | TwoFactorRequired> {
+    const result = await this.client.post<AuthTokens | TwoFactorRequired>('/auth/otp/verify', input, options)
+    if (isAuthTokens(result)) await this.client.setSession(result)
     return result
   }
 

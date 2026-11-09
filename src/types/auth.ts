@@ -305,6 +305,12 @@ export interface OAuthAuthorizeInput {
   state: string
   /** The PKCE code challenge (base64url SHA-256 of the verifier). */
   code_challenge: string
+  /**
+   * The OpenID Connect `nonce` from the relying party's authentication request. Carried to the
+   * one-time code and echoed in the id_token's `nonce` claim, so the relying party can bind the
+   * id_token to its own request and reject a replayed one. Pass it whenever the relying party sent it.
+   */
+  nonce?: string
 }
 
 /**

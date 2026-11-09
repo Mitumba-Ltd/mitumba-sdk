@@ -38,6 +38,18 @@ describe('OAuthModule', () => {
       expect(result).toEqual(mockResponse)
     })
 
+    it('forwards the OIDC nonce so the id_token can be bound to the request', async () => {
+      vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ code: 'c', state: 'state-xyz' })
+
+      await oauth.authorize({ ...input, nonce: 'n-123' })
+
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/auth/oauth/authorize',
+        { ...input, nonce: 'n-123', code_challenge_method: 'S256' },
+        undefined,
+      )
+    })
+
     it('does not persist a session (the code is not a session)', async () => {
       vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ code: 'one-time-code', state: 'state-xyz' })
       const setSession = vi.spyOn(apiClient, 'setSession')

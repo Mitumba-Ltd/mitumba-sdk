@@ -56,7 +56,7 @@ describe('AdminModule identity provider: signing keys', () => {
     admin = new AdminModule(client)
   })
 
-  it('lists the key window from the auth worker', async () => {
+  it('lists the key window from the auth service', async () => {
     vi.spyOn(client, 'get').mockResolvedValue({ keys: [] })
     await expect(admin.listOidcSigningKeys()).resolves.toEqual({ keys: [] })
     expect(client.get).toHaveBeenCalledWith('/auth/oidc/keys', undefined, undefined)

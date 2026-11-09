@@ -229,3 +229,70 @@ describe('MessagesModule managed realtime factories', () => {
     expect(started.start).toHaveBeenCalledOnce()
   })
 })
+
+describe('MessagesModule v2 input and response guards', () => {
+  let client: APIClient
+  let messages: MessagesModule
+  const validAttachment = { file_name: 'photo.jpg', content_type: 'image/jpeg', size_bytes: 3, sha256: 'a'.repeat(64) }
+
+  beforeEach(() => {
+    client = new APIClient({ baseUrl: 'https://api.mitumba.test', maxRetries: 0 })
+    messages = new MessagesModule(client)
+    vi.restoreAllMocks()
+  })
+
+  it.each([
+    ['a zero size', { size_bytes: 0 }, RangeError],
+    ['a fractional size', { size_bytes: 1.5 }, RangeError],
+    ['an uppercase SHA-256', { sha256: 'A'.repeat(64) }, TypeError],
+    ['a short SHA-256', { sha256: 'a'.repeat(63) }, TypeError],
+  ])('refuses an attachment with %s before transport', async (_label, override, errorType) => {
+    const post = vi.spyOn(client, 'post')
+    await expect(messages.createThreadAttachmentUpload(buyer, 'thread', { ...validAttachment, ...override }))
+      .rejects.toBeInstanceOf(errorType)
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('sizes a Blob body by its size before uploading', async () => {
+    const authorization = {
+      id: 'upload', thread_id: 'thread', state: 'authorized' as const,
+      upload_url: 'https://api.mitumba.test/notify/v2/attachment-uploads/upload?ticket=short',
+      upload_ticket: 'short', expires_at: 'future',
+      accepted: { content_type: 'image/jpeg', size_bytes: 3, sha256: 'a'.repeat(64) },
+    }
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true, status: 200, json: async () => envelope({ id: 'upload', thread_id: 'thread', state: 'pending_scan' }),
+    } as Response)
+    globalThis.fetch = fetchMock
+    await messages.uploadThreadAttachment(authorization, new Blob([new Uint8Array([1, 2, 3])]))
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    await expect(messages.uploadThreadAttachment(authorization, new Blob([new Uint8Array([1, 2])])))
+      .rejects.toBeInstanceOf(RangeError)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['getConversation', 'get', () => messages.getConversation(buyer, 'conversation'), { conversation: { name: 'no id' } }],
+    ['updateThreadStatus', 'patch', () => messages.updateThreadStatus(store, 'thread', 'resolved'), { thread: null }],
+    ['updateThreadPreferences', 'patch', () => messages.updateThreadPreferences(buyer, 'thread', {}), { thread: { id: 7 } }],
+    ['updateConversationPreferences', 'patch', () => messages.updateConversationPreferences(buyer, 'conversation', {}), {}],
+  ] as const)('%s refuses a response without an identified record (502 invalid_response)', async (_name, method, call, data) => {
+    vi.spyOn(client, method).mockResolvedValueOnce(envelope(data))
+    await expect(call()).rejects.toMatchObject({ status: 502, code: 'invalid_response' })
+  })
+
+  it.each([
+    ['getConversation', 'get', () => messages.getConversation(buyer, 'conversation'), { conversation }],
+    ['updateThreadStatus', 'patch', () => messages.updateThreadStatus(store, 'thread', 'open'), { thread }],
+    ['updateThreadPreferences', 'patch', () => messages.updateThreadPreferences(buyer, 'thread', {}), { thread }],
+    ['updateConversationPreferences', 'patch', () => messages.updateConversationPreferences(buyer, 'conversation', {}), { conversation }],
+  ] as const)('%s returns the identified record', async (_name, method, call, data) => {
+    vi.spyOn(client, method).mockResolvedValueOnce(envelope(data))
+    await expect(call()).resolves.toMatchObject({ id: expect.any(String) })
+  })
+
+  it('surfaces a 502 as an APIError', async () => {
+    vi.spyOn(client, 'get').mockResolvedValueOnce(envelope({ conversation: null }))
+    await expect(messages.getConversation(buyer, 'conversation')).rejects.toBeInstanceOf(APIError)
+  })
+})

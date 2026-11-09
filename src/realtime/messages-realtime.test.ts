@@ -415,3 +415,143 @@ describe('managed realtime event contract coverage', () => {
     sockets[0]!.close = originalClose
   })
 })
+
+describe('ManagedMessagesRealtimeConnection protocol and lifecycle guards', () => {
+  async function opened(options: Parameters<typeof subject>[0] = {}) {
+    const harness = subject(options)
+    const { started } = await begin(harness.connection, harness.sockets)
+    harness.sockets[0]!.emit('message', { data: ready() })
+    await started
+    return harness
+  }
+
+  const envelopeFrame = (frame: Record<string, unknown>) => JSON.stringify({ api_version: 2, protocol_version: 1, ...frame })
+  const author = { side: 'buyer', buyer: { id: 'buyer' } }
+
+  it.each([
+    ['a ready frame without a connection id', envelopeFrame({ type: 'ready', connection_id: 7, resume_cursor: null })],
+    ['a typing frame without an author', envelopeFrame({ type: 'typing.updated', thread_id: 'thread', author: null, is_typing: true, occurred_at: 't' })],
+    ['a typing frame with a non-boolean flag', envelopeFrame({ type: 'typing.updated', thread_id: 'thread', author, is_typing: 'yes', occurred_at: 't' })],
+    ['a resync frame with an unknown reason', envelopeFrame({ type: 'resync.required', reason: 'bored', resume_cursor: 'c' })],
+    ['a durable frame whose payload is not an object', envelopeFrame({ type: 'message.created', event_id: 'e', resume_cursor: 'c', occurred_at: 't', payload: 'x' })],
+  ])('fails closed (4004) on %s', async (_label, data) => {
+    const { connection, sockets } = await opened()
+    sockets[0]!.emit('message', { data })
+    await flush()
+    expect(connection.state).toBe('failed')
+    expect(sockets[0]!.closes).toContainEqual({ code: 4004, reason: 'protocol_error' })
+  })
+
+  it('fails closed on a binary frame', async () => {
+    const { connection, sockets } = await opened()
+    sockets[0]!.emit('message', { data: new ArrayBuffer(4) })
+    await flush()
+    expect(connection.state).toBe('failed')
+  })
+
+  it.each([
+    ['an envelope from another API version', { api_version: 1, data: ticket().data }],
+    ['a websocket URL that does not parse', { api_version: 2, data: { ...ticket().data, websocket_url: 'not a url' } }],
+    ['a non-websocket scheme', { api_version: 2, data: { ...ticket().data, websocket_url: 'https://api.mitumba.test/realtime?ticket=t' } }],
+    ['a long-lived token in the URL', { api_version: 2, data: { ...ticket().data, websocket_url: 'wss://api.mitumba.test/realtime?ticket=t&token=secret' } }],
+  ])('refuses to connect with %s', async (_label, body) => {
+    const { connection, client } = subject({ post: vi.fn().mockResolvedValue(body) })
+    await expect(connection.start()).rejects.toMatchObject({ name: expect.stringContaining('Protocol') })
+    expect(vi.mocked(client.createWebSocket)).not.toHaveBeenCalled()
+    expect(connection.state).toBe('failed')
+  })
+
+  it('stops delivering to a listener once it unsubscribes', async () => {
+    const { connection, sockets } = await opened()
+    const listener = vi.fn()
+    const unsubscribe = connection.onEvent(listener)
+    sockets[0]!.emit('message', { data: JSON.stringify(messageEvent('event-1', 1)) })
+    await flush()
+    expect(listener).toHaveBeenCalledTimes(1)
+    unsubscribe()
+    sockets[0]!.emit('message', { data: JSON.stringify(messageEvent('event-2', 2)) })
+    await flush()
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  it('shares one connection attempt between concurrent start() calls', async () => {
+    const { connection, sockets, post } = subject()
+    const first = connection.start()
+    const second = connection.start()
+    for (let index = 0; index < 5 && sockets.length === 0; index += 1) await Promise.resolve()
+    sockets[0]!.emit('message', { data: ready() })
+    await Promise.all([first, second])
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(sockets).toHaveLength(1)
+  })
+
+  it('opens no socket when closed while its ticket request is in flight', async () => {
+    let release: (value: unknown) => void = () => undefined
+    const post = vi.fn(() => new Promise((resolve) => { release = resolve }))
+    const { connection, client } = subject({ post })
+    const started = connection.start()
+    await Promise.resolve()
+    connection.close()
+    release(ticket())
+    await started
+    await flush()
+    expect(vi.mocked(client.createWebSocket)).not.toHaveBeenCalled()
+    expect(connection.state).toBe('closed')
+  })
+
+  it('ignores typing for a thread it is not subscribed to', async () => {
+    const { connection, sockets } = await opened()
+    connection.subscribeThread('thread-a')
+    const listener = vi.fn()
+    connection.onEvent(listener)
+    sockets[0]!.emit('message', { data: envelopeFrame({ type: 'typing.updated', thread_id: 'thread-b', author, is_typing: true, occurred_at: 't' }) })
+    await flush()
+    expect(listener).not.toHaveBeenCalled()
+    expect(connection.state).toBe('open')
+  })
+
+  it('sends no ACK until the connection is open', async () => {
+    const { connection, sockets } = subject()
+    const { started } = await begin(connection, sockets)
+    sockets[0]!.emit('message', { data: JSON.stringify(messageEvent('early', 1)) })
+    await flush()
+    expect(sockets[0]!.sent).toEqual([])
+    sockets[0]!.emit('message', { data: ready() })
+    await started
+  })
+
+  it('keeps retrying with backoff when a reconnect ticket request fails transiently', async () => {
+    const post = vi.fn()
+      .mockResolvedValueOnce(ticket(1))
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce(ticket(2))
+    const { connection, sockets } = await opened({ post })
+    sockets[0]!.emit('close', { code: 1006, reason: 'gone' })
+    expect(connection.state).toBe('reconnecting')
+    // base 100ms, random 0.5: first retry at 50ms, then (after the failure) 100ms.
+    await vi.advanceTimersByTimeAsync(60)
+    expect(post).toHaveBeenCalledTimes(2)
+    expect(connection.state).toBe('reconnecting')
+    await vi.advanceTimersByTimeAsync(110)
+    expect(post).toHaveBeenCalledTimes(3)
+    expect(sockets).toHaveLength(2)
+  })
+
+  it('cancels a pending reconnect when closed during backoff', async () => {
+    const { connection, sockets, post } = await opened()
+    sockets[0]!.emit('close', { code: 1006, reason: 'gone' })
+    expect(connection.state).toBe('reconnecting')
+    connection.close()
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(connection.state).toBe('closed')
+  })
+
+  it('can be closed before it ever started, and then refuses to start', async () => {
+    const { connection, post } = subject()
+    connection.close()
+    expect(connection.state).toBe('closed')
+    await expect(connection.start()).rejects.toBeInstanceOf(Error)
+    expect(post).not.toHaveBeenCalled()
+  })
+})

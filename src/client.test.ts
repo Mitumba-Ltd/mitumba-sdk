@@ -146,6 +146,45 @@ describe('APIClient', () => {
     expect(result).toBeUndefined()
   })
 
+  describe('getFile', () => {
+    it('returns the body as a blob with its content type and headers, authenticated like any GET', async () => {
+      client = new APIClient({ baseUrl: BASE_URL, token: 'tok', tokenStore: new MemoryTokenStore() })
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response(new Uint8Array([37, 80, 68, 70]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="a.pdf"' },
+      }))
+
+      const file = await client.getFile('/orders/o1/document', { v: 1 })
+
+      const [url, init] = vi.mocked(globalThis.fetch).mock.calls[0]!
+      expect(url).toBe(`${BASE_URL}/orders/o1/document?v=1`)
+      expect((init!.headers as Headers).get('Authorization')).toBe('Bearer tok')
+      expect(init!.method).toBe('GET')
+      expect(file.contentType).toBe('application/pdf')
+      expect(file.headers.get('Content-Disposition')).toBe('inline; filename="a.pdf"')
+      expect(new Uint8Array(await file.blob.arrayBuffer())).toEqual(new Uint8Array([37, 80, 68, 70]))
+    })
+
+    it('names a body without a content type as octet-stream', async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        blob: async () => new Blob([new Uint8Array([1])]),
+      } as unknown as Response)
+      expect((await client.getFile('/b')).contentType).toBe('application/octet-stream')
+    })
+
+    it('decodes an error response like any request', async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: 'document_not_found', message: 'No document.' }),
+      } as Response)
+      await expect(client.getFile('/orders/o1/document')).rejects.toMatchObject({ status: 404, code: 'document_not_found' })
+    })
+  })
+
   it('automatically refreshes token on 401', async () => {
     const onTokenRefresh = vi.fn()
     client = new APIClient({ 

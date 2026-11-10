@@ -86,3 +86,15 @@ export interface OrderHistoryParams {
   store_id?: string
   page?: number
 }
+
+/** Which document an order has: its invoice while it awaits payment, its receipt once it is paid. */
+export type OrderDocumentKind = 'invoice' | 'receipt'
+
+/** An order's invoice or receipt, as a PDF. Every order of one checkout has the same document. */
+export interface OrderDocument {
+  kind: OrderDocumentKind
+  /** The name to save it under, e.g. Mitumba-Receipt-RCT-20261110-C0FFEE00.pdf. */
+  filename: string
+  /** The PDF (application/pdf). */
+  blob: Blob
+}

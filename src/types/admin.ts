@@ -203,6 +203,7 @@ export type AdminPermission =
   | 'oidc:rotate_keys'
   | 'roles:grant'
   | 'audit:read'
+  | 'library:read_all'
 
 export type AdminAuthStrength = 'password' | 'sms' | 'email' | 'totp' | 'passkey'
 
@@ -356,4 +357,42 @@ export interface OidcSigningKey {
   status: 'current' | 'previous' | 'retired'
   created_at: string
   rotated_at: string | null
+}
+
+// ── Operations library ──
+
+export type LibraryKind = 'runbook' | 'routine' | 'incident' | 'reference'
+export type LibraryCadence = 'daily' | 'weekly' | 'monthly' | 'quarterly'
+
+/** A library document as listed by `admin.listLibrary()`. Never includes the body. */
+export interface LibraryDocumentSummary {
+  slug: string
+  title: string
+  summary: string
+  kind: LibraryKind
+  /** The permissions that may read this document (any one of them suffices). */
+  audience: AdminPermission[]
+  owner: string
+  /** How often a routine is carried out; null when the document is not a routine. */
+  cadence: LibraryCadence | null
+  /** How often the document itself must be re-checked. */
+  reviewEveryDays: number
+  /** YYYY-MM-DD. */
+  lastReviewed: string
+  /** YYYY-MM-DD: `lastReviewed` plus `reviewEveryDays`. */
+  reviewDueOn: string
+  /** True once `reviewDueOn` has passed. */
+  reviewOverdue: boolean
+}
+
+/** One library document with its markdown body, from `admin.getLibraryDocument()`. */
+export interface LibraryDocument extends LibraryDocumentSummary {
+  markdown: string
+}
+
+export interface LibraryListing {
+  /** Only the documents the caller may read. */
+  documents: LibraryDocumentSummary[]
+  /** True when the caller holds `library:read_all` and so sees every document. */
+  can_read_all: boolean
 }

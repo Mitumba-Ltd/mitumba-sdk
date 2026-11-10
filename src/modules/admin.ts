@@ -6,7 +6,7 @@ import type {
   AdminVaziOutfit, RequestOptions, AdminPermission, AdminRolePreset,
   AdminPermissionDescription, AdminOperator, AdminAuditEntry, AdminAuditQuery, PendingPayoutApproval,
   AdminWholesalePendingStore, OAuthClientSummary, OAuthClient, RegisterOAuthClientInput,
-  RegisteredOAuthClient, OidcSigningKey,
+  RegisteredOAuthClient, OidcSigningKey, LibraryDocument, LibraryListing,
 } from '../types'
 
 export class AdminModule {
@@ -292,6 +292,25 @@ export class AdminModule {
    */
   async rotateOidcSigningKey(options?: RequestOptions): Promise<{ ok: true; kid: string }> {
     return this.client.post<{ ok: true; kid: string }>('/auth/oidc/keys/rotate', undefined, options)
+  }
+
+  // ── Operations library ──
+
+  /**
+   * The library documents the caller may read: summaries only, never bodies. Any operator may call
+   * this; each document's `audience` decides whether it is listed. `can_read_all` is true for a
+   * caller holding `library:read_all`, who sees every document.
+   */
+  async listLibrary(options?: RequestOptions): Promise<LibraryListing> {
+    return this.client.get<LibraryListing>('/admin/library', undefined, options)
+  }
+
+  /**
+   * One library document with its markdown body. A document the caller may not read is reported
+   * exactly like one that does not exist (404).
+   */
+  async getLibraryDocument(slug: string, options?: RequestOptions): Promise<LibraryDocument> {
+    return this.client.get<LibraryDocument>(`/admin/library/${encodeURIComponent(slug)}`, undefined, options)
   }
 
   // ── Payout approval ──

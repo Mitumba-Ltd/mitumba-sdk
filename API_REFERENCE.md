@@ -898,6 +898,15 @@ interface SearchHistoryItem {
 
 ---
 
+### `GET /orders/:id/document` — Order invoice or receipt (PDF)
+
+**Auth:** Protected (the order's buyer)  
+**SDK:** `sdk.orders.getDocument(id)` returns `{ kind: 'invoice' | 'receipt', filename, blob }`  
+**Response:** `200 application/pdf`. The receipt once the order is paid, the invoice while it awaits payment. Every order of one checkout returns the same document. Headers: `X-Mitumba-Document: invoice | receipt`, `Content-Disposition: inline; filename="..."`, `Cache-Control: private, no-store`.  
+**Errors:** `document_not_found` (404): not the caller's order, an order with no checkout, or a checkout that expired or was cancelled.
+
+---
+
 ## Pay Module (`/pay`)
 
 ### `POST /pay/stk` — Initiate M-Pesa STK Push

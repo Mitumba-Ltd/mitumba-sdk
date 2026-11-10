@@ -77,6 +77,15 @@ export * from './types/disputes'
 export * from './types/wholesale'
 export * from './types/iam'
 
+/** A successful response whose body is a file rather than JSON. */
+export interface FileResponse {
+  blob: Blob
+  /** The response's Content-Type, or application/octet-stream when it gave none. */
+  contentType: string
+  /** Every response header, for metadata such as Content-Disposition. */
+  headers: Headers
+}
+
 export interface RequestOptions {
   signal?: AbortSignal
   /**

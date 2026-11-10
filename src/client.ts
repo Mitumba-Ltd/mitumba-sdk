@@ -1,4 +1,4 @@
-import { MitumbaClientConfig, APIErrorResponse, RequestOptions, WebSocketLike } from './types'
+import { MitumbaClientConfig, APIErrorResponse, FileResponse, RequestOptions, WebSocketLike } from './types'
 import { RealtimeUnavailableError } from './types/messages-v2'
 import { TokenStore, createTokenStore } from './token-store'
 
@@ -201,12 +201,30 @@ export class APIClient {
   }
 
   private async request<T>(
-    method: string, 
-    path: string, 
-    body?: unknown, 
+    method: string,
+    path: string,
+    body?: unknown,
     params?: Record<string, string | number | boolean | undefined>,
     options?: RequestOptions
   ): Promise<T> {
+    const response = await this.send(method, path, body, params, options)
+    if (response.status === 204) {
+      return undefined as unknown as T
+    }
+    return response.json() as Promise<T>
+  }
+
+  /**
+   * One request with authentication, proactive and reactive token refresh, retries and error decoding.
+   * Resolves with the successful response, unread, so the caller chooses how to read its body.
+   */
+  private async send(
+    method: string,
+    path: string,
+    body?: unknown,
+    params?: Record<string, string | number | boolean | undefined>,
+    options?: RequestOptions
+  ): Promise<Response> {
     // Proactive refresh before ordinary requests. Session establishment/lifecycle endpoints are
     // self-authenticating and must never refresh whichever identity happened to be loaded before.
     if (!isSessionEndpoint(path)) {
@@ -320,11 +338,7 @@ export class APIClient {
       throw new APIError(response.status, normalizeAPIErrorResponse(decoded, response.statusText))
     }
 
-    if (response.status === 204) {
-      return undefined as unknown as T
-    }
-
-    return response.json() as Promise<T>
+    return response
   }
 
   private async handleTokenRefresh(signal?: AbortSignal): Promise<void> {
@@ -382,6 +396,19 @@ export class APIClient {
 
   public get<T>(path: string, params?: Record<string, string | number | boolean | undefined>, options?: RequestOptions): Promise<T> {
     return this.request<T>('GET', path, undefined, params, options)
+  }
+
+  /**
+   * A GET whose response is a file (a PDF, an image) rather than JSON. Authentication, refresh,
+   * retries and errors are exactly those of {@link get}; an error response still decodes its JSON body.
+   */
+  public async getFile(path: string, params?: Record<string, string | number | boolean | undefined>, options?: RequestOptions): Promise<FileResponse> {
+    const response = await this.send('GET', path, undefined, params, options)
+    return {
+      blob: await response.blob(),
+      contentType: response.headers.get('Content-Type') ?? 'application/octet-stream',
+      headers: response.headers,
+    }
   }
 
   public post<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {

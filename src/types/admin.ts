@@ -1,3 +1,5 @@
+import type { MessageReportReason } from './messages'
+
 export interface BlockedIp {
   ip: string
   reason: string
@@ -152,6 +154,119 @@ export interface AdminPayoutItem {
   status: 'pending' | 'sent' | 'failed'
   on_hold: boolean
   created_at: string
+  /**
+   * True for a Daraja payout that was submitted (`sent`) but whose provider reference was never
+   * stored, so its result cannot be matched. Repair it with `admin.repairPayoutCorrelation()`.
+   */
+  needs_correlation?: boolean
+}
+
+// ── Messaging safety reports ──
+
+export type MessageReportStatus = 'open' | 'reviewed' | 'dismissed' | 'actioned'
+export type MessageReportOutcome = 'upheld' | 'not_upheld'
+export type MessagingSide = 'buyer' | 'store'
+
+/** One reported conversation or message in the safety queue, from `admin.listMessageReports()`. */
+export interface AdminMessageReport {
+  id: string
+  reporter_principal_kind: MessagingSide
+  reporter_principal_id: string
+  conversation_id: string
+  thread_id: string
+  message_id: string | null
+  subject_kind: 'conversation' | 'message'
+  /** The side of the conversation being reported. */
+  reported_side: MessagingSide
+  reason: MessageReportReason | string
+  detail: string | null
+  status: MessageReportStatus
+  outcome: MessageReportOutcome | null
+  created_at: string
+  thread_kind: string
+  thread_title: string | null
+  /** The reported message as delivered (contact details already masked), when one is reported. */
+  message_body: string | null
+  /** 1 when the platform masked part of the delivered message. */
+  body_modified: number | null
+  /** The reported principal (a buyer's users.id or a store id). */
+  subject_principal_id: string
+  /** Masked contact or payment attempts by the reported principal in the last 24 hours. */
+  masked_attempts_24h: number
+  /** Reports against the reported principal upheld in the last 30 days. */
+  upheld_reports_30d: number
+  /** `high` once either signal reaches its threshold. It orders the queue; it decides nothing. */
+  priority: 'high' | 'standard'
+}
+
+export interface AdminMessageReportList {
+  data: AdminMessageReport[]
+  page: number
+  page_size: number
+  thresholds: { masked_attempts_24h: number; upheld_reports_30d: number; effect: 'queue_priority_only' }
+}
+
+/** One message of the reported thread, as delivered. */
+export interface AdminMessageReportThreadMessage {
+  id: string
+  sender_id: string
+  receiver_id: string | null
+  body: string
+  body_modified: number
+  body_policy_version: string | null
+  body_policy_notices: string | null
+  author_side: MessagingSide | null
+  sequence: number | null
+  created_at: string
+}
+
+/**
+ * A report opened for review, from `admin.getMessageReport()`. Opening one is recorded on the audit
+ * trail, and so is whether the unmasked original was released.
+ */
+export interface AdminMessageReportDetail {
+  id: string
+  reporter_user_id: string
+  reporter_principal_kind: MessagingSide
+  reporter_principal_id: string
+  conversation_id: string
+  thread_id: string
+  message_id: string | null
+  subject_kind: 'conversation' | 'message'
+  reported_side: MessagingSide
+  reason: MessageReportReason | string
+  detail: string | null
+  status: MessageReportStatus
+  outcome: MessageReportOutcome | null
+  resolution_note: string | null
+  resolved_by: string | null
+  resolved_at: string | null
+  created_at: string
+  thread_kind: string
+  thread_title: string | null
+  buyer_id: string
+  store_id: string
+  /** Up to 100 messages of the thread, oldest first. */
+  thread: AdminMessageReportThreadMessage[]
+  /** The reported message before masking, when it was masked and may be released; otherwise null. */
+  restricted_original: string | null
+  restricted_original_available: boolean
+}
+
+export interface ResolveMessageReportInput {
+  status: Exclude<MessageReportStatus, 'open'>
+  /** `upheld` records a risk signal against the reported side; `not_upheld` records none. */
+  outcome: MessageReportOutcome
+  /** At most 1000 characters. */
+  note?: string
+}
+
+export interface ResolveMessageReportResult {
+  ok: true
+  status: Exclude<MessageReportStatus, 'open'>
+  outcome: MessageReportOutcome
+  /** True when the same resolution had already been recorded (a safe retry). */
+  deduplicated: boolean
 }
 
 export interface AdminReport {

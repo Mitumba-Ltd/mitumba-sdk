@@ -7,6 +7,7 @@ import type {
   AdminPermissionDescription, AdminOperator, AdminAuditEntry, AdminAuditQuery, PendingPayoutApproval,
   AdminWholesalePendingStore, OAuthClientSummary, OAuthClient, RegisterOAuthClientInput,
   RegisteredOAuthClient, OidcSigningKey, LibraryDocument, LibraryListing, LibraryOccurrenceRecorded,
+  AdminMessageReportList, AdminMessageReportDetail, MessageReportStatus, ResolveMessageReportInput, ResolveMessageReportResult,
 } from '../types'
 
 export class AdminModule {
@@ -167,7 +168,7 @@ export class AdminModule {
     return this.client.get<{ owed: number; held: number; sent_today: number }>('/admin/payouts/summary', undefined, options)
   }
 
-  async listPayouts(params?: { status?: 'pending' | 'sent' | 'failed'; on_hold?: 0 | 1; page?: number }, options?: RequestOptions): Promise<{ data: AdminPayoutItem[]; page: number; page_size: number }> {
+  async listPayouts(params?: { status?: 'pending' | 'sent' | 'failed'; on_hold?: 0 | 1; needs_correlation?: 0 | 1; page?: number }, options?: RequestOptions): Promise<{ data: AdminPayoutItem[]; page: number; page_size: number }> {
     return this.client.get<{ data: AdminPayoutItem[]; page: number; page_size: number }>('/admin/payouts', params as Record<string, string | number | boolean | undefined>, options)
   }
 
@@ -193,6 +194,36 @@ export class AdminModule {
 
   async reinstateReview(reviewId: string, options?: RequestOptions): Promise<{ ok: true; hidden: false }> {
     return this.client.post<{ ok: true; hidden: false }>(`/admin/reviews/${reviewId}/reinstate`, undefined, options)
+  }
+
+  // ── Messaging safety reports ──
+
+  /**
+   * The messaging safety queue: reported conversations and messages, oldest first, 25 per page.
+   * Each report carries the reported side's recent risk signals and a `priority` derived from them;
+   * priority orders the queue and decides nothing. Requires `admin:read`.
+   */
+  async listMessageReports(params?: { status?: MessageReportStatus; page?: number }, options?: RequestOptions): Promise<AdminMessageReportList> {
+    return this.client.get<AdminMessageReportList>('/admin/message-reports', params as Record<string, string | number | boolean | undefined>, options)
+  }
+
+  /**
+   * Open one report for review: the report, up to 100 messages of its thread as delivered, and the
+   * unmasked original of the reported message when one exists and may be released. Requires
+   * `audit:read` and a recent passkey sign-in (403 `reauthentication_required` otherwise). Opening a
+   * report is recorded on the audit trail.
+   */
+  async getMessageReport(reportId: string, options?: RequestOptions): Promise<AdminMessageReportDetail> {
+    return this.client.get<AdminMessageReportDetail>(`/admin/message-reports/${encodeURIComponent(reportId)}`, undefined, options)
+  }
+
+  /**
+   * Resolve an open report. `upheld` records a risk signal against the reported side. Requires
+   * `listings:moderate`. Resolving with the same status and outcome again is a safe retry
+   * (`deduplicated: true`); a different resolution of an already resolved report is 409.
+   */
+  async resolveMessageReport(reportId: string, input: ResolveMessageReportInput, options?: RequestOptions): Promise<ResolveMessageReportResult> {
+    return this.client.post<ResolveMessageReportResult>(`/admin/message-reports/${encodeURIComponent(reportId)}/resolve`, input, options)
   }
 
   // ── VAZI Moderation ──

@@ -6,7 +6,7 @@ import type {
   AdminVaziOutfit, RequestOptions, AdminPermission, AdminRolePreset,
   AdminPermissionDescription, AdminOperator, AdminAuditEntry, AdminAuditQuery, PendingPayoutApproval,
   AdminWholesalePendingStore, OAuthClientSummary, OAuthClient, RegisterOAuthClientInput,
-  RegisteredOAuthClient, OidcSigningKey, LibraryDocument, LibraryListing,
+  RegisteredOAuthClient, OidcSigningKey, LibraryDocument, LibraryListing, LibraryOccurrenceRecorded,
 } from '../types'
 
 export class AdminModule {
@@ -313,6 +313,24 @@ export class AdminModule {
     return this.client.get<LibraryDocument>(`/admin/library/${encodeURIComponent(slug)}`, undefined, options)
   }
 
+  /**
+   * Record one occurrence of a scheduled routine as done, with an optional note (at most 500
+   * characters). Only an operator whose role is in the document's audience may record it
+   * (`LibraryDocument.can_record`); the librarian's `library:read_all` alone is not enough.
+   *
+   * `dueOn` (YYYY-MM-DD) must be one of the routine's due days, no more than 45 days old and no
+   * further ahead than its notice. Errors: 403 not in the audience, 404 not readable, 409 already
+   * recorded (the body carries the existing `occurrence`), 422 `invalid_occurrence` with a `reason`
+   * (`not_scheduled`, `not_a_due_day`, `too_early`, `too_old`). Recorded on the audit trail as
+   * `library.routine.completed`.
+   */
+  async completeLibraryOccurrence(slug: string, dueOn: string, note?: string, options?: RequestOptions): Promise<LibraryOccurrenceRecorded> {
+    return this.client.post<LibraryOccurrenceRecorded>(
+      `/admin/library/${encodeURIComponent(slug)}/occurrences/${encodeURIComponent(dueOn)}/complete`,
+      note ? { note } : {},
+      options,
+    )
+  }
   // ── Payout approval ──
 
   async listPayoutsAwaitingApproval(options?: RequestOptions): Promise<{ payouts: PendingPayoutApproval[] }> {

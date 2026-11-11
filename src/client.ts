@@ -228,7 +228,16 @@ export class APIClient {
     // Proactive refresh before ordinary requests. Session establishment/lifecycle endpoints are
     // self-authenticating and must never refresh whichever identity happened to be loaded before.
     if (!isSessionEndpoint(path)) {
-      await this.ensureFreshToken(options)
+      try {
+        await this.ensureFreshToken(options)
+      } catch (error) {
+        // A refresh the server definitively refused means the session is over, exactly as when it
+        // is refused after a 401 below. Report it the same way, rather than as a raw internal error
+        // the caller cannot recognise. Transient failures (offline, 5xx) still propagate unchanged.
+        if (!(error instanceof InvalidRefreshCredentialsError)) throw error
+        this.config.onAuthExpired?.()
+        throw new APIError(401, { error: 'session_expired', message: 'Session expired. Please log in again.' })
+      }
     }
 
     const url = new URL(path, this.config.baseUrl)

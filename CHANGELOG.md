@@ -1,5 +1,28 @@
 # @mitumba/sdk
 
+## 5.17.0
+
+### Minor Changes
+
+- fdcc779: - Add `admin.completeLibraryOccurrence(slug, dueOn, note?)`. It records one occurrence of a scheduled Library routine as done and returns `LibraryOccurrenceRecorded`.
+  - Only operators whose role is in the document's audience may call it.
+  - Errors: 409 when the occurrence is already recorded, and 422 `invalid_occurrence` with a `reason` for a day that cannot be recorded.
+  - `LibraryDocumentSummary` gains two fields:
+    - `schedule` (`LibrarySchedule`): the rules, a plain-words label, notice and grace;
+    - `routine` (`LibraryRoutineState`): the current occurrence and its status, the next due day, and the missed count.
+  - `LibraryDocument` gains `occurrences` (recent history, with who recorded each) and `can_record`.
+  - `LibraryCadence` gains `yearly`.
+  - New types:
+    - `LibraryWeekday`
+    - `LibrarySeason`
+    - `LibraryScheduleRule`
+    - `LibrarySchedule`
+    - `LibraryOccurrenceStatus`
+    - `LibraryCompleter`
+    - `LibraryOccurrence`
+    - `LibraryRoutineState`
+    - `LibraryOccurrenceRecorded`
+
 ## 5.16.0
 
 ### Minor Changes

@@ -392,6 +392,30 @@ describe('token refresh failure classification', () => {
     expect(client.getToken()).toBe(token)
   })
 
+  it.each([400, 401])('reports a proactive refresh refused with %i as an expired session', async (status) => {
+    const onAuthExpired = vi.fn()
+    const store = new MemoryTokenStore()
+    const client = new APIClient({
+      baseUrl: BASE_URL, token: expiringToken(), refreshToken: 'revoked', tokenStore: store, onAuthExpired, maxRetries: 0,
+    })
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({ ok: false, status } as Response)
+
+    await expect(client.get('/protected')).rejects.toMatchObject({ status: 401, code: 'session_expired' })
+    expect(onAuthExpired).toHaveBeenCalledOnce()
+    // The protected request itself was never sent with the dead session.
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(client.getToken()).toBeUndefined()
+    expect(await store.getRefreshToken()).toBeNull()
+  })
+
+  it('does not expire the session when a proactive refresh fails transiently', async () => {
+    const onAuthExpired = vi.fn()
+    const client = new APIClient({ baseUrl: BASE_URL, token: expiringToken(), refreshToken: 'valid-refresh', tokenStore: new MemoryTokenStore(), onAuthExpired, maxRetries: 0 })
+    vi.mocked(globalThis.fetch).mockRejectedValueOnce(new TypeError('offline'))
+    await expect(client.get('/protected')).rejects.toBeInstanceOf(TypeError)
+    expect(onAuthExpired).not.toHaveBeenCalled()
+  })
+
   it.each([400, 401])('clears tokens only for definitive refresh credential status %i', async (status) => {
     const onAuthExpired = vi.fn()
     const store = new MemoryTokenStore()

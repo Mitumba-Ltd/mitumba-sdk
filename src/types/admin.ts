@@ -362,7 +362,74 @@ export interface OidcSigningKey {
 // ── Operations library ──
 
 export type LibraryKind = 'runbook' | 'routine' | 'incident' | 'reference'
-export type LibraryCadence = 'daily' | 'weekly' | 'monthly' | 'quarterly'
+/** The coarse label of a schedule: its most frequent rule. */
+export type LibraryCadence = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+
+export type LibraryWeekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
+
+/** Part of the year, MM-DD to MM-DD inclusive. `from` after `to` wraps the new year. */
+export interface LibrarySeason {
+  from: string
+  to: string
+}
+
+/** One rule of a routine's schedule. Every day is East Africa Time. */
+export type LibraryScheduleRule =
+  | { every: 'daily'; during: LibrarySeason | null }
+  | { every: 'weekdays'; during: LibrarySeason | null }
+  | { every: 'weekly'; weekday: LibraryWeekday; during: LibrarySeason | null }
+  | { every: 'monthly'; day: number | 'last'; during: LibrarySeason | null }
+  | { every: 'quarterly'; day: number | 'last' }
+  | { every: 'yearly'; date: string }
+
+/** When a routine is due: on any day at least one rule matches. */
+export interface LibrarySchedule {
+  rules: LibraryScheduleRule[]
+  /** The rules in plain words, e.g. "Every Monday". */
+  label: string
+  /** Days ahead of a monthly, quarterly or yearly due day the audience is reminded; 0 for none. */
+  noticeDays: number
+  /** Days after the due day before an unrecorded occurrence is escalated; null uses each rule's default. */
+  graceDays: number | null
+}
+
+/** Where one occurrence of a routine stands. `missed` occurrences may still be recorded, as late. */
+export type LibraryOccurrenceStatus = 'upcoming' | 'due' | 'missed' | 'done'
+
+/** Who recorded an occurrence: a users.id or `iam:<id>`, with their name and address when known. */
+export interface LibraryCompleter {
+  subject: string
+  name: string | null
+  email: string | null
+}
+
+/** One due day of a routine. */
+export interface LibraryOccurrence {
+  /** YYYY-MM-DD. */
+  dueOn: string
+  status: LibraryOccurrenceStatus
+  /** YYYY-MM-DD: the last day it may be recorded before it counts as missed. */
+  graceEndsOn: string
+  completedAt: string | null
+  completedBy: LibraryCompleter | null
+  note: string | null
+}
+
+/** Where a scheduled routine stands today. */
+export interface LibraryRoutineState {
+  /** The latest due day on or before today, or null when none falls in the lookback. */
+  current: LibraryOccurrence | null
+  /** YYYY-MM-DD, or null when no due day falls within a year. */
+  nextDueOn: string | null
+  /** Missed and still unrecorded occurrences (since tracking began, at most 45 days back). */
+  missedCount: number
+}
+
+/** The result of `admin.completeLibraryOccurrence()`. */
+export interface LibraryOccurrenceRecorded {
+  ok: true
+  occurrence: LibraryOccurrence
+}
 
 /** A library document as listed by `admin.listLibrary()`. Never includes the body. */
 export interface LibraryDocumentSummary {
@@ -373,8 +440,15 @@ export interface LibraryDocumentSummary {
   /** The permissions that may read this document (any one of them suffices). */
   audience: AdminPermission[]
   owner: string
-  /** How often a routine is carried out; null when the document is not a routine. */
+  /** How often a routine is carried out, coarsely; null when the document has no schedule. */
   cadence: LibraryCadence | null
+  /** When the routine is due; null when the document has no schedule. */
+  schedule: LibrarySchedule | null
+  /**
+   * Where the routine stands today. Null for an unscheduled document, and also when the worker
+   * cannot read routine state at the moment (the document itself is still served).
+   */
+  routine: LibraryRoutineState | null
   /** How often the document itself must be re-checked. */
   reviewEveryDays: number
   /** YYYY-MM-DD. */
@@ -388,6 +462,10 @@ export interface LibraryDocumentSummary {
 /** One library document with its markdown body, from `admin.getLibraryDocument()`. */
 export interface LibraryDocument extends LibraryDocumentSummary {
   markdown: string
+  /** Recent occurrences, newest first, starting with the next due day. Empty when unscheduled. */
+  occurrences: LibraryOccurrence[]
+  /** True when the caller's role is in the audience, so they may record occurrences as done. */
+  can_record: boolean
 }
 
 export interface LibraryListing {

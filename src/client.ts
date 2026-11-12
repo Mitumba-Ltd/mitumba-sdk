@@ -6,13 +6,16 @@ export class APIError extends Error {
   public readonly code: string
   public readonly status: number
   public readonly details?: unknown
+  /** The decoded error body as the server sent it, for errors whose details are top-level fields. */
+  public readonly body?: unknown
 
-  constructor(status: number, data: APIErrorResponse) {
+  constructor(status: number, data: APIErrorResponse, body?: unknown) {
     super(data.message || data.error)
     this.name = 'APIError'
     this.code = data.error
     this.status = status
     this.details = data.details
+    this.body = body
   }
 }
 
@@ -344,7 +347,7 @@ export class APIClient {
       } catch {
         decoded = null
       }
-      throw new APIError(response.status, normalizeAPIErrorResponse(decoded, response.statusText))
+      throw new APIError(response.status, normalizeAPIErrorResponse(decoded, response.statusText), decoded ?? undefined)
     }
 
     return response

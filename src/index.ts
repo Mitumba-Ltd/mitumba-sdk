@@ -13,6 +13,7 @@ import { StoresModule } from './modules/stores'
 import { ReviewsModule } from './modules/reviews'
 import { WishlistsModule } from './modules/wishlists'
 import { CartModule } from './modules/cart'
+import { CheckoutsModule } from './modules/checkouts'
 import { SettingsModule } from './modules/settings'
 import { MailerModule } from './modules/mailer'
 import { BusinessesModule } from './modules/businesses'
@@ -39,6 +40,7 @@ export class MitumbaClient {
   public readonly reviews: ReviewsModule
   public readonly wishlists: WishlistsModule
   public readonly cart: CartModule
+  public readonly checkouts: CheckoutsModule
   public readonly settings: SettingsModule
   public readonly mailer: MailerModule
   public readonly businesses: BusinessesModule
@@ -65,6 +67,7 @@ export class MitumbaClient {
     this.reviews = new ReviewsModule(this.api)
     this.wishlists = new WishlistsModule(this.api)
     this.cart = new CartModule(this.api)
+    this.checkouts = new CheckoutsModule(this.api)
     this.settings = new SettingsModule(this.api)
     this.mailer = new MailerModule(this.api)
     this.businesses = new BusinessesModule(this.api)
@@ -138,6 +141,7 @@ export { StoresModule } from './modules/stores'
 export { ReviewsModule } from './modules/reviews'
 export { WishlistsModule } from './modules/wishlists'
 export { CartModule } from './modules/cart'
+export { CheckoutsModule, checkoutRefusal } from './modules/checkouts'
 export { SettingsModule } from './modules/settings'
 export { MailerModule } from './modules/mailer'
 export { BusinessesModule } from './modules/businesses'

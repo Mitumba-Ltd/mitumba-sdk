@@ -16,6 +16,8 @@ import type {
   IamLoginInput,
   IamPasskeyLoginOptions,
   IamProfile,
+  IamSessionsResult,
+  IamSignInsResult,
   IamTokens,
   IamTwoFactorRequired,
   IamUserStatus,
@@ -97,6 +99,54 @@ export class IamModule {
   /** Get the current IAM principal, organization and effective access state. */
   async me(options?: RequestOptions): Promise<IamProfile> {
     return this.client.get<IamProfile>('/auth/iam/me', undefined, options)
+  }
+
+  // ── Sessions and sign-in history ──
+
+  /** This IAM user's live sessions, most recently active first; `current` marks this one. */
+  async listSessions(options?: RequestOptions): Promise<IamSessionsResult> {
+    return this.client.get<IamSessionsResult>('/auth/iam/sessions', undefined, options)
+  }
+
+  /**
+   * End one of this IAM user's sessions. It can no longer be renewed; its current access lapses
+   * within 15 minutes. 404 for a session that does not exist or is not this user's.
+   */
+  async endSession(sessionId: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/auth/iam/sessions/${encodeURIComponent(sessionId)}/revoke`, undefined, options)
+  }
+
+  /** This IAM user's recent sign-in attempts, newest first, successful and refused (at most 100). */
+  async listSignIns(params?: { limit?: number }, options?: RequestOptions): Promise<IamSignInsResult> {
+    return this.client.get<IamSignInsResult>('/auth/iam/signins', params as Record<string, string | number | boolean | undefined>, options)
+  }
+
+  /** An IAM user's live sessions. Requires `roles:grant`; IAM users cannot call it. */
+  async listUserSessions(orgId: string, iamUserId: string, options?: RequestOptions): Promise<IamSessionsResult> {
+    return this.client.get<IamSessionsResult>(`/auth/orgs/${encodeURIComponent(orgId)}/iam-users/${encodeURIComponent(iamUserId)}/sessions`, undefined, options)
+  }
+
+  /** End one of an IAM user's sessions (its current access lapses within 15 minutes). Requires `roles:grant`. */
+  async endUserSession(orgId: string, iamUserId: string, sessionId: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(
+      `/auth/orgs/${encodeURIComponent(orgId)}/iam-users/${encodeURIComponent(iamUserId)}/sessions/${encodeURIComponent(sessionId)}/revoke`,
+      undefined,
+      options,
+    )
+  }
+
+  /** Sign an IAM user out of every device now, without disabling them. Requires `roles:grant`. */
+  async endAllUserSessions(orgId: string, iamUserId: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/auth/orgs/${encodeURIComponent(orgId)}/iam-users/${encodeURIComponent(iamUserId)}/sessions/revoke-all`, undefined, options)
+  }
+
+  /** An IAM user's recent sign-in attempts, successful and refused. Requires `roles:grant`. */
+  async listUserSignIns(orgId: string, iamUserId: string, params?: { limit?: number }, options?: RequestOptions): Promise<IamSignInsResult> {
+    return this.client.get<IamSignInsResult>(
+      `/auth/orgs/${encodeURIComponent(orgId)}/iam-users/${encodeURIComponent(iamUserId)}/signins`,
+      params as Record<string, string | number | boolean | undefined>,
+      options,
+    )
   }
 
   /** List this IAM principal's enrolled second-factor methods. */

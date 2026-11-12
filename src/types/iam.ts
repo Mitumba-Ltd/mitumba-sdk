@@ -204,3 +204,54 @@ export interface IamPasskeyLoginOptions {
 export interface IamMethodsResult {
   methods: TwoFactorMethod[]
 }
+
+/** One live sign-in session of an IAM user. */
+export interface IamSession {
+  id: string
+  /** The browser or device that signed in, as it identified itself. */
+  device: string
+  ip_address: string | null
+  created_at: string
+  /** Updated whenever the session renews its access, roughly every 15 minutes while in use. */
+  last_active_at: string
+  expires_at: string
+  /** How the session signed in (`passkey`, `totp`, `password`), when recorded. */
+  strength: string | null
+  /** True for the session making the request (always false in administration views). */
+  current: boolean
+}
+
+export interface IamSessionsResult {
+  sessions: IamSession[]
+}
+
+/** Why a sign-in was refused. New reasons may be added; treat unknown values as opaque. */
+export type IamSignInFailureReason =
+  | 'unknown_user'
+  | 'not_activated'
+  | 'wrong_password'
+  | 'principal_disabled'
+  | 'organization_suspended'
+  | 'invalid_code'
+  | 'passkey_not_recognised'
+  | 'passkey_unverified'
+  | 'too_many_codes'
+
+/** One sign-in attempt against an IAM user, successful or refused. */
+export interface IamSignIn {
+  id: string
+  at: string
+  outcome: 'ok' | 'failed'
+  /** The step the attempt reached: `password`, `totp` or `passkey`. */
+  step: string | null
+  reason: IamSignInFailureReason | string | null
+  strength: string | null
+  /** This attempt reached the limit; further attempts were refused for a while. */
+  locked: boolean
+  ip: string | null
+  device: string | null
+}
+
+export interface IamSignInsResult {
+  signins: IamSignIn[]
+}

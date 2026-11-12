@@ -795,12 +795,66 @@ interface CartItem {
 
 ---
 
-### `POST /orders/checkout` — Checkout cart
+### `POST /orders/checkout` — Create a checkout
 
 **Auth:** Protected  
-**Response:** `200 { order_ids: string[], count: number }`
+**SDK:** `sdk.checkouts.create(input)` (`sdk.cart.checkout()` is deprecated: it sends no body)  
+**Body:** `CreateCheckoutInput`  
+**Response:** `201` created, `200` a retry of the same request: `{ checkout: Checkout, order_ids: string[], count: number }`
 
-> Creates orders grouped by store and clears the cart.
+```typescript
+interface CreateCheckoutInput {
+  address_id: string
+  idempotency_key: string // 8 to 128 chars; a retry with the same key returns the same checkout
+  deliveries: Array<{ store_id: string; quote_id: string }> // exactly one per shop in the cart
+}
+
+interface Checkout {
+  id: string
+  invoice_number: string
+  status: 'awaiting_payment' | 'paid' | 'expired' | 'cancelled'
+  market_code: string
+  items_total: CheckoutMoney
+  delivery_total: CheckoutMoney
+  bpf_total: CheckoutMoney // buyer protection fee (BPF) across every shop; zero when none
+  total: CheckoutMoney     // items + delivery + BPF
+  due_at: string
+  created_at: string
+  orders: Array<{
+    order_id: string
+    store_id: string
+    items_total: CheckoutMoney
+    delivery_fee: CheckoutMoney
+    bpf: CheckoutMoney
+    total: CheckoutMoney // items + delivery + BPF for this shop
+  }>
+}
+
+interface CheckoutMoney { currency: string; minor_units: number }
+```
+
+**Errors:** `{ error, ...details }`. Read them with `checkoutRefusal(error)`.
+
+| Status | `error` | Details |
+|---|---|---|
+| 400 | `invalid_input`, `empty_cart`, `cannot_buy_own`, `invalid_deliveries` | |
+| 404 | `address_not_found` | |
+| 409 | `idempotency_conflict` | |
+| 409 | `listing_unavailable` | `listings: Array<{ listing_id, available }>` |
+| 409 | `mixed_market_cart`, `market_not_active` | |
+| 409 | `checkout_payment_in_progress` | `checkout_id` |
+| 409 | `delivery_quote_rejected` | `store_id` (string or null), `reason` |
+| 422 | `address_region_invalid` | |
+| 422 | `delivery_required` | `store_ids: string[]` |
+| 503 | `delivery_quotes_unavailable` | `Retry-After` header |
+
+---
+
+### `GET /orders/checkouts/:id` — Get a checkout
+
+**Auth:** Protected (the checkout's buyer; anyone else gets `404 not_found`)  
+**SDK:** `sdk.checkouts.get(checkoutId)`  
+**Response:** `200 { checkout: Checkout }`
 
 ---
 

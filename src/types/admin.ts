@@ -589,3 +589,61 @@ export interface LibraryListing {
   /** True when the caller holds `library:read_all` and so sees every document. */
   can_read_all: boolean
 }
+
+// ── Platform settings ──
+
+export type PlatformSettingKind = 'boolean' | 'domains' | 'text'
+export type PlatformSettingGroup = 'Sign-in' | 'Operator access' | 'Messaging' | 'Payments' | 'Other'
+
+/** One platform setting with its current value, from `admin.listSettings()`. */
+export interface PlatformSetting {
+  key: string
+  label: string
+  description: string
+  group: PlatformSettingGroup
+  kind: PlatformSettingKind
+  /** True when `admin.changeSetting()` may change it (with `roles:grant` and a recent passkey). */
+  editable: boolean
+  /** What changing it does to real people; shown before a change. */
+  warning?: string
+  /** For read-only settings: where they are changed instead. */
+  managedBy?: string
+  /** Shown when the setting has never been set. */
+  defaultValue?: string
+  /** The current value, or null when never set (the default applies). */
+  value: string | null
+  is_default: boolean
+  changed_at: string | null
+  changed_by: string | null
+  reason: string | null
+  /** How many times it has been set. */
+  changes: number
+}
+
+export interface PlatformSettingChange {
+  id: string
+  key: string
+  value: string
+  changed_by: string
+  reason: string | null
+  effective_at: string
+}
+
+export interface PlatformSettingDetail {
+  setting: PlatformSetting
+  /** Newest first, at most 50. */
+  history: PlatformSettingChange[]
+}
+
+export interface ChangePlatformSettingInput {
+  value: string
+  /** Why, in 3 to 500 characters. Recorded with the change and on the audit trail. */
+  reason: string
+}
+
+export interface ChangePlatformSettingResult {
+  ok: true
+  /** True when the value was already this; nothing was recorded. */
+  unchanged: boolean
+  setting: PlatformSetting
+}

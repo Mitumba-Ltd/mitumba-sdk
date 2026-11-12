@@ -34,6 +34,8 @@ export class CartModule {
 
   /**
    * Checkout the cart — creates orders grouped by store and clears the cart.
+   * @deprecated Use `sdk.checkouts.create`: checkout needs an address, an idempotency key and a
+   * delivery quote per shop, and returns the checkout with its totals.
    */
   async checkout(options?: RequestOptions): Promise<{ order_ids: string[]; count: number }> {
     return this.client.post<{ order_ids: string[]; count: number }>('/orders/checkout', undefined, options)

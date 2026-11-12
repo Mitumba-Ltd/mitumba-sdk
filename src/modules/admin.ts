@@ -8,6 +8,7 @@ import type {
   AdminWholesalePendingStore, OAuthClientSummary, OAuthClient, RegisterOAuthClientInput,
   RegisteredOAuthClient, OidcSigningKey, LibraryDocument, LibraryListing, LibraryOccurrenceRecorded,
   AdminMessageReportList, AdminMessageReportDetail, MessageReportStatus, ResolveMessageReportInput, ResolveMessageReportResult,
+  PlatformSetting, PlatformSettingDetail, ChangePlatformSettingInput, ChangePlatformSettingResult,
 } from '../types'
 
 export class AdminModule {
@@ -224,6 +225,28 @@ export class AdminModule {
    */
   async resolveMessageReport(reportId: string, input: ResolveMessageReportInput, options?: RequestOptions): Promise<ResolveMessageReportResult> {
     return this.client.post<ResolveMessageReportResult>(`/admin/message-reports/${encodeURIComponent(reportId)}/resolve`, input, options)
+  }
+
+  // ── Platform settings ──
+
+  /** Every platform setting with its current value and whether it can be changed here. Requires `admin:read`. */
+  async listSettings(options?: RequestOptions): Promise<{ settings: PlatformSetting[] }> {
+    return this.client.get<{ settings: PlatformSetting[] }>('/admin/settings', undefined, options)
+  }
+
+  /** One setting and its change history, newest first. Requires `admin:read`. */
+  async getSetting(key: string, options?: RequestOptions): Promise<PlatformSettingDetail> {
+    return this.client.get<PlatformSettingDetail>(`/admin/settings/${encodeURIComponent(key)}`, undefined, options)
+  }
+
+  /**
+   * Change an editable setting. Requires `roles:grant` and a recent passkey (403
+   * `reauthentication_required` otherwise). Errors: 403 `not_editable` for payment and messaging
+   * settings, 400 `invalid_value`, 409 `would_lock_you_out` when an operator-domain change would
+   * remove the caller's own domain. Recorded on the audit trail as `config.changed`.
+   */
+  async changeSetting(key: string, input: ChangePlatformSettingInput, options?: RequestOptions): Promise<ChangePlatformSettingResult> {
+    return this.client.put<ChangePlatformSettingResult>(`/admin/settings/${encodeURIComponent(key)}`, input, options)
   }
 
   // ── VAZI Moderation ──

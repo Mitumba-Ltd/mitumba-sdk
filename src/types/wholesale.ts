@@ -110,7 +110,12 @@ export interface BaleOrder {
   image_url: string | null
   qty: number
   unit_kes: number
+  /** The bales' price: quantity x unit price, in whole KES. */
   total_kes: number
+  /** The buyer protection fee (BPF) on the order, in whole KES; 0 when none is charged. */
+  bpf_kes: number
+  /** What the buyer pays: the bales' price plus the BPF, in whole KES. */
+  amount_due_kes: number
   fulfillment: BaleFulfillment
   freight_kes: number | null
   status: BaleOrderStatus
@@ -157,4 +162,12 @@ export interface WholesaleAnalytics {
   orders_breakdown: { date: string; completed: number; pending: number; cancelled: number }[]
   top_bales: { bale_id: string; title: string; orders: number; revenue: number }[]
   totals: { bales: number; orders: number; revenue: number }
+}
+
+/** The bale order just placed: its price, the BPF and what the buyer pays, in whole KES. */
+export interface CreatedBaleOrder {
+  id: string
+  total_kes: number
+  bpf_kes: number
+  amount_due_kes: number
 }

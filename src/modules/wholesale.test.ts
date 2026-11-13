@@ -95,7 +95,7 @@ describe('WholesaleModule', () => {
 
   describe('createBaleOrder', () => {
     it('calls POST /listings/bale-orders', async () => {
-      vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'bo_1', total_kes: 15000 })
+      vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'bo_1', total_kes: 15000, bpf_kes: 750, amount_due_kes: 15750 })
       await wholesale.createBaleOrder({ bale_id: 'bale_1', qty: 2, fulfillment: 'pickup' })
       expect(apiClient.post).toHaveBeenCalledWith('/listings/bale-orders', { bale_id: 'bale_1', qty: 2, fulfillment: 'pickup' }, undefined)
     })

@@ -2,7 +2,7 @@ import { APIClient } from '../client'
 import type {
   WholesaleStore, WholesaleDepot, Bale, BaleDetail, BaleFeedItem,
   CreateBaleInput, SaveWholesaleStoreInput, AddDepotInput, WholesaleFeedParams,
-  BaleOrder, BaleOrderEvent, BaleOrderStatus, CreateBaleOrderInput,
+  BaleOrder, BaleOrderEvent, BaleOrderStatus, CreateBaleOrderInput, CreatedBaleOrder,
   BaleImageUploadResult, WholesaleAnalytics, PresignImageResponse,
   RequestOptions,
 } from '../types'
@@ -115,8 +115,8 @@ export class WholesaleModule {
   // ── Bale Orders ──
 
   /** Create a bale order (buyer). */
-  async createBaleOrder(input: CreateBaleOrderInput, options?: RequestOptions): Promise<{ id: string; total_kes: number }> {
-    return this.client.post<{ id: string; total_kes: number }>('/listings/bale-orders', input, options)
+  async createBaleOrder(input: CreateBaleOrderInput, options?: RequestOptions): Promise<CreatedBaleOrder> {
+    return this.client.post<CreatedBaleOrder>('/listings/bale-orders', input, options)
   }
 
   /** Get the buyer's bale orders. */

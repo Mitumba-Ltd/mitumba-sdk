@@ -31,4 +31,16 @@ describe('AdminModule platform settings', () => {
     vi.spyOn(client, 'put').mockRejectedValue(new APIError(409, { error: 'would_lock_you_out', message: 'Keep your domain.' }))
     await expect(admin.changeSetting('admin_email_domains', { value: 'example.org', reason: 'Move' })).rejects.toMatchObject({ status: 409, code: 'would_lock_you_out' })
   })
+
+  it('sends a test notification to the caller', async () => {
+    const result = { queued: true, id: 'msg-1', recipient: 'iam:op1', idempotency_key: 'ops.test_notification:iam:op1:2026-11-14T20:24' }
+    vi.spyOn(client, 'post').mockResolvedValue(result)
+    await expect(admin.sendTestNotification()).resolves.toEqual(result)
+    expect(client.post).toHaveBeenCalledWith('/admin/notifications/test', undefined, undefined)
+  })
+
+  it('surfaces an unavailable notifications service', async () => {
+    vi.spyOn(client, 'post').mockRejectedValue(new APIError(503, { error: 'notifications_unavailable', message: 'Nothing was sent.' }))
+    await expect(admin.sendTestNotification()).rejects.toMatchObject({ status: 503, code: 'notifications_unavailable' })
+  })
 })

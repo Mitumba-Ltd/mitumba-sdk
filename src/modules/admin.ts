@@ -8,7 +8,7 @@ import type {
   AdminWholesalePendingStore, OAuthClientSummary, OAuthClient, RegisterOAuthClientInput,
   RegisteredOAuthClient, OidcSigningKey, LibraryDocument, LibraryListing, LibraryOccurrenceRecorded,
   AdminMessageReportList, AdminMessageReportDetail, MessageReportStatus, ResolveMessageReportInput, ResolveMessageReportResult,
-  PlatformSetting, PlatformSettingDetail, ChangePlatformSettingInput, ChangePlatformSettingResult,
+  PlatformSetting, PlatformSettingDetail, ChangePlatformSettingInput, ChangePlatformSettingResult, SendTestNotificationResult,
 } from '../types'
 
 export class AdminModule {
@@ -247,6 +247,16 @@ export class AdminModule {
    */
   async changeSetting(key: string, input: ChangePlatformSettingInput, options?: RequestOptions): Promise<ChangePlatformSettingResult> {
     return this.client.put<ChangePlatformSettingResult>(`/admin/settings/${encodeURIComponent(key)}`, input, options)
+  }
+
+  /**
+   * Send the `ops.test_notification` event to the caller only, to check which channels reach them.
+   * Delivery follows the channel modes, the test allowlist and the caller's own contacts, exactly
+   * as for a real event. Requires `broadcast:send`. Presses in the same minute are one test.
+   * Errors: 503 `notifications_unavailable` when the event was not accepted (nothing was sent).
+   */
+  async sendTestNotification(options?: RequestOptions): Promise<SendTestNotificationResult> {
+    return this.client.post<SendTestNotificationResult>('/admin/notifications/test', undefined, options)
   }
 
   // ── VAZI Moderation ──

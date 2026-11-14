@@ -71,10 +71,17 @@ export interface CreateListingInput {
 
 export type UpdateListingInput = Partial<CreateListingInput>
 
+/** Which part of the catalogue a category belongs to. */
+export type CategorySection = 'fashion' | 'home'
+
 export interface Category {
   id: string
   name: string
   slug: string
+  /** `fashion` or `home` (home textiles). Treat a missing value as `fashion`. */
+  section?: CategorySection
+  /** Listings in this category must be `new`; creating or editing one as used is `409 new_only_category`. */
+  new_only?: boolean
 }
 
 export interface City {

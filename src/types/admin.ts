@@ -592,8 +592,8 @@ export interface LibraryListing {
 
 // ── Platform settings ──
 
-export type PlatformSettingKind = 'boolean' | 'domains' | 'text'
-export type PlatformSettingGroup = 'Sign-in' | 'Operator access' | 'Messaging' | 'Payments' | 'Other'
+export type PlatformSettingKind = 'boolean' | 'domains' | 'text' | 'choice' | 'number' | 'recipients'
+export type PlatformSettingGroup = 'Sign-in' | 'Operator access' | 'Notifications' | 'Messaging' | 'Payments' | 'Other'
 
 /** One platform setting with its current value, from `admin.listSettings()`. */
 export interface PlatformSetting {
@@ -610,6 +610,13 @@ export interface PlatformSetting {
   managedBy?: string
   /** Shown when the setting has never been set. */
   defaultValue?: string
+  /** `choice`: the allowed values, in the order to offer them. */
+  options?: string[]
+  /** `number`: whole numbers from `min` to `max`, inclusive. */
+  min?: number
+  max?: number
+  /** `number`: what the number counts, e.g. "KES" or "per person per day". */
+  unit?: string
   /** The current value, or null when never set (the default applies). */
   value: string | null
   is_default: boolean
@@ -646,4 +653,15 @@ export interface ChangePlatformSettingResult {
   /** True when the value was already this; nothing was recorded. */
   unchanged: boolean
   setting: PlatformSetting
+}
+
+/** From `admin.sendTestNotification()`. */
+export interface SendTestNotificationResult {
+  queued: true
+  /** The published event message id, for tracing. */
+  id: string
+  /** The caller: a user id, or `iam:<id>`. */
+  recipient: string
+  /** Presses in the same minute share this key and produce one test. */
+  idempotency_key: string
 }

@@ -468,7 +468,7 @@ interface PaymentMethod {
 ### `GET /listings/categories` — List categories
 
 **Auth:** Public  
-**Response:** `Array<{ id, name, slug }>`
+**Response:** `Array<{ id, name, slug, section, new_only }>`, fashion first, then by name. `section` is `'fashion'` or `'home'`. With `new_only: true`, creating or editing a listing in the category with a condition other than `new` is `409 new_only_category`.
 
 ---
 

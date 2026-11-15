@@ -1,6 +1,7 @@
 import { APIClient } from '../client'
 import { ManagedNotificationStream } from '../realtime/notification-stream'
-import type { Notification, NotificationStream, NotificationStreamOptions, RequestOptions } from '../types'
+import { browserResume, createLiveUnread } from '../realtime/live-unread'
+import type { LiveUnread, LiveUnreadOptions, Notification, NotificationStream, NotificationStreamOptions, RequestOptions } from '../types'
 
 export class NotificationsModule {
   constructor(private readonly client: APIClient) {}
@@ -40,5 +41,22 @@ export class NotificationsModule {
     const stream = this.stream(options)
     await stream.start()
     return stream
+  }
+
+  /**
+   * A bell's unread count, kept current without a reload. Reads the count once, then follows the
+   * live stream; while the stream is not open (connecting, refused, failed) it polls on resume
+   * and every minute, and asks for a new stream at most every ten minutes after a refusal.
+   * Create one per page and share it between bells.
+   */
+  liveUnread(options: LiveUnreadOptions = {}): LiveUnread {
+    return createLiveUnread({
+      unread: () => this.unread(),
+      stream: (streamOptions) => this.stream(streamOptions),
+      onResume: options.onResume ?? browserResume,
+      setInterval: (callback, ms) => setInterval(callback, ms),
+      clearInterval: (handle) => clearInterval(handle as ReturnType<typeof setInterval>),
+      surface: options.surface,
+    })
   }
 }

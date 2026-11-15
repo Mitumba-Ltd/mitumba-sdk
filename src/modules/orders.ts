@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { CreateOrderInput, Order, OrderDocument, OrderEvent, OrderHistoryParams, OrderStatus, TransitionOrderInput, RequestOptions } from '../types'
+import type { CreateOrderInput, Order, OrderDocument, OrderEvent, OrderHistoryEntry, OrderHistoryParams, OrderStatus, TransitionOrderInput, RequestOptions } from '../types'
 
 /** The file name in a Content-Disposition header: the RFC 5987 filename* form first, then filename. */
 function dispositionFilename(header: string | null): string | null {
@@ -57,10 +57,11 @@ export class OrdersModule {
   }
 
   /**
-   * Get the order history for the current authenticated user.
+   * Get the order history for the current authenticated user. Each entry carries the order's first
+   * four items and its unit count. With `role: 'seller'`, only orders that have been paid are listed.
    */
-  async getHistory(params?: OrderHistoryParams, options?: RequestOptions): Promise<{ data: Order[]; page: number; page_size: number }> {
-    return this.client.get<{ data: Order[]; page: number; page_size: number }>(
+  async getHistory(params?: OrderHistoryParams, options?: RequestOptions): Promise<{ data: OrderHistoryEntry[]; page: number; page_size: number }> {
+    return this.client.get<{ data: OrderHistoryEntry[]; page: number; page_size: number }>(
       '/orders/history',
       params as unknown as Record<string, string | number | boolean | undefined>,
       options

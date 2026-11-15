@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 5.27.0
+
+### Minor Changes
+
+- ce011da: `orders.getHistory()` now returns `OrderHistoryEntry[]`: each order with `items` (its first four lines: `listing_id`, `title`, `image_url`, `quantity`), `item_count`, `checkout_id` and `invoice_number`. With `role: 'seller'`, only paid orders are listed.
+
 ## 5.26.0
 
 ### Minor Changes

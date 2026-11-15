@@ -101,5 +101,26 @@ describe('OrdersModule', () => {
       
       expect(apiClient.get).toHaveBeenCalledWith('/orders/history', params, undefined)
     })
+
+    it('returns each entry with its item preview, unit count and invoice', async () => {
+      const entry = {
+        id: 'o1',
+        items: [{ listing_id: 'l1', title: 'Denim jacket', image_url: 'https://cdn.example/l1.jpg', quantity: 2 }],
+        item_count: 2,
+        checkout_id: 'co1',
+        invoice_number: 'INV-20261115-0000C001',
+      }
+      vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [entry], page: 1, page_size: 20 })
+
+      const result = await ordersModule.getHistory()
+
+      expect(result.data[0]?.items[0]?.quantity).toBe(2)
+      expect(result.data[0]).toMatchObject({ item_count: 2, invoice_number: 'INV-20261115-0000C001' })
+    })
+
+    it('propagates an error from the API', async () => {
+      vi.spyOn(apiClient, 'get').mockRejectedValue(new Error('unauthorized'))
+      await expect(ordersModule.getHistory()).rejects.toThrow('unauthorized')
+    })
   })
 })

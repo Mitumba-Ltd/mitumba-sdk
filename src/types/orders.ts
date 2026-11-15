@@ -87,6 +87,28 @@ export interface OrderHistoryParams {
   page?: number
 }
 
+/** One line of an order, as previewed in order history. */
+export interface OrderItemSummary {
+  listing_id: string
+  /** The listing's title, or `null` when the listing is gone. */
+  title: string | null
+  /** The listing's first photo, or `null` when it has none. */
+  image_url: string | null
+  quantity: number
+}
+
+/** An order as listed by `GET /orders/history`. */
+export interface OrderHistoryEntry extends Order {
+  /** The order's first four lines, in cart order. */
+  items: OrderItemSummary[]
+  /** Every unit in the order, across all its lines. */
+  item_count: number
+  /** The checkout this order belongs to, or `null` for an order placed outside a checkout. */
+  checkout_id: string | null
+  /** That checkout's invoice number. */
+  invoice_number: string | null
+}
+
 /** Which document an order has: its invoice while it awaits payment, its receipt once it is paid. */
 export type OrderDocumentKind = 'invoice' | 'receipt'
 

@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 5.28.0
+
+### Minor Changes
+
+- de73f59: `checkouts.cancel(checkoutId)` cancels one of the buyer's unpaid checkouts (`POST /orders/checkouts/:id/cancel`) and answers the cancelled checkout. New types: `CancelCheckoutResponse`, `CancelCheckoutRefusalCode`.
+
 ## 5.27.0
 
 ### Minor Changes

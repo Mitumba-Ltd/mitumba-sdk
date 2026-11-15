@@ -858,6 +858,15 @@ interface CheckoutMoney { currency: string; minor_units: number }
 
 ---
 
+### `POST /orders/checkouts/:id/cancel` — Cancel an unpaid checkout
+
+**Auth:** Protected (the checkout's buyer)  
+**SDK:** `sdk.checkouts.cancel(checkoutId)`  
+**Response:** `200 { checkout: Checkout }` with `status: 'cancelled'`. The checkout's orders become `cancelled` and its items are no longer held; the buyer's cart keeps them. Cancelling an already cancelled checkout answers the same.  
+**Errors:** `checkout_payment_in_progress` (409) while a payment prompt is in flight, `checkout_not_cancellable` (409) once the checkout is paid or expired, `not_found` (404) for a checkout that is not the caller's.
+
+---
+
 ## Search Module (`/search`)
 
 ### `GET /search` — Full-text search

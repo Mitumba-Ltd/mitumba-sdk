@@ -106,3 +106,19 @@ export interface NotificationStream {
   onFrame(listener: (frame: NotificationStreamFrame) => void): () => void
   onStateChange(listener: (state: NotificationStreamState) => void): () => void
 }
+
+/** A bell's unread count kept current: the live stream when it is open, polling otherwise. */
+export interface LiveUnread {
+  readonly count: number
+  /** Calls the listener with the current count at once, then on every change. The first subscriber starts it; the last one to leave stops it. */
+  subscribe(listener: (count: number) => void): () => void
+  /** Re-read the count, e.g. right after marking notifications read. */
+  refresh(): Promise<void>
+}
+
+export interface LiveUnreadOptions {
+  /** Which surface this client is, so pop-ups meant for it arrive. Default `web`. */
+  surface?: 'web' | 'mobile' | 'console'
+  /** Calls back when the page regains focus or becomes visible. Default: window focus and document visibility in a browser; nothing elsewhere. */
+  onResume?: (listener: () => void) => () => void
+}

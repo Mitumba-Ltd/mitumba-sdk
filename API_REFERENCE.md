@@ -947,8 +947,19 @@ interface SearchHistoryItem {
 ### `GET /orders/history` — Order history
 
 **Auth:** Protected  
-**Query:** `role?` (`buyer` | `seller`), `page?`  
-**Response:** `{ data: Order[], page, page_size }`
+**Query:** `role?` (`buyer` | `seller`), `store_id?` (with `role=seller`), `page?`  
+**Response:** `{ data: OrderHistoryEntry[], page, page_size }`
+
+Each entry is an `Order` plus:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `items` | `OrderItemSummary[]` | The order's first four lines, in cart order: `{ listing_id, title, image_url, quantity }`. `title` and `image_url` may be `null`. |
+| `item_count` | `number` | Every unit in the order, across all its lines. |
+| `checkout_id` | `string \| null` | The checkout the order belongs to, or `null` for an order placed outside a checkout. |
+| `invoice_number` | `string \| null` | That checkout's invoice number. |
+
+With `role=seller`, the list holds only orders that have been paid: an order that is `created` or `payment_pending`, or one cancelled before it was paid, is not listed.
 
 ---
 

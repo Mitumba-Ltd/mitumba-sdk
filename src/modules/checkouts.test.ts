@@ -81,6 +81,20 @@ describe('CheckoutsModule', () => {
       await expect(checkouts.get('co_other')).rejects.toMatchObject({ status: 404, code: 'not_found' })
     })
   })
+
+  describe('cancel', () => {
+    it('posts POST /orders/checkouts/:id/cancel, encoding the id, and answers the cancelled checkout', async () => {
+      const cancelled = { ...CHECKOUT, status: 'cancelled' as const }
+      vi.spyOn(client, 'post').mockResolvedValue({ checkout: cancelled })
+      expect(await checkouts.cancel('co 1')).toEqual({ checkout: cancelled })
+      expect(client.post).toHaveBeenCalledWith('/orders/checkouts/co%201/cancel', undefined, undefined)
+    })
+
+    it('rejects with the refusal while a payment prompt is in flight', async () => {
+      vi.spyOn(client, 'post').mockRejectedValue(new APIError(409, { error: 'checkout_payment_in_progress' }))
+      await expect(checkouts.cancel('co_1')).rejects.toMatchObject({ status: 409, code: 'checkout_payment_in_progress' })
+    })
+  })
 })
 
 describe('checkoutRefusal', () => {

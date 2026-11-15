@@ -313,6 +313,26 @@ describe('NotificationsModule', () => {
     expect(api.get).toHaveBeenCalledWith('/notify/notifications', undefined, undefined)
   })
 
+  it('keeps a live unread count from the module, for a given surface', async () => {
+    vi.useRealTimers()
+    const api = client()
+    const module = new NotificationsModule(api)
+    vi.spyOn(api, 'get').mockResolvedValue({ unread_count: 4 })
+    vi.spyOn(api, 'post').mockRejectedValue(new APIError(403, { error: 'stream_disabled' }))
+    const resumes: Array<() => void> = []
+    const live = module.liveUnread({ surface: 'console', onResume: (listener) => { resumes.push(listener); return () => undefined } })
+    const seen: number[] = []
+    const off = live.subscribe((n) => seen.push(n))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(seen).toEqual([0, 4])
+    expect(api.get).toHaveBeenCalledWith('/notify/notifications/unread', undefined, undefined)
+    expect(api.post).toHaveBeenCalledWith('/notify/notifications/stream/tickets', {}, { signal: undefined })
+    expect(resumes).toHaveLength(1)
+    off()
+    // With no resume hook given, the browser default is used (a no-op outside a browser).
+    module.liveUnread().subscribe(() => undefined)()
+  })
+
   it('creates an inert stream, or one already connected', async () => {
     const api = client()
     const module = new NotificationsModule(api)

@@ -55,6 +55,15 @@ export interface GetCheckoutResponse {
   checkout: Checkout
 }
 
+/** `checkouts.cancel` answers the cancelled checkout. */
+export type CancelCheckoutResponse = GetCheckoutResponse
+
+/**
+ * Why a cancel was refused: `checkout_payment_in_progress` (409) while a payment prompt is in flight,
+ * `checkout_not_cancellable` (409) once the checkout is paid or expired, `not_found` (404) otherwise.
+ */
+export type CancelCheckoutRefusalCode = 'checkout_payment_in_progress' | 'checkout_not_cancellable' | 'not_found'
+
 /** Why a checkout was refused: the error body, keyed by `error`. */
 export type CheckoutRefusal =
   | { error: 'invalid_input' | 'empty_cart' | 'cannot_buy_own' | 'invalid_deliveries' }

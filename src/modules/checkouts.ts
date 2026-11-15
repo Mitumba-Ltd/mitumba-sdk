@@ -1,6 +1,7 @@
 import { APIClient, APIError } from '../client'
 import type { RequestOptions } from '../types'
 import type {
+  CancelCheckoutResponse,
   CheckoutRefusal,
   CheckoutRefusalCode,
   CreateCheckoutInput,
@@ -54,5 +55,14 @@ export class CheckoutsModule {
   /** Read one of the buyer's checkouts. Anyone else gets a 404. */
   async get(checkoutId: string, options?: RequestOptions): Promise<GetCheckoutResponse> {
     return this.client.get<GetCheckoutResponse>(`/orders/checkouts/${encodeURIComponent(checkoutId)}`, undefined, options)
+  }
+
+  /**
+   * Cancel one of the buyer's unpaid checkouts: its orders are cancelled and its items freed, while
+   * the cart keeps them. Cancelling again answers the same. A refusal throws an `APIError` whose
+   * `code` is a `CancelCheckoutRefusalCode`.
+   */
+  async cancel(checkoutId: string, options?: RequestOptions): Promise<CancelCheckoutResponse> {
+    return this.client.post<CancelCheckoutResponse>(`/orders/checkouts/${encodeURIComponent(checkoutId)}/cancel`, undefined, options)
   }
 }

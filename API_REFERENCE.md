@@ -806,7 +806,8 @@ interface CartItem {
 interface CreateCheckoutInput {
   address_id: string
   idempotency_key: string // 8 to 128 chars; a retry with the same key returns the same checkout
-  deliveries: Array<{ store_id: string; quote_id: string }> // exactly one per shop in the cart
+  deliveries: Array<{ store_id: string; quote_id: string }> // exactly one per shop being ordered from
+  listing_ids?: string[] // the cart lines to order (1 to 200); the rest stay in the cart. Omitted: the whole cart
 }
 
 interface Checkout {
@@ -838,6 +839,7 @@ interface CheckoutMoney { currency: string; minor_units: number }
 | Status | `error` | Details |
 |---|---|---|
 | 400 | `invalid_input`, `empty_cart`, `cannot_buy_own`, `invalid_deliveries` | |
+| 400 | `invalid_selection` | a `listing_ids` entry is not in the cart |
 | 404 | `address_not_found` | |
 | 409 | `idempotency_conflict` | |
 | 409 | `listing_unavailable` | `listings: Array<{ listing_id, available }>` |

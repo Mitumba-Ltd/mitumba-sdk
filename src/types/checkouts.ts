@@ -9,8 +9,13 @@ export interface CreateCheckoutInput {
   address_id: string
   /** One per buyer intent, 8 to 128 characters. A retry with the same key returns the same checkout. */
   idempotency_key: string
-  /** Exactly one per shop in the cart: the delivery quote picked for that shop. */
+  /** Exactly one per shop being ordered from: the delivery quote picked for that shop. */
   deliveries: Array<{ store_id: string; quote_id: string }>
+  /**
+   * The cart lines to order, by listing id (1 to 200). Every other line stays in the cart, and
+   * `deliveries` covers only the shops of these lines. Omitted: the whole cart.
+   */
+  listing_ids?: string[]
 }
 
 export type CheckoutState = 'awaiting_payment' | 'paid' | 'expired' | 'cancelled'
@@ -66,7 +71,7 @@ export type CancelCheckoutRefusalCode = 'checkout_payment_in_progress' | 'checko
 
 /** Why a checkout was refused: the error body, keyed by `error`. */
 export type CheckoutRefusal =
-  | { error: 'invalid_input' | 'empty_cart' | 'cannot_buy_own' | 'invalid_deliveries' }
+  | { error: 'invalid_input' | 'empty_cart' | 'cannot_buy_own' | 'invalid_deliveries' | 'invalid_selection' }
   | { error: 'address_not_found' }
   | { error: 'idempotency_conflict' }
   | { error: 'listing_unavailable'; listings: Array<{ listing_id: string; available: number }> }

@@ -57,6 +57,13 @@ describe('CheckoutsModule', () => {
       expect(client.post).toHaveBeenCalledWith('/orders/checkout', INPUT, { signal })
     })
 
+    it('sends the picked cart lines when only some are ordered', async () => {
+      vi.spyOn(client, 'post').mockResolvedValue({ checkout: CHECKOUT, order_ids: ['ord_a'], count: 1 })
+      const picked = { ...INPUT, listing_ids: ['l_1', 'l_2'] }
+      await checkouts.create(picked)
+      expect(client.post).toHaveBeenCalledWith('/orders/checkout', picked, undefined)
+    })
+
     it('throws a refusal whose details can be read with checkoutRefusal', async () => {
       vi.stubGlobal('fetch', vi.fn(async () => new Response(
         JSON.stringify({ error: 'listing_unavailable', listings: [{ listing_id: 'l_1', available: 1 }] }),
@@ -104,6 +111,7 @@ describe('checkoutRefusal', () => {
       { error: 'checkout_payment_in_progress', checkout_id: 'co_0' },
       { error: 'delivery_quote_rejected', store_id: null, reason: 'expired' },
       { error: 'delivery_quotes_unavailable' },
+      { error: 'invalid_selection' },
     ]) expect(checkoutRefusal(new APIError(409, { error: body.error }, body))).toEqual(body)
   })
 

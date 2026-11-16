@@ -14,6 +14,7 @@ const REFUSAL_CODES: ReadonlySet<CheckoutRefusalCode> = new Set<CheckoutRefusalC
   'empty_cart',
   'cannot_buy_own',
   'invalid_deliveries',
+  'invalid_selection',
   'address_not_found',
   'idempotency_conflict',
   'listing_unavailable',

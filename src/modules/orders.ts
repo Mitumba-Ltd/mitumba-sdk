@@ -1,5 +1,5 @@
 import { APIClient } from '../client'
-import type { CreateOrderInput, Order, OrderDocument, OrderEvent, OrderHistoryEntry, OrderHistoryParams, OrderStatus, TransitionOrderInput, RequestOptions } from '../types'
+import type { CancelOrderInput, CancelOrderResult, CreateOrderInput, Order, OrderDocument, OrderEvent, OrderHistoryEntry, OrderHistoryParams, OrderStatus, ShopOrderFields, TransitionOrderInput, RequestOptions } from '../types'
 
 /** The file name in a Content-Disposition header: the RFC 5987 filename* form first, then filename. */
 function dispositionFilename(header: string | null): string | null {
@@ -27,10 +27,22 @@ export class OrdersModule {
   }
 
   /**
-   * Get full details of an order, including its event timeline.
+   * Get full details of an order, including its event timeline. For the shop (the seller, or a team
+   * member who may read orders) it also carries `items`, `settlement` and `next_step`.
    */
-  async getById(id: string, options?: RequestOptions): Promise<Order & { events: OrderEvent[] }> {
-    return this.client.get<Order & { events: OrderEvent[] }>(`/orders/${id}`, undefined, options)
+  async getById(id: string, options?: RequestOptions): Promise<Order & { events: OrderEvent[] } & Partial<ShopOrderFields>> {
+    return this.client.get<Order & { events: OrderEvent[] } & Partial<ShopOrderFields>>(`/orders/${id}`, undefined, options)
+  }
+
+  /**
+   * Shop: cancel a paid order it cannot fulfil, before its parcel is ready. The buyer is refunded in
+   * full. The owner or a team member who may cancel orders.
+   *
+   * Errors: 400 invalid_input; 403 store_forbidden; 404 not_found; 409 order_not_cancellable,
+   * parcel_ready, not_refundable, conflict (reload and retry).
+   */
+  async cancel(id: string, input: CancelOrderInput, options?: RequestOptions): Promise<CancelOrderResult> {
+    return this.client.post<CancelOrderResult>(`/orders/${encodeURIComponent(id)}/cancel`, input, options)
   }
 
   /**

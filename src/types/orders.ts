@@ -107,6 +107,90 @@ export interface OrderHistoryEntry extends Order {
   checkout_id: string | null
   /** That checkout's invoice number. */
   invoice_number: string | null
+  /** With `role: 'seller'`: what the order needs next, from the shop's side. */
+  next_step?: ShopNextStep
+}
+
+/** Who an order is waiting on, from the shop's side. */
+export type ShopHolder = 'shop' | 'courier' | 'buyer' | 'mitumba' | 'done'
+
+/** The one next step of an order, from the shop's side. Open: an unknown step reads as waiting. */
+export type KnownShopStep =
+  | 'awaiting_payment'
+  | 'confirm_available'
+  | 'get_ready'
+  | 'hand_over_counter'
+  | 'drop_off'
+  | 'await_collection'
+  | 'mark_shipped'
+  | 'in_transit'
+  | 'buyer_window'
+  | 'respond_dispute'
+  | 'dispute_review'
+  | 'parcel_problem'
+  | 'completed'
+  | 'cancelled'
+
+export type ShopStep = KnownShopStep | (string & {})
+
+export interface ShopNextStep {
+  holder: ShopHolder
+  step: ShopStep
+  /** When the step must be done by (ISO 8601), or `null` when nothing is due. */
+  deadline: string | null
+}
+
+/** A line of a settlement, signed, in minor units. */
+export interface SettlementLine {
+  /** e.g. `item`, `commission`, `commission_vat`, `deliver_for_me`, `counter_fare`. Open. */
+  kind: string
+  amount_minor: number
+}
+
+/** What the shop receives for an order. */
+export interface ShopSettlement {
+  currency: string
+  lines: SettlementLine[]
+  /** What the shop receives, in minor units. */
+  receive_minor: number
+  /** `true` once the payout exists and its lines are final; `false` for an estimate. */
+  final: boolean
+}
+
+/** One line of an order, in full, on the shop's view of the order. */
+export interface OrderItem {
+  listing_id: string
+  title: string | null
+  image_url: string | null
+  quantity: number
+  /** The unit price, in whole units of the order's currency. */
+  price: number
+}
+
+/** The fields the shop's view of an order adds (`GET /orders/:id` for the seller or a team member). */
+export interface ShopOrderFields {
+  items: OrderItem[]
+  /** `null` for a cancelled order. */
+  settlement: ShopSettlement | null
+  next_step: ShopNextStep
+}
+
+/** Why the shop cancels a paid order. */
+export type ShopCancelReason = 'sold_elsewhere' | 'damaged' | 'other'
+
+export interface CancelOrderInput {
+  reason: ShopCancelReason
+  /** Shown to the buyer, up to 500 characters. */
+  note?: string
+}
+
+export interface CancelOrderResult {
+  order_id: string
+  status: 'cancelled'
+  /** What the buyer is owed back, in whole units. */
+  refund: { id: string; amount: number; currency: string; status: 'pending' | 'sent' | 'failed' }
+  /** When this cancellation paused the shop, the pause's end; otherwise `null`. */
+  shop_paused_until: string | null
 }
 
 /** Which document an order has: its invoice while it awaits payment, its receipt once it is paid. */

@@ -31,6 +31,34 @@ describe('OrdersModule', () => {
       await ordersModule.getById('ord_123')
       expect(apiClient.get).toHaveBeenCalledWith('/orders/ord_123', undefined, undefined)
     })
+
+    it("returns the shop's items, settlement and next step when the shop reads it", async () => {
+      vi.spyOn(apiClient, 'get').mockResolvedValue({
+        id: 'ord_123',
+        items: [{ listing_id: 'l1', title: 'Denim jacket', image_url: null, quantity: 1, price: 1200 }],
+        settlement: { currency: 'KES', lines: [{ kind: 'item', amount_minor: 120_000 }, { kind: 'commission', amount_minor: -12_000 }], receive_minor: 108_000, final: false },
+        next_step: { holder: 'shop', step: 'get_ready', deadline: '2026-11-20T08:00:00.000Z' },
+      })
+      const order = await ordersModule.getById('ord_123')
+      expect(order.settlement?.receive_minor).toBe(108_000)
+      expect(order.next_step).toEqual({ holder: 'shop', step: 'get_ready', deadline: '2026-11-20T08:00:00.000Z' })
+      expect(order.items?.[0]?.price).toBe(1200)
+    })
+  })
+
+  describe('cancel', () => {
+    it('calls POST /orders/:id/cancel with the reason and returns the refund', async () => {
+      const result = { order_id: 'ord 1', status: 'cancelled', refund: { id: 'r1', amount: 1560, currency: 'KES', status: 'pending' }, shop_paused_until: null }
+      vi.spyOn(apiClient, 'post').mockResolvedValue(result)
+      const input = { reason: 'sold_elsewhere' as const, note: 'Sold at the stall' }
+      expect(await ordersModule.cancel('ord 1', input)).toEqual(result)
+      expect(apiClient.post).toHaveBeenCalledWith('/orders/ord%201/cancel', input, undefined)
+    })
+
+    it('propagates a refusal from the API', async () => {
+      vi.spyOn(apiClient, 'post').mockRejectedValue(new Error('parcel_ready'))
+      await expect(ordersModule.cancel('ord_1', { reason: 'other' })).rejects.toThrow('parcel_ready')
+    })
   })
 
   describe('getDocument', () => {
@@ -109,13 +137,15 @@ describe('OrdersModule', () => {
         item_count: 2,
         checkout_id: 'co1',
         invoice_number: 'INV-20261115-0000C001',
+        next_step: { holder: 'courier', step: 'in_transit', deadline: null },
       }
       vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [entry], page: 1, page_size: 20 })
 
-      const result = await ordersModule.getHistory()
+      const result = await ordersModule.getHistory({ role: 'seller', store_id: 's1' })
 
       expect(result.data[0]?.items[0]?.quantity).toBe(2)
       expect(result.data[0]).toMatchObject({ item_count: 2, invoice_number: 'INV-20261115-0000C001' })
+      expect(result.data[0]?.next_step?.holder).toBe('courier')
     })
 
     it('propagates an error from the API', async () => {

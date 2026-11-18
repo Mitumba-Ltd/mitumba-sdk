@@ -600,8 +600,32 @@ interface PaymentMethod {
 ### `PUT /listings/stores/:storeId/settings` — Update store settings
 
 **Auth:** Protected (owner only)  
-**Body:** Partial of StoreSettings fields  
+**Body:** Partial of StoreSettings fields. `payout_method`, `payout_mpesa_number`, `payout_bank_name` and `payout_account_number` are ignored: use payout destinations.  
 **Response:** `200 { ok: true }`
+
+---
+
+### Payout destinations: `/listings/stores/:storeId/payout-destinations`
+
+Where the shop is paid. Every response carries masked labels only.
+
+- `GET` (`stores.getPayoutDestinations`): owner, or a member who may read earnings. Returns `PayoutDestinations`: `{ market_code, methods: [{ id, name, enabled }], banks: [{ id, name }], destinations, default_destination_id, pending_default, can_manage }`.
+- `POST` (`stores.addPayoutDestination`): owner. Body `AddPayoutDestinationInput`: `{ method, phone }` (`mpesa_mobile`, `mpesa_pochi`), `{ method, till_number }`, `{ method, paybill_number, account_number }` or `{ method, bank_id, account_number }`, plus `make_default?`. `201 PayoutDestinationsState`.
+- `POST /:destinationId/default` (`stores.setDefaultPayoutDestination`), `DELETE /:destinationId/default` (`stores.cancelPendingDefault`), `DELETE /:destinationId` (`stores.removePayoutDestination`): owner. `200 PayoutDestinationsState`.
+
+Rules: the shop's first destination applies at once; every later one, and every change of default, 48 hours later (`state: 'cooling_off'`, `pending_default`). Changes need a second factor used in the last 10 minutes; otherwise `403 step_up_required` (`stepUpRequired(error)`). Other errors: `400` `invalid_phone` | `invalid_till` | `invalid_paybill` | `invalid_account` | `unknown_bank` | `method_not_offered` with `field`; `403 store_forbidden`; `404 not_found`; `409` `method_unavailable` | `destination_exists` | `too_many_destinations` | `no_pending_default`.
+
+---
+
+### Shop earnings: `/orders/stores/:storeId/...`
+
+Owner, or a member who may read earnings (`403 forbidden` for other members, `404 not_found` otherwise). Amounts are minor units of `currency`.
+
+- `GET /earnings` (`stores.getEarnings`): `ShopEarnings` `{ store_id, balances: [{ currency, totals: { <PayoutState>: { amount_minor, count } }, includes_estimates }], frozen_until }`.
+- `GET /earnings/entries?state=&page=` (`stores.getEarningsEntries`): `ShopPayoutEntriesPage`, newest first, 20 per page. Each `ShopPayoutEntry` has `id` (null before a payout exists), `order_id`, `invoice_number`, `state`, `amount_minor`, `currency`, `estimated`, `created_at`, `sent_at`, `destination`.
+- `GET /payouts/:payoutId` (`stores.getPayout`): `ShopPayout`, an entry with its settlement `lines`.
+
+`PayoutState`: `in_escrow`, `on_hold`, `awaiting_approval`, `approved`, `sending`, `sent`, `failed`, `test`.
 
 ---
 

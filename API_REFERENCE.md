@@ -940,9 +940,30 @@ interface SearchHistoryItem {
 
 ### `GET /orders/:id` — Get order details
 
-**Auth:** Protected (buyer or seller)  
+**Auth:** Protected (buyer, seller, or a shop team member whose role reads orders)  
 **Response:** Full order with `events: OrderEvent[]` timeline.  
 **Errors:** `not_found` (404)
+
+The shop's view (the seller, or a team member) also carries:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `items` | `OrderItem[]` | Every line: `{ listing_id, title, image_url, quantity, price }`. `price` is the unit price in whole units. |
+| `settlement` | `ShopSettlement \| null` | `{ currency, lines: { kind, amount_minor }[], receive_minor, final }`: what the shop receives. `final` is `false` for an estimate, `true` once the payout exists. `null` for a cancelled order. |
+| `next_step` | `ShopNextStep` | `{ holder, step, deadline }`: who the order waits on (`shop`, `courier`, `buyer`, `mitumba`, `done`), the one next step, and its deadline or `null`. |
+
+---
+
+### `POST /orders/:id/cancel` — The shop cancels a paid order
+
+**Auth:** Protected (the seller, or a shop team member whose role may cancel orders)  
+**SDK:** `sdk.orders.cancel(id, { reason, note? })`  
+**Body:** `{ reason: 'sold_elsewhere' | 'damaged' | 'other', note?: string }` (note: 1–500 characters, shown to the buyer)  
+**Response:** `200 { order_id, status: 'cancelled', refund: { id, amount, currency, status }, shop_paused_until }`
+
+A `paid` or `seller_confirmed` order whose parcel is not ready yet. The buyer is refunded in full. `sold_elsewhere` marks the listing sold; `damaged` returns it to draft. `shop_paused_until` is set when this cancellation paused the shop.
+
+**Errors:** `invalid_input` (400), `store_forbidden` (403), `not_found` (404), `order_not_cancellable` (409), `parcel_ready` (409), `not_refundable` (409), `conflict` (409: reload and retry)
 
 ---
 
@@ -969,8 +990,9 @@ Each entry is an `Order` plus:
 | `item_count` | `number` | Every unit in the order, across all its lines. |
 | `checkout_id` | `string \| null` | The checkout the order belongs to, or `null` for an order placed outside a checkout. |
 | `invoice_number` | `string \| null` | That checkout's invoice number. |
+| `next_step` | `ShopNextStep` | With `role=seller` only: what the order needs next, as on `GET /orders/:id`. |
 
-With `role=seller`, the list holds only orders that have been paid: an order that is `created` or `payment_pending`, or one cancelled before it was paid, is not listed.
+With `role=seller`, the list holds only orders that have been paid: an order that is `created` or `payment_pending`, or one cancelled before it was paid, is not listed. With `store_id`, a team member whose role reads orders gets the shop's whole list.
 
 ---
 

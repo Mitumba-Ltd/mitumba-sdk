@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { APIClient } from '../client'
-import { StoresModule } from './stores'
+import { APIClient, APIError } from '../client'
+import { StoresModule, stepUpRequired } from './stores'
 
 describe('StoresModule', () => {
   let apiClient: APIClient
@@ -148,5 +148,55 @@ describe('StoresModule', () => {
       expect(apiClient.delete).toHaveBeenCalledWith('/listings/stores/store_1', undefined, undefined)
       expect(result).toEqual({ ok: true })
     })
+  })
+})
+
+describe('StoresModule earnings and payout destinations', () => {
+  let apiClient: APIClient
+  let stores: StoresModule
+
+  beforeEach(() => {
+    apiClient = new APIClient({ baseUrl: 'https://api.mitumba.test' })
+    stores = new StoresModule(apiClient)
+  })
+
+  it('reads the earnings summary, the entries with filters, and one payout', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({})
+    await stores.getEarnings('store 1')
+    expect(apiClient.get).toHaveBeenCalledWith('/orders/stores/store%201/earnings', undefined, undefined)
+    await stores.getEarningsEntries('store_1', { state: 'sent', page: 2 })
+    expect(apiClient.get).toHaveBeenCalledWith('/orders/stores/store_1/earnings/entries', { state: 'sent', page: 2 }, undefined)
+    await stores.getEarningsEntries('store_1')
+    expect(apiClient.get).toHaveBeenCalledWith('/orders/stores/store_1/earnings/entries', undefined, undefined)
+    await stores.getPayout('store_1', 'payout/1')
+    expect(apiClient.get).toHaveBeenCalledWith('/orders/stores/store_1/payouts/payout%2F1', undefined, undefined)
+  })
+
+  it('reads and changes payout destinations', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({})
+    vi.spyOn(apiClient, 'post').mockResolvedValue({})
+    vi.spyOn(apiClient, 'delete').mockResolvedValue({})
+    await stores.getPayoutDestinations('store_1')
+    expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/payout-destinations', undefined, undefined)
+    const input = { method: 'mpesa_mobile' as const, phone: '0712345678', make_default: true }
+    await stores.addPayoutDestination('store_1', input)
+    expect(apiClient.post).toHaveBeenCalledWith('/listings/stores/store_1/payout-destinations', input, undefined)
+    await stores.setDefaultPayoutDestination('store_1', 'd1')
+    expect(apiClient.post).toHaveBeenCalledWith('/listings/stores/store_1/payout-destinations/d1/default', undefined, undefined)
+    await stores.cancelPendingDefault('store_1', 'd1')
+    expect(apiClient.delete).toHaveBeenCalledWith('/listings/stores/store_1/payout-destinations/d1/default', undefined, undefined)
+    await stores.removePayoutDestination('store_1', 'd1')
+    expect(apiClient.delete).toHaveBeenCalledWith('/listings/stores/store_1/payout-destinations/d1', undefined, undefined)
+  })
+
+  it('passes errors through', async () => {
+    vi.spyOn(apiClient, 'post').mockRejectedValue(new APIError(403, { error: 'step_up_required' }))
+    await expect(stores.addPayoutDestination('store_1', { method: 'mpesa_till', till_number: '123456' })).rejects.toMatchObject({ code: 'step_up_required' })
+  })
+
+  it('tells a step-up refusal apart from other errors', () => {
+    expect(stepUpRequired(new APIError(403, { error: 'step_up_required' }))).toBe(true)
+    expect(stepUpRequired(new APIError(403, { error: 'store_forbidden' }))).toBe(false)
+    expect(stepUpRequired(new Error('step_up_required'))).toBe(false)
   })
 })

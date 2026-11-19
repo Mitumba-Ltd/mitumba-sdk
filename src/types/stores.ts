@@ -77,9 +77,13 @@ export interface StoreSettings {
   bus_partners: string[]
   delivery_days_min: number
   delivery_days_max: number
+  /** @deprecated Read only and no longer used for payouts. Use `stores.getPayoutDestinations`. Updates ignore it. */
   payout_method: 'mpesa' | 'bank'
+  /** @deprecated Read only and no longer used for payouts. Use `stores.getPayoutDestinations`. Updates ignore it. */
   payout_mpesa_number: string | null
+  /** @deprecated Read only and no longer used for payouts. Use `stores.getPayoutDestinations`. Updates ignore it. */
   payout_bank_name: string | null
+  /** @deprecated Read only and no longer used for payouts. Use `stores.getPayoutDestinations`. Updates ignore it. */
   payout_account_number: string | null
   payout_frequency: 'instant' | 'daily' | 'weekly'
   accept_returns: boolean

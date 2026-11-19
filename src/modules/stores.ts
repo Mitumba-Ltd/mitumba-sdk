@@ -1,5 +1,22 @@
-import { APIClient } from '../client'
-import type { CreateStoreInput, UpdateStoreInput, StoreStats, StoreSettings, StoreAnalytics, Listing, Store, FollowedStore, RequestOptions } from '../types'
+import { APIClient, APIError } from '../client'
+import type {
+  AddPayoutDestinationInput,
+  CreateStoreInput,
+  FollowedStore,
+  Listing,
+  PayoutDestinations,
+  PayoutDestinationsState,
+  RequestOptions,
+  ShopEarnings,
+  ShopPayout,
+  ShopPayoutEntriesPage,
+  ShopPayoutEntriesParams,
+  Store,
+  StoreAnalytics,
+  StoreSettings,
+  StoreStats,
+  UpdateStoreInput,
+} from '../types'
 
 export class StoresModule {
   constructor(private readonly client: APIClient) {}
@@ -124,4 +141,99 @@ export class StoresModule {
   async delete(storeId: string, options?: RequestOptions): Promise<{ ok: true } | { blocked: true; reasons: string[] }> {
     return this.client.delete<{ ok: true } | { blocked: true; reasons: string[] }>(`/listings/stores/${storeId}`, undefined, options)
   }
+
+  /**
+   * A shop's earnings: per currency, what is in escrow, on hold, awaiting approval, approved,
+   * sending, sent, failed or a test, in minor units. The owner, or a team member who may read
+   * earnings.
+   *
+   * Errors: 403 forbidden (a member whose role does not include earnings); 404 not_found.
+   */
+  async getEarnings(storeId: string, options?: RequestOptions): Promise<ShopEarnings> {
+    return this.client.get<ShopEarnings>(`/orders/stores/${encodeURIComponent(storeId)}/earnings`, undefined, options)
+  }
+
+  /**
+   * Each paid order's entitlement, newest first, 20 per page, optionally of one state.
+   *
+   * Errors: 400 invalid_input (unknown state); 403 forbidden; 404 not_found.
+   */
+  async getEarningsEntries(storeId: string, params?: ShopPayoutEntriesParams, options?: RequestOptions): Promise<ShopPayoutEntriesPage> {
+    return this.client.get<ShopPayoutEntriesPage>(
+      `/orders/stores/${encodeURIComponent(storeId)}/earnings/entries`,
+      params as Record<string, string | number | boolean | undefined> | undefined,
+      options,
+    )
+  }
+
+  /**
+   * One payout of the shop, with the settlement lines that explain it.
+   *
+   * Errors: 403 forbidden; 404 not_found.
+   */
+  async getPayout(storeId: string, payoutId: string, options?: RequestOptions): Promise<ShopPayout> {
+    return this.client.get<ShopPayout>(
+      `/orders/stores/${encodeURIComponent(storeId)}/payouts/${encodeURIComponent(payoutId)}`,
+      undefined,
+      options,
+    )
+  }
+
+  /**
+   * Where the shop is paid: its destinations, masked, with the methods and banks on offer. The
+   * owner, or a team member who may read earnings.
+   *
+   * Errors: 403 store_forbidden.
+   */
+  async getPayoutDestinations(storeId: string, options?: RequestOptions): Promise<PayoutDestinations> {
+    return this.client.get<PayoutDestinations>(`/listings/stores/${encodeURIComponent(storeId)}/payout-destinations`, undefined, options)
+  }
+
+  /**
+   * Owner: add a payout destination. The shop's first applies at once; every later one, and a change
+   * of default, 48 hours later. Needs a second factor used in the last 10 minutes.
+   *
+   * Errors: 400 invalid_input, or a `PayoutDestinationRejection` with `field`; 403 store_forbidden,
+   * step_up_required; 409 method_unavailable, destination_exists, too_many_destinations.
+   */
+  async addPayoutDestination(storeId: string, input: AddPayoutDestinationInput, options?: RequestOptions): Promise<PayoutDestinationsState> {
+    return this.client.post<PayoutDestinationsState>(`/listings/stores/${encodeURIComponent(storeId)}/payout-destinations`, input, options)
+  }
+
+  /**
+   * Owner: make a destination the default, 48 hours from now. Choosing the current default again
+   * cancels any pending change. Needs a recent second factor.
+   *
+   * Errors: 403 store_forbidden, step_up_required; 404 not_found.
+   */
+  async setDefaultPayoutDestination(storeId: string, destinationId: string, options?: RequestOptions): Promise<PayoutDestinationsState> {
+    return this.client.post<PayoutDestinationsState>(this.destinationPath(storeId, destinationId, '/default'), undefined, options)
+  }
+
+  /**
+   * Owner: cancel a pending change of default to this destination. Needs a recent second factor.
+   *
+   * Errors: 403 store_forbidden, step_up_required; 404 not_found; 409 no_pending_default.
+   */
+  async cancelPendingDefault(storeId: string, destinationId: string, options?: RequestOptions): Promise<PayoutDestinationsState> {
+    return this.client.delete<PayoutDestinationsState>(this.destinationPath(storeId, destinationId, '/default'), undefined, options)
+  }
+
+  /**
+   * Owner: remove a destination, or cancel one still cooling off. Needs a recent second factor.
+   *
+   * Errors: 403 store_forbidden, step_up_required; 404 not_found.
+   */
+  async removePayoutDestination(storeId: string, destinationId: string, options?: RequestOptions): Promise<PayoutDestinationsState> {
+    return this.client.delete<PayoutDestinationsState>(this.destinationPath(storeId, destinationId, ''), undefined, options)
+  }
+
+  private destinationPath(storeId: string, destinationId: string, suffix: string): string {
+    return `/listings/stores/${encodeURIComponent(storeId)}/payout-destinations/${encodeURIComponent(destinationId)}${suffix}`
+  }
+}
+
+/** Whether an error asks the caller to sign in again with a second factor before retrying. */
+export function stepUpRequired(error: unknown): boolean {
+  return error instanceof APIError && error.code === 'step_up_required'
 }

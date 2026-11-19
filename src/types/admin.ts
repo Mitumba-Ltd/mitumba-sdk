@@ -161,6 +161,44 @@ export interface AdminPayoutItem {
   needs_correlation?: boolean
 }
 
+// ── Refunds ──
+
+export type AdminRefundStatus = 'pending' | 'sent' | 'failed'
+
+export type AdminRefundReason = 'shop_cancelled' | 'handover_missed' | 'dispute_refund' | 'dispute_partial_refund'
+
+/** What a buyer is owed back, sent to the number that paid once an operator sends it. */
+export interface AdminRefundItem {
+  id: string
+  order_id: string
+  /** Whole units of `currency_code`. */
+  amount: number
+  currency_code: string
+  reason: AdminRefundReason
+  /** `sent` is submitted; it is confirmed once `provider_succeeded_at` is set. */
+  status: AdminRefundStatus
+  created_at: string
+  approved_by: string | null
+  approved_at: string | null
+  /** The masked number it was sent to. */
+  recipient_label: string | null
+  provider_ref: string | null
+  provider_succeeded_at: string | null
+  failure_reason: string | null
+  /** The rail the payment was made on. */
+  payment_rail: string
+  /** For a pending refund: why it cannot be sent from the console, or null when it can. */
+  blocked_by: 'sandbox_payment' | 'rail_unsupported' | 'number_not_kept' | null
+}
+
+export interface AdminRefundSendResult {
+  ok: true
+  /** The provider reference once it accepted the transfer. */
+  ref?: string
+  /** True when the outcome is not known yet; the provider's result settles it. */
+  await_confirmation?: boolean
+}
+
 // ── Messaging safety reports ──
 
 export type MessageReportStatus = 'open' | 'reviewed' | 'dismissed' | 'actioned'

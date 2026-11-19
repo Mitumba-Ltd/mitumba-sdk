@@ -12,6 +12,17 @@ describe('AdminModule', () => {
     admin = new AdminModule(apiClient)
   })
 
+  it('lists and decides shop limit requests', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], page: 1, has_more: false })
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, status: 'approved', approved_limit: 8 })
+    await admin.listShopLimitRequests({ status: 'pending', page: 2 })
+    expect(apiClient.get).toHaveBeenCalledWith('/admin/shop-limit-requests', { status: 'pending', page: 2 }, undefined)
+    await admin.listShopLimitRequests()
+    expect(apiClient.get).toHaveBeenCalledWith('/admin/shop-limit-requests', undefined, undefined)
+    const decision = { decision: 'approve' as const, approved_limit: 8 }
+    expect(await admin.decideShopLimitRequest('r 1', decision)).toEqual({ ok: true, status: 'approved', approved_limit: 8 })
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/shop-limit-requests/r%201/decide', decision, undefined)
+  })
   it('blockIp calls POST /admin/block-ip with a mandatory reason', async () => {
     vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, blocked: '1.2.3.4', hours: 24, expires_at: 'later', note: 'shared address' })
     await admin.blockIp('1.2.3.4', 'credential stuffing')

@@ -200,3 +200,64 @@ describe('StoresModule earnings and payout destinations', () => {
     expect(stepUpRequired(new Error('step_up_required'))).toBe(false)
   })
 })
+
+describe('StoresModule teams and shop limits', () => {
+  let apiClient: APIClient
+  let stores: StoresModule
+
+  beforeEach(() => {
+    apiClient = new APIClient({ baseUrl: 'https://api.mitumba.test' })
+    stores = new StoresModule(apiClient)
+    vi.spyOn(apiClient, 'get').mockResolvedValue({})
+    vi.spyOn(apiClient, 'post').mockResolvedValue({})
+    vi.spyOn(apiClient, 'patch').mockResolvedValue({})
+    vi.spyOn(apiClient, 'delete').mockResolvedValue({})
+  })
+
+  it('reads and changes the team', async () => {
+    await stores.getMembers('s 1')
+    expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/s%201/members', undefined, undefined)
+    await stores.changeMemberRole('s1', 'm/1', 'stock')
+    expect(apiClient.patch).toHaveBeenCalledWith('/listings/stores/s1/members/m%2F1', { role: 'stock' }, undefined)
+    await stores.removeMember('s1', 'm1')
+    expect(apiClient.delete).toHaveBeenCalledWith('/listings/stores/s1/members/m1', undefined, undefined)
+    await stores.leave('s1')
+    expect(apiClient.post).toHaveBeenCalledWith('/listings/stores/s1/leave', undefined, undefined)
+    await stores.getAuditLog('s1', { page: 2 })
+    expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/s1/audit', { page: 2 }, undefined)
+  })
+
+  it('invites, lists and revokes from the shop', async () => {
+    const input = { address: 'a@example.com', role: 'support' as const }
+    await stores.invite('s1', input)
+    expect(apiClient.post).toHaveBeenCalledWith('/listings/stores/s1/invitations', input, undefined)
+    await stores.getInvitations('s1')
+    expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/s1/invitations', undefined, undefined)
+    await stores.revokeInvitation('s1', 'i1')
+    expect(apiClient.delete).toHaveBeenCalledWith('/listings/stores/s1/invitations/i1', undefined, undefined)
+  })
+
+  it('answers invitations received', async () => {
+    await stores.getReceivedInvitations()
+    expect(apiClient.get).toHaveBeenCalledWith('/listings/store-invitations', undefined, undefined)
+    await stores.acceptInvitation('i 1')
+    expect(apiClient.post).toHaveBeenCalledWith('/listings/store-invitations/i%201/accept', undefined, undefined)
+    await stores.declineInvitation('i1')
+    expect(apiClient.post).toHaveBeenCalledWith('/listings/store-invitations/i1/decline', undefined, undefined)
+  })
+
+  it('reads the shop limit and asks for more', async () => {
+    await stores.getStoreLimit()
+    expect(apiClient.get).toHaveBeenCalledWith('/listings/store-limit-request', undefined, undefined)
+    const input = { requested_limit: 8, reason: 'I run several stalls and need a shop for each of them.' }
+    await stores.requestStoreLimit(input)
+    expect(apiClient.post).toHaveBeenCalledWith('/listings/store-limit-request', input, undefined)
+  })
+
+  it('passes refusals through', async () => {
+    vi.spyOn(apiClient, 'post').mockRejectedValue(new APIError(409, { error: 'phone_not_verified' }))
+    await expect(stores.acceptInvitation('i1')).rejects.toMatchObject({ code: 'phone_not_verified' })
+    vi.spyOn(apiClient, 'patch').mockRejectedValue(new APIError(403, { error: 'role_not_allowed' }))
+    await expect(stores.changeMemberRole('s1', 'm1', 'manager')).rejects.toMatchObject({ code: 'role_not_allowed' })
+  })
+})

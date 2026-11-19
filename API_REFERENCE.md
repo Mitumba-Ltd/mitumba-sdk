@@ -617,6 +617,28 @@ Rules: the shop's first destination applies at once; every later one, and every 
 
 ---
 
+### Shop teams: `/listings/stores/:storeId/...`, `/listings/store-invitations`
+
+A shop has members, each with one role. Roles: `owner`, `manager`, `fulfilment`, `stock`, `support`, `finance`; each grants a fixed set of `StorePermission`s. Every shop route answers `403 store_forbidden` when the caller's role lacks the permission. Changing the team needs a second factor used in the last 10 minutes (`403 step_up_required`).
+
+- `GET /listings/stores/mine` (`stores.getMyStores`): every open shop the caller works in, owned or joined, each `Store & StoreMembershipFields`: `my_role`, `my_permissions`, `is_owner`, `listing_count`.
+- `GET /members` (`stores.getMembers`), `store:members.manage`: `StoreMembers` `{ data: [{ id, name, role, joined_at, is_you, can_manage }], assignable_roles }`.
+- `PATCH /members/:memberId` `{ role }` (`stores.changeMemberRole`) and `DELETE /members/:memberId` (`stores.removeMember`): the owner manages every role; a manager, the roles below manager. Errors: `403 role_not_allowed`, `404 member_not_found`.
+- `POST /leave` (`stores.leave`): leave the team. `409 owner_cannot_leave`.
+- `POST /invitations` `{ address, role }` (`stores.invite`): `address` is an email address or a Kenyan phone number. `202 InviteToStoreResult` `{ message, invitation }`, the same whether or not an account uses the address. An invitation lasts 7 days. Errors: `400 invalid_address`, `403 role_not_allowed`, `409 too_many_invitations` (20 open).
+- `GET /invitations` (`stores.getInvitations`) and `DELETE /invitations/:id` (`stores.revokeInvitation`): open invitations, with masked addresses. `404 invitation_not_found`.
+- `GET /listings/store-invitations` (`stores.getReceivedInvitations`): `ReceivedStoreInvitation[]`, with the shop, the role and its permissions.
+- `POST /listings/store-invitations/:id/accept` (`stores.acceptInvitation`) and `.../decline` (`stores.declineInvitation`). Accepting needs a verified phone number (`409 phone_not_verified`); the manager role also needs a recent second factor. Other errors: `409 membership_limit` (10 teams), `409 already_member`, `404 invitation_not_found`.
+- `GET /audit?page=` (`stores.getAuditLog`), `store:audit.read`: `StoreAuditPage`, newest first, 50 per page.
+
+### Shop limit: `/listings/store-limit-request`
+
+- `GET` (`stores.getStoreLimit`): `StoreLimitState` `{ limit, open_shops, at_limit, request }`.
+- `POST` `{ requested_limit, reason }` (`stores.requestStoreLimit`): only at the limit, with a reason of at least 30 characters, one pending request at a time. `201 StoreLimitState`. Errors: `400 invalid_input`, `403 not_a_retail_seller`, `409 not_at_limit` | `request_pending`.
+- Operators: `GET /admin/shop-limit-requests?status=&page=` (`admin.listShopLimitRequests`, `admin:read`) returns `AdminShopLimitRequestsPage`. `POST /admin/shop-limit-requests/:id/decide` (`admin.decideShopLimitRequest`, `sellers:verify`) takes `DecideShopLimitInput`: approve with `approved_limit` (at most 50), or reject with a `note` of at least 10 characters. `404 not_found` when the request is not pending.
+
+---
+
 ### Shop earnings: `/orders/stores/:storeId/...`
 
 Owner, or a member who may read earnings (`403 forbidden` for other members, `404 not_found` otherwise). Amounts are minor units of `currency`.

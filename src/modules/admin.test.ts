@@ -102,6 +102,22 @@ describe('AdminModule', () => {
     expect(apiClient.post).toHaveBeenCalledWith('/admin/payouts/pay_1/disburse', undefined, undefined)
   })
 
+  it('listRefunds calls GET /admin/refunds with its filters', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], page: 1, page_size: 25 })
+    await admin.listRefunds({ status: 'pending', page: 2 })
+    expect(apiClient.get).toHaveBeenCalledWith('/admin/refunds', { status: 'pending', page: 2 }, undefined)
+    await admin.listRefunds()
+    expect(apiClient.get).toHaveBeenCalledWith('/admin/refunds', undefined, undefined)
+  })
+
+  it('sendRefund calls POST /admin/refunds/:id/send, and passes a refusal through', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ ok: true, ref: 'orig-1' })
+    await admin.sendRefund('ref 1')
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/refunds/ref%201/send', undefined, undefined)
+    vi.spyOn(apiClient, 'post').mockRejectedValueOnce(new Error('refund_sandbox_payment'))
+    await expect(admin.sendRefund('ref_2')).rejects.toThrow('refund_sandbox_payment')
+  })
+
   it('listReports calls GET /admin/reports', async () => {
     vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], page: 1, page_size: 20 })
     await admin.listReports({ status: 'open', type: 'listing' })

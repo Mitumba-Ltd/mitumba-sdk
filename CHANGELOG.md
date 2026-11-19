@@ -1,5 +1,19 @@
 # @mitumba/sdk
 
+## 5.32.0
+
+### Minor Changes
+
+- fe46c87: Admin refunds.
+
+  - `sdk.admin.listRefunds({ status?, page? })` (`GET /admin/refunds`): refunds owed to buyers, with the masked recipient once sent and, while pending, what blocks sending.
+  - `sdk.admin.sendRefund(id)` (`POST /admin/refunds/:id/send`): send a pending refund to the number that paid.
+  - New types: `AdminRefundItem`, `AdminRefundStatus`, `AdminRefundReason`, `AdminRefundSendResult`.
+
+### Patch Changes
+
+- e1ef424: Document `409 default_destination` on `stores.removePayoutDestination`: the current default cannot be removed until another destination has become the default.
+
 ## 5.31.0
 
 ### Minor Changes

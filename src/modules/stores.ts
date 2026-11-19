@@ -220,9 +220,11 @@ export class StoresModule {
   }
 
   /**
-   * Owner: remove a destination, or cancel one still cooling off. Needs a recent second factor.
+   * Owner: remove a destination, or cancel one still cooling off. The current default cannot be
+   * removed: make another destination the default first, and remove this one once that applies.
+   * Needs a recent second factor.
    *
-   * Errors: 403 store_forbidden, step_up_required; 404 not_found.
+   * Errors: 403 store_forbidden, step_up_required; 404 not_found; 409 default_destination.
    */
   async removePayoutDestination(storeId: string, destinationId: string, options?: RequestOptions): Promise<PayoutDestinationsState> {
     return this.client.delete<PayoutDestinationsState>(this.destinationPath(storeId, destinationId, ''), undefined, options)

@@ -2,7 +2,7 @@ import { APIClient } from '../client'
 import type {
   BlockedIp, SystemStats, AdminUserListItem, AdminUserDetail, AdminStoreListItem,
   AdminStoreDetail, AdminVerificationItem, StiEvent, AdminListingItem,
-  AdminOrderListItem, AdminOrderDetail, AdminPayoutItem, AdminReport,
+  AdminOrderListItem, AdminOrderDetail, AdminPayoutItem, AdminRefundItem, AdminRefundSendResult, AdminRefundStatus, AdminReport,
   AdminVaziOutfit, RequestOptions, AdminPermission, AdminRolePreset,
   AdminPermissionDescription, AdminOperator, AdminAuditEntry, AdminAuditQuery, PendingPayoutApproval,
   AdminWholesalePendingStore, OAuthClientSummary, OAuthClient, RegisterOAuthClientInput,
@@ -175,6 +175,27 @@ export class AdminModule {
 
   async disbursePayout(payoutId: string, options?: RequestOptions): Promise<{ ok: true; result: unknown }> {
     return this.client.post<{ ok: true; result: unknown }>(`/admin/payouts/${payoutId}/disburse`, undefined, options)
+  }
+
+  // ── Refunds ──
+
+  /**
+   * Refunds owed to buyers, newest first, 25 per page. `admin:read`.
+   *
+   * Errors: 400 invalid_input (unknown status).
+   */
+  async listRefunds(params?: { status?: AdminRefundStatus; page?: number }, options?: RequestOptions): Promise<{ data: AdminRefundItem[]; page: number; page_size: number }> {
+    return this.client.get<{ data: AdminRefundItem[]; page: number; page_size: number }>('/admin/refunds', params as Record<string, string | number | boolean | undefined> | undefined, options)
+  }
+
+  /**
+   * Send a pending refund to the number that paid. `payouts:disburse` with a recent passkey.
+   *
+   * Errors: 403 forbidden; 404 refund_not_found; 409 refund_sandbox_payment, refund_number_unavailable;
+   * 503 refund_disbursement_paused, refund_method_unsupported.
+   */
+  async sendRefund(refundId: string, options?: RequestOptions): Promise<AdminRefundSendResult> {
+    return this.client.post<AdminRefundSendResult>(`/admin/refunds/${encodeURIComponent(refundId)}/send`, undefined, options)
   }
 
   // ── Reports Moderation ──

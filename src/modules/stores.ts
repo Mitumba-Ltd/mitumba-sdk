@@ -1,18 +1,29 @@
 import { APIClient, APIError } from '../client'
 import type {
+  AcceptStoreInvitationResult,
   AddPayoutDestinationInput,
   CreateStoreInput,
   FollowedStore,
+  InvitableStoreRole,
+  InviteToStoreInput,
+  InviteToStoreResult,
   Listing,
   PayoutDestinations,
   PayoutDestinationsState,
+  ReceivedStoreInvitation,
   RequestOptions,
+  RequestStoreLimitInput,
   ShopEarnings,
   ShopPayout,
   ShopPayoutEntriesPage,
   ShopPayoutEntriesParams,
   Store,
   StoreAnalytics,
+  StoreAuditPage,
+  StoreInvitationListItem,
+  StoreLimitState,
+  StoreMembers,
+  StoreMembershipFields,
   StoreSettings,
   StoreStats,
   UpdateStoreInput,
@@ -54,10 +65,11 @@ export class StoresModule {
   }
 
   /**
-   * Get all stores owned by the authenticated user.
+   * The shops the authenticated user works in, owned or joined, each with their role in it and the
+   * permissions it grants. Show only the actions those permissions allow.
    */
-  async getMyStores(options?: RequestOptions): Promise<{ data: Store[] }> {
-    return this.client.get<{ data: Store[] }>('/listings/stores/mine', undefined, options)
+  async getMyStores(options?: RequestOptions): Promise<{ data: Array<Store & StoreMembershipFields> }> {
+    return this.client.get<{ data: Array<Store & StoreMembershipFields> }>('/listings/stores/mine', undefined, options)
   }
 
   /**
@@ -232,6 +244,128 @@ export class StoresModule {
 
   private destinationPath(storeId: string, destinationId: string, suffix: string): string {
     return `/listings/stores/${encodeURIComponent(storeId)}/payout-destinations/${encodeURIComponent(destinationId)}${suffix}`
+  }
+
+  // ── Team ──────────────────────────────────────────────────────────────────
+
+  /**
+   * The shop's members, and the roles the caller may give. `store:members.manage`.
+   *
+   * Errors: 403 store_forbidden; 404 not_found.
+   */
+  async getMembers(storeId: string, options?: RequestOptions): Promise<StoreMembers> {
+    return this.client.get<StoreMembers>(`${this.storePath(storeId)}/members`, undefined, options)
+  }
+
+  /**
+   * Change a member's role. The owner manages every role; a manager, the roles below manager.
+   * Needs a second factor used in the last 10 minutes.
+   *
+   * Errors: 400 invalid_input; 403 store_forbidden, step_up_required, role_not_allowed; 404 member_not_found.
+   */
+  async changeMemberRole(storeId: string, memberId: string, role: InvitableStoreRole, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.patch<{ ok: true }>(`${this.storePath(storeId)}/members/${encodeURIComponent(memberId)}`, { role }, options)
+  }
+
+  /**
+   * Remove a member. They lose access on their next request. Needs a recent second factor.
+   *
+   * Errors: 403 store_forbidden, step_up_required, role_not_allowed; 404 member_not_found.
+   */
+  async removeMember(storeId: string, memberId: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.delete<{ ok: true }>(`${this.storePath(storeId)}/members/${encodeURIComponent(memberId)}`, undefined, options)
+  }
+
+  /**
+   * Leave a shop's team. The owner cannot leave their own shop.
+   *
+   * Errors: 404 member_not_found; 409 owner_cannot_leave.
+   */
+  async leave(storeId: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`${this.storePath(storeId)}/leave`, undefined, options)
+  }
+
+  /**
+   * Invite someone by email address or Kenyan phone number. The answer is the same whether or not an
+   * account uses the address. Needs a recent second factor. The invitation lasts 7 days.
+   *
+   * Errors: 400 invalid_input, invalid_address; 403 store_forbidden, step_up_required, role_not_allowed;
+   * 404 not_found; 409 too_many_invitations.
+   */
+  async invite(storeId: string, input: InviteToStoreInput, options?: RequestOptions): Promise<InviteToStoreResult> {
+    return this.client.post<InviteToStoreResult>(`${this.storePath(storeId)}/invitations`, input, options)
+  }
+
+  /**
+   * The shop's open invitations, newest first. `store:members.manage`.
+   *
+   * Errors: 403 store_forbidden; 404 not_found.
+   */
+  async getInvitations(storeId: string, options?: RequestOptions): Promise<{ data: StoreInvitationListItem[] }> {
+    return this.client.get<{ data: StoreInvitationListItem[] }>(`${this.storePath(storeId)}/invitations`, undefined, options)
+  }
+
+  /**
+   * Revoke an open invitation. Needs a recent second factor.
+   *
+   * Errors: 403 store_forbidden, step_up_required, role_not_allowed; 404 invitation_not_found.
+   */
+  async revokeInvitation(storeId: string, invitationId: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.delete<{ ok: true }>(`${this.storePath(storeId)}/invitations/${encodeURIComponent(invitationId)}`, undefined, options)
+  }
+
+  /** Invitations the caller received and can still answer, newest first. */
+  async getReceivedInvitations(options?: RequestOptions): Promise<{ data: ReceivedStoreInvitation[] }> {
+    return this.client.get<{ data: ReceivedStoreInvitation[] }>('/listings/store-invitations', undefined, options)
+  }
+
+  /**
+   * Join a shop. Needs a verified phone number; the manager role also needs a recent second factor.
+   *
+   * Errors: 403 step_up_required; 404 invitation_not_found, not_found; 409 phone_not_verified,
+   * membership_limit, already_member.
+   */
+  async acceptInvitation(invitationId: string, options?: RequestOptions): Promise<AcceptStoreInvitationResult> {
+    return this.client.post<AcceptStoreInvitationResult>(`/listings/store-invitations/${encodeURIComponent(invitationId)}/accept`, undefined, options)
+  }
+
+  /**
+   * Decline an invitation.
+   *
+   * Errors: 404 invitation_not_found.
+   */
+  async declineInvitation(invitationId: string, options?: RequestOptions): Promise<{ ok: true }> {
+    return this.client.post<{ ok: true }>(`/listings/store-invitations/${encodeURIComponent(invitationId)}/decline`, undefined, options)
+  }
+
+  /**
+   * The shop's audit log, newest first, 50 per page. `store:audit.read`.
+   *
+   * Errors: 403 store_forbidden; 404 not_found.
+   */
+  async getAuditLog(storeId: string, params?: { page?: number }, options?: RequestOptions): Promise<StoreAuditPage> {
+    return this.client.get<StoreAuditPage>(`${this.storePath(storeId)}/audit`, params, options)
+  }
+
+  // ── Shop limit ────────────────────────────────────────────────────────────
+
+  /** The caller's shop limit, how many shops they own, and their latest request for more. */
+  async getStoreLimit(options?: RequestOptions): Promise<StoreLimitState> {
+    return this.client.get<StoreLimitState>('/listings/store-limit-request', undefined, options)
+  }
+
+  /**
+   * Ask for a higher shop limit, at the limit, with a reason of at least 30 characters. One request
+   * at a time.
+   *
+   * Errors: 400 invalid_input; 403 not_a_retail_seller; 409 not_at_limit, request_pending.
+   */
+  async requestStoreLimit(input: RequestStoreLimitInput, options?: RequestOptions): Promise<StoreLimitState> {
+    return this.client.post<StoreLimitState>('/listings/store-limit-request', input, options)
+  }
+
+  private storePath(storeId: string): string {
+    return `/listings/stores/${encodeURIComponent(storeId)}`
   }
 }
 

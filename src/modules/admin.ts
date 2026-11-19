@@ -3,6 +3,7 @@ import type {
   BlockedIp, SystemStats, AdminUserListItem, AdminUserDetail, AdminStoreListItem,
   AdminStoreDetail, AdminVerificationItem, StiEvent, AdminListingItem,
   AdminOrderListItem, AdminOrderDetail, AdminPayoutItem, AdminRefundItem, AdminRefundSendResult, AdminRefundStatus, AdminReport,
+  AdminShopLimitRequestsPage, DecideShopLimitInput, DecideShopLimitResult, StoreLimitRequestStatus,
   AdminVaziOutfit, RequestOptions, AdminPermission, AdminRolePreset,
   AdminPermissionDescription, AdminOperator, AdminAuditEntry, AdminAuditQuery, PendingPayoutApproval,
   AdminWholesalePendingStore, OAuthClientSummary, OAuthClient, RegisterOAuthClientInput,
@@ -196,6 +197,26 @@ export class AdminModule {
    */
   async sendRefund(refundId: string, options?: RequestOptions): Promise<AdminRefundSendResult> {
     return this.client.post<AdminRefundSendResult>(`/admin/refunds/${encodeURIComponent(refundId)}/send`, undefined, options)
+  }
+
+  /**
+   * Requests for a higher shop limit, 25 per page: pending oldest first, decided latest first.
+   * `admin:read`.
+   *
+   * Errors: 400 invalid_input (unknown status).
+   */
+  async listShopLimitRequests(params?: { status?: StoreLimitRequestStatus; page?: number }, options?: RequestOptions): Promise<AdminShopLimitRequestsPage> {
+    return this.client.get<AdminShopLimitRequestsPage>('/admin/shop-limit-requests', params, options)
+  }
+
+  /**
+   * Approve a request with a new limit (above the current one, at most 50), or reject it with a note
+   * of at least 10 characters. The owner is told. `sellers:verify`.
+   *
+   * Errors: 400 invalid_input; 403 forbidden; 404 not_found (not pending).
+   */
+  async decideShopLimitRequest(requestId: string, input: DecideShopLimitInput, options?: RequestOptions): Promise<DecideShopLimitResult> {
+    return this.client.post<DecideShopLimitResult>(`/admin/shop-limit-requests/${encodeURIComponent(requestId)}/decide`, input, options)
   }
 
   // ── Reports Moderation ──

@@ -1,5 +1,11 @@
 # @mitumba/sdk
 
+## 5.34.0
+
+### Minor Changes
+
+- 2d97e93: `sdk.notifications` can read and change notification preferences: `getPreferences`, `updatePreferences` (category × channel cells, `null` to reset), `updatePreferenceSettings` (quiet hours and muted pop-ups) and `setMarketingConsent`. New types: `NotificationPreferences`, `NotificationPreferenceCategory`, `NotificationChannel`, `QuietHours`, `MutableFlashKind`, `PreferenceCellChange`, `PreferenceSettingsChange` and `MarketingConsentChange`.
+
 ## 5.33.0
 
 ### Minor Changes

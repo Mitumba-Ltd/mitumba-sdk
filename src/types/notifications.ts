@@ -122,3 +122,62 @@ export interface LiveUnreadOptions {
   /** Calls back when the page regains focus or becomes visible. Default: window focus and document visibility in a browser; nothing elsewhere. */
   onResume?: (listener: () => void) => () => void
 }
+
+// ── Notification preferences (Settings → Notifications) ──
+
+/** A way to reach someone. */
+export type NotificationChannel = 'in_app' | 'email' | 'push' | 'whatsapp' | 'telegram' | 'sms'
+
+/** Pop-up kinds a person may mute. Security and approval pop-ups can't be muted. */
+export type MutableFlashKind = 'announcement' | 'account_action'
+
+/** Quiet hours: `start` and `end` are 24-hour `HH:MM`; an end before the start is an overnight window. */
+export interface QuietHours {
+  enabled: boolean
+  start: string
+  end: string
+  /** IANA time zone, e.g. `Africa/Nairobi`. */
+  timeZone: string
+}
+
+export interface NotificationPreferenceCategory {
+  id: NotificationCategory
+  label: string
+  description: string
+  kind: 'transactional' | 'marketing' | 'either'
+  /** Some events here still arrive by in-app and email when every channel is off: show a lock. */
+  required: boolean
+  /** Only the channels this category's events use. */
+  channels: Array<{ channel: NotificationChannel; enabled: boolean; default: boolean }>
+}
+
+/** Everything the notification settings page shows. Every preferences method answers it whole. */
+export interface NotificationPreferences {
+  categories: NotificationPreferenceCategory[]
+  /** Whether each channel can reach the caller right now. */
+  channels: Array<{ channel: NotificationChannel; available: boolean }>
+  quietHours: QuietHours
+  mutedFlashKinds: MutableFlashKind[]
+  /** Channels the caller has opted in to marketing on. */
+  marketingConsent: NotificationChannel[]
+  /** Text to show next to each marketing opt-in toggle. */
+  consentWording: Partial<Record<NotificationChannel, string>>
+}
+
+export interface PreferenceCellChange {
+  category: NotificationCategory
+  channel: NotificationChannel
+  /** `null` returns the cell to its default. */
+  enabled: boolean | null
+}
+
+/** At least one field. */
+export interface PreferenceSettingsChange {
+  quietHours?: QuietHours
+  mutedFlashKinds?: MutableFlashKind[]
+}
+
+export interface MarketingConsentChange {
+  channel: NotificationChannel
+  granted: boolean
+}

@@ -20,6 +20,7 @@ import { BusinessesModule } from './modules/businesses'
 import { AdminModule } from './modules/admin'
 import { DisputesModule } from './modules/disputes'
 import { UploadsModule } from './modules/uploads'
+import { DocumentsModule } from './modules/documents'
 import { ReportsModule } from './modules/reports'
 import { WholesaleModule } from './modules/wholesale'
 import { IamModule } from './modules/iam'
@@ -47,6 +48,7 @@ export class MitumbaClient {
   public readonly admin: AdminModule
   public readonly disputes: DisputesModule
   public readonly uploads: UploadsModule
+  public readonly documents: DocumentsModule
   public readonly reports: ReportsModule
   public readonly wholesale: WholesaleModule
   public readonly iam: IamModule
@@ -74,6 +76,7 @@ export class MitumbaClient {
     this.admin = new AdminModule(this.api)
     this.disputes = new DisputesModule(this.api)
     this.uploads = new UploadsModule(this.api)
+    this.documents = new DocumentsModule(this.api)
     this.reports = new ReportsModule(this.api)
     this.wholesale = new WholesaleModule(this.api)
     this.iam = new IamModule(this.api)
@@ -150,6 +153,7 @@ export { BusinessesModule } from './modules/businesses'
 export { AdminModule } from './modules/admin'
 export { DisputesModule } from './modules/disputes'
 export { UploadsModule } from './modules/uploads'
+export { DocumentsModule, isDocumentId } from './modules/documents'
 export { ReportsModule } from './modules/reports'
 export { WholesaleModule } from './modules/wholesale'
 export { IamModule } from './modules/iam'

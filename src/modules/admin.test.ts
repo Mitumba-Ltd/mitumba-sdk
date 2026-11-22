@@ -77,6 +77,13 @@ describe('AdminModule', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/admin/stores', { verified: 1 }, undefined)
   })
 
+  it('getDocument reads a private document as a file from GET /admin/documents/:id', async () => {
+    const file = { blob: new Blob(['x']), contentType: 'application/pdf', headers: new Headers() }
+    vi.spyOn(apiClient, 'getFile').mockResolvedValue(file)
+    expect(await admin.getDocument('doc_abc')).toBe(file)
+    expect(apiClient.getFile).toHaveBeenCalledWith('/admin/documents/doc_abc', undefined, undefined)
+  })
+
   it('listVerifications calls GET /admin/verifications', async () => {
     vi.spyOn(apiClient, 'get').mockResolvedValue({ data: [], page: 1, page_size: 20 })
     await admin.listVerifications({ status: 'pending' })

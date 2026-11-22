@@ -9,7 +9,7 @@ import type {
   AdminWholesalePendingStore, OAuthClientSummary, OAuthClient, RegisterOAuthClientInput,
   RegisteredOAuthClient, OidcSigningKey, LibraryDocument, LibraryListing, LibraryOccurrenceRecorded,
   AdminMessageReportList, AdminMessageReportDetail, MessageReportStatus, ResolveMessageReportInput, ResolveMessageReportResult,
-  PlatformSetting, PlatformSettingDetail, ChangePlatformSettingInput, ChangePlatformSettingResult, SendTestNotificationResult,
+  FileResponse, PlatformSetting, PlatformSettingDetail, ChangePlatformSettingInput, ChangePlatformSettingResult, SendTestNotificationResult,
 } from '../types'
 
 export class AdminModule {
@@ -113,6 +113,14 @@ export class AdminModule {
   }
 
   // ── Verification Queue ──
+
+  /**
+   * Read a private document as an operator. Dispute evidence needs `admin:read`; identity documents
+   * and wholesale verification photos need `sellers:verify`.
+   */
+  async getDocument(documentId: string, options?: RequestOptions): Promise<FileResponse> {
+    return this.client.getFile(`/admin/documents/${encodeURIComponent(documentId)}`, undefined, options)
+  }
 
   async listVerifications(params?: { status?: 'pending' | 'verified' | 'rejected' | 'unverified'; page?: number }, options?: RequestOptions): Promise<{ data: AdminVerificationItem[]; page: number; page_size: number }> {
     return this.client.get<{ data: AdminVerificationItem[]; page: number; page_size: number }>('/admin/verifications', params as Record<string, string | number | boolean | undefined>, options)

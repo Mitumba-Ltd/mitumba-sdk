@@ -95,7 +95,10 @@ export interface StoreSettings {
   operating_days: 'everyday' | 'weekdays' | 'custom'
   custom_days: string[]
   phone_verified: boolean
-  /** A URL, or a private document id (`documents.upload` with purpose `identity_document` for this store). */
+  /**
+   * A URL, or a private document id. Read-only here: set it with `stores.submitVerification`;
+   * `updateSettings` ignores it.
+   */
   id_document_url: string | null
   id_verified: boolean
   kra_pin: string | null
@@ -111,4 +114,22 @@ export interface StoreAnalytics {
   geography: { city: string; orders: number }[]
   sti_trend: { date: string; score: number }[]
   totals: { views: number; orders: number; revenue: number; followers: number }
+}
+
+// ── Seller identity verification ──
+
+export const SELLER_VERIFICATION_STATUSES = ['unverified', 'pending', 'verified', 'rejected'] as const
+export type SellerVerificationStatus = typeof SELLER_VERIFICATION_STATUSES[number]
+
+/** Where the shop owner's identity verification stands. */
+export interface SellerVerification {
+  status: SellerVerificationStatus
+  submitted_at: string | null
+  decided_at: string | null
+  /** The reason given for a rejection. */
+  note: string | null
+  /** The submitted private document, read with `documents.get`. */
+  document_id: string | null
+  /** True when the document on file is a URL rather than a private document. */
+  legacy_document: boolean
 }

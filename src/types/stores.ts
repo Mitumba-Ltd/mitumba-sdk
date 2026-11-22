@@ -95,6 +95,7 @@ export interface StoreSettings {
   operating_days: 'everyday' | 'weekdays' | 'custom'
   custom_days: string[]
   phone_verified: boolean
+  /** A URL, or a private document id (`documents.upload` with purpose `identity_document` for this store). */
   id_document_url: string | null
   id_verified: boolean
   kra_pin: string | null

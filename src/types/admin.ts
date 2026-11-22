@@ -89,6 +89,7 @@ export interface AdminVerificationItem {
   display_name: string | null
   email: string | null
   phone: string | null
+  /** A URL, or a private document id (see `isDocumentId`) read with `admin.getDocument`. */
   id_document_url: string | null
   kra_pin: string | null
 }
@@ -456,6 +457,8 @@ export interface AdminWholesalePendingStore {
   reviewed_at?: string | null
   /** Rejection reason, also shown to the seller. */
   review_note?: string | null
+  /** Each a URL, or a private document id (see `isDocumentId`) read with `admin.getDocument`. */
+  verification_photos?: string[]
   [key: string]: unknown
 }
 

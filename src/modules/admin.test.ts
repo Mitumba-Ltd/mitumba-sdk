@@ -90,6 +90,12 @@ describe('AdminModule', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/admin/verifications', { status: 'pending' }, undefined)
   })
 
+  it('rejectVerification sends the required reason', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, verification_status: 'rejected' })
+    await admin.rejectVerification('u_1', 'Blurred photo.')
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/verifications/u_1/reject', { reason: 'Blurred photo.' }, undefined)
+  })
+
   it('approveVerification calls POST /admin/verifications/:id/approve', async () => {
     vi.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, verification_status: 'verified' })
     await admin.approveVerification('u_1')

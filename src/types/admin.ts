@@ -86,6 +86,10 @@ export interface AdminVerificationItem {
   seller_type: string
   verification_status: 'unverified' | 'pending' | 'verified' | 'rejected'
   updated_at: string
+  verification_submitted_at?: string | null
+  verification_decided_at?: string | null
+  /** The reason given for the last rejection. */
+  verification_note?: string | null
   display_name: string | null
   email: string | null
   phone: string | null

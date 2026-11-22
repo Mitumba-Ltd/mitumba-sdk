@@ -98,6 +98,18 @@ describe('StoresModule', () => {
     })
   })
 
+  describe('verification', () => {
+    it('reads with GET and submits a document id with POST /listings/stores/:storeId/verification', async () => {
+      const view = { status: 'pending', submitted_at: 't', decided_at: null, note: null, document_id: 'doc_a', legacy_document: false }
+      vi.spyOn(apiClient, 'get').mockResolvedValue(view)
+      vi.spyOn(apiClient, 'post').mockResolvedValue(view)
+      expect(await storesModule.getVerification('store_1')).toEqual(view)
+      expect(apiClient.get).toHaveBeenCalledWith('/listings/stores/store_1/verification', undefined, undefined)
+      expect(await storesModule.submitVerification('store_1', 'doc_a')).toEqual(view)
+      expect(apiClient.post).toHaveBeenCalledWith('/listings/stores/store_1/verification', { document_id: 'doc_a' }, undefined)
+    })
+  })
+
   describe('updateSettings', () => {
     it('calls PUT /listings/stores/:storeId/settings', async () => {
       vi.spyOn(apiClient, 'put').mockResolvedValue({ ok: true })

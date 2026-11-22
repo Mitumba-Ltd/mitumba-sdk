@@ -82,6 +82,11 @@ export interface SaveWholesaleStoreInput {
   description?: string
   logo_url?: string
   origins?: string[]
+  /**
+   * Up to 8. Each is a URL or a private document id (`documents.upload` with purpose
+   * `wholesale_verification` for this store). Ids are accepted only once the store exists.
+   */
+  verification_photos?: string[]
 }
 
 export interface AddDepotInput {

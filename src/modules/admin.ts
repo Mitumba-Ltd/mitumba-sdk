@@ -130,8 +130,12 @@ export class AdminModule {
     return this.client.post<{ ok: true; verification_status: 'verified' }>(`/admin/verifications/${userId}/approve`, undefined, options)
   }
 
-  async rejectVerification(userId: string, reason?: string, options?: RequestOptions): Promise<{ ok: true; verification_status: 'rejected' }> {
-    return this.client.post<{ ok: true; verification_status: 'rejected' }>(`/admin/verifications/${userId}/reject`, reason ? { reason } : undefined, options)
+  /**
+   * Reject a seller's verification. `reason` (1–500 characters) is required and shown to the seller.
+   * 409 `already_decided` when already rejected.
+   */
+  async rejectVerification(userId: string, reason: string, options?: RequestOptions): Promise<{ ok: true; verification_status: 'rejected' }> {
+    return this.client.post<{ ok: true; verification_status: 'rejected' }>(`/admin/verifications/${userId}/reject`, { reason }, options)
   }
 
   // ── STI ──

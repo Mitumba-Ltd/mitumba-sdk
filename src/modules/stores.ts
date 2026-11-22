@@ -12,6 +12,7 @@ import type {
   PayoutDestinationsState,
   ReceivedStoreInvitation,
   RequestOptions,
+  SellerVerification,
   RequestStoreLimitInput,
   ShopEarnings,
   ShopPayout,
@@ -102,6 +103,20 @@ export class StoresModule {
    */
   async getStats(storeId: string, options?: RequestOptions): Promise<StoreStats> {
     return this.client.get<StoreStats>(`/listings/stores/${storeId}/stats`, undefined, options)
+  }
+
+  /** Where the shop owner's identity verification stands. Owner only (403 otherwise). */
+  async getVerification(storeId: string, options?: RequestOptions): Promise<SellerVerification> {
+    return this.client.get<SellerVerification>(`/listings/stores/${storeId}/verification`, undefined, options)
+  }
+
+  /**
+   * Submit an identity document for review: upload it first with `documents.upload` (purpose
+   * `identity_document`, this store). Owner only. 400 `invalid_document` for any other document,
+   * 409 `already_verified` or `no_seller_profile`.
+   */
+  async submitVerification(storeId: string, documentId: string, options?: RequestOptions): Promise<SellerVerification> {
+    return this.client.post<SellerVerification>(`/listings/stores/${storeId}/verification`, { document_id: documentId }, options)
   }
 
   /**

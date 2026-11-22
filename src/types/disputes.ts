@@ -11,6 +11,7 @@ export interface DisputeEvidence {
   id: string
   uploader_role: 'buyer' | 'seller' | 'admin'
   type: 'image' | 'text'
+  /** Text, an image URL, or a private document id (`doc_…`, see `isDocumentId`) read with `documents.get`. */
   content: string
   created_at: string
 }
@@ -52,12 +53,16 @@ export interface RaiseDisputeInput {
   description: string
   desired_resolution: DesiredResolution
   evidence_urls?: string[]
+  /** Private document ids (`documents.upload` with purpose `dispute_evidence` for this order). At most 6 items with `evidence_urls`. */
+  evidence_documents?: string[]
 }
 
 export interface RespondDisputeInput {
   accept: boolean
   message?: string
   evidence_urls?: string[]
+  /** Private document ids (`documents.upload` with purpose `dispute_evidence` for this order). At most 6 items with `evidence_urls`. */
+  evidence_documents?: string[]
 }
 
 export interface ResolveDisputeInput {
